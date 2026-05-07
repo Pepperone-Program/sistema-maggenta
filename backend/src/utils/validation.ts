@@ -136,6 +136,22 @@ export const dataPromocionalSchema = Joi.object({
   habilitado: Joi.string().valid('S', 'N').allow(null, '').default('S'),
 });
 
+export const bannerSchema = Joi.object({
+  id_banner: Joi.number().integer().positive().optional(),
+  tipo: Joi.string()
+    .valid('home_mega', 'home_grande', 'banner_medio', 'mega_banner')
+    .required(),
+  titulo: Joi.string().max(255).allow(null, ''),
+  url: Joi.string().max(500).allow(null, ''),
+  id_tipo_produto: Joi.number().integer().min(0).allow(null).default(0),
+  data_inicial: Joi.date().allow(null, ''),
+  data_final: Joi.date().allow(null, ''),
+  ordem: Joi.number().integer().min(0).allow(null).default(0),
+  habilitado: Joi.string().valid('S', 'N').allow(null, '').default('S'),
+  cliques: Joi.number().integer().min(0).allow(null),
+  url_banner: Joi.string().max(500).allow(null, ''),
+});
+
 export const clienteSchema = Joi.object({
   id_cliente: Joi.number().integer().positive().optional(),
   pessoa: Joi.string().valid('F', 'J').allow(null, '').default('J'),

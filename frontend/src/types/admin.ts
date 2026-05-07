@@ -18,6 +18,7 @@ export type ResourceConfig = {
   columns: ResourceField[];
   formFields: ResourceField[];
   defaultValues?: Record<string, string | number>;
+  imageManager?: boolean;
 };
 
 export type ProdutoRanking = {

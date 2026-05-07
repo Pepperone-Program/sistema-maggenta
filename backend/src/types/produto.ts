@@ -31,6 +31,15 @@ export interface Produto {
   video: string;
   habilitado: string;
   cod_forn: string | null;
+  imagens?: ProdutoImagem[];
+}
+
+export interface ProdutoImagem {
+  id_imagem: number;
+  id_produto: number;
+  url_imagem: string;
+  ordem_imagem: number;
+  created_at: string;
 }
 
 export interface CreateProdutoDTO {

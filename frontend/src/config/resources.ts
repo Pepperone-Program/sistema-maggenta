@@ -5,6 +5,13 @@ const habilitadoOptions = [
   { label: "Inativo", value: "N" },
 ];
 
+const bannerTipoOptions = [
+  { label: "Home mega", value: "home_mega" },
+  { label: "Home grande", value: "home_grande" },
+  { label: "Banner medio", value: "banner_medio" },
+  { label: "Mega banner", value: "mega_banner" },
+];
+
 export const resources: Record<string, ResourceConfig> = {
   produtos: {
     title: "Produtos",
@@ -31,6 +38,7 @@ export const resources: Record<string, ResourceConfig> = {
       { name: "habilitado", label: "Status", type: "select", options: habilitadoOptions },
     ],
     defaultValues: { id_tipo_produto: 1, site: "N", promocao: "N", habilitado: "S" },
+    imageManager: true,
   },
   categorias: {
     title: "Categorias",
@@ -120,6 +128,42 @@ export const resources: Record<string, ResourceConfig> = {
       { name: "habilitado", label: "Status", type: "select", options: habilitadoOptions },
     ],
     defaultValues: { ordem: 0, habilitado: "S" },
+  },
+  banners: {
+    title: "Banners",
+    description: "Gerencie campanhas, links, periodo de exibicao e status dos banners do site.",
+    endpoint: "/api/v1/banners",
+    idField: "id_banner",
+    searchPlaceholder: "Buscar por titulo, URL ou imagem",
+    columns: [
+      { name: "id_banner", label: "ID" },
+      { name: "tipo", label: "Tipo" },
+      { name: "titulo", label: "Titulo" },
+      { name: "ordem", label: "Ordem" },
+      { name: "habilitado", label: "Status" },
+      { name: "url_banner", label: "Imagem" },
+    ],
+    formFields: [
+      { name: "id_banner", label: "ID", type: "number" },
+      { name: "tipo", label: "Tipo", type: "select", options: bannerTipoOptions, required: true },
+      { name: "titulo", label: "Titulo" },
+      { name: "url", label: "URL destino" },
+      { name: "id_tipo_produto", label: "ID tipo produto", type: "number" },
+      { name: "data_inicial", label: "Data inicial", type: "date" },
+      { name: "data_final", label: "Data final", type: "date" },
+      { name: "ordem", label: "Ordem", type: "number" },
+      { name: "habilitado", label: "Status", type: "select", options: habilitadoOptions },
+      { name: "cliques", label: "Cliques", type: "number" },
+      { name: "url_banner", label: "URL da imagem" },
+    ],
+    defaultValues: {
+      tipo: "home_grande",
+      id_tipo_produto: 0,
+      ordem: 0,
+      habilitado: "S",
+      data_inicial: new Date().toISOString().slice(0, 10),
+      data_final: "2030-12-31",
+    },
   },
   clientes: {
     title: "Clientes",

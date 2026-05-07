@@ -34,6 +34,12 @@ function getForwardHeaders(request: NextRequest) {
     if (value) headers.set(name, value);
   });
 
+  const authorization = request.headers.get("authorization");
+  if (authorization) {
+    headers.set("authorization", authorization);
+    return headers;
+  }
+
   const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
   if (sessionToken) {
     headers.set("authorization", `Bearer ${sessionToken}`);
@@ -49,13 +55,16 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const response = await fetch(getBackendUrl(path, request), {
     method,
     headers: getForwardHeaders(request),
-    body: hasBody ? await request.text() : undefined,
+    body: hasBody ? await request.arrayBuffer() : undefined,
     cache: "no-store",
   });
 
   const headers = new Headers(response.headers);
   headers.delete("content-encoding");
   headers.delete("content-length");
+  headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  headers.set("Pragma", "no-cache");
+  headers.set("Expires", "0");
 
   return new NextResponse(response.body, {
     status: response.status,

@@ -1,0 +1,1538 @@
+{
+  "generated_at": "2026-05-07T14:07:37.649Z",
+  "counts": {
+    "raw_ftp_items_listed": 525,
+    "total_ftp_items": 175,
+    "valid_images": 169,
+    "invalid_names": 6,
+    "ftp_probe_found": 99,
+    "planned_to_process": 99,
+    "skipped_missing_banner": 70,
+    "skipped_existing_url": 0
+  },
+  "all_files": [
+    "2.jpg",
+    "3.jpg",
+    "4.jpg",
+    "5.jpg",
+    "6.jpg",
+    "7.jpg",
+    "8.jpg",
+    "9.jpg",
+    "10.jpg",
+    "11.jpg",
+    "12.jpg",
+    "13.jpg",
+    "14.jpg",
+    "15.jpg",
+    "16.jpg",
+    "17.jpg",
+    "18.jpg",
+    "19.jpg",
+    "20.jpg",
+    "21.jpg",
+    "22.jpg",
+    "23.jpg",
+    "24.jpg",
+    "25.jpg",
+    "26.jpg",
+    "29.jpg",
+    "30.jpg",
+    "31.jpg",
+    "32.jpg",
+    "33.jpg",
+    "34.jpg",
+    "35.jpg",
+    "36.jpg",
+    "37.jpg",
+    "38.jpg",
+    "39.jpg",
+    "40.jpg",
+    "41.jpg",
+    "42.jpg",
+    "43.jpg",
+    "44.jpg",
+    "45.jpg",
+    "46.jpg",
+    "47.jpg",
+    "49.jpg",
+    "50.jpg",
+    "51.jpg",
+    "52.jpg",
+    "53.jpg",
+    "54.jpg",
+    "55.jpg",
+    "56.jpg",
+    "57.jpg",
+    "58.jpg",
+    "59.jpg",
+    "60.jpg",
+    "61.jpg",
+    "62.jpg",
+    "63.jpg",
+    "64.jpg",
+    "65.jpg",
+    "66.jpg",
+    "67.jpg",
+    "68.jpg",
+    "72.jpg",
+    "73.jpg",
+    "75.jpg",
+    "76.jpg",
+    "77.jpg",
+    "78.jpg",
+    "79.jpg",
+    "80.jpg",
+    "81.jpg",
+    "82.jpg",
+    "83.jpg",
+    "84.jpg",
+    "85.jpg",
+    "86.jpg",
+    "87.jpg",
+    "88.jpg",
+    "89.jpg",
+    "90.jpg",
+    "91.jpg",
+    "92.jpg",
+    "95.jpg",
+    "96.jpg",
+    "97.jpg",
+    "98.jpg",
+    "99.jpg",
+    "100.jpg",
+    "101.jpg",
+    "102.jpg",
+    "103.jpg",
+    "104.jpg",
+    "106.jpg",
+    "107.jpg",
+    "108.jpg",
+    "109.jpg",
+    "110.jpg",
+    "111.jpg",
+    "112.jpg",
+    "113.jpg",
+    "114.jpg",
+    "115.jpg",
+    "116.jpg",
+    "117.jpg",
+    "118.jpg",
+    "119.jpg",
+    "120.jpg",
+    "121.jpg",
+    "122.jpg",
+    "123.jpg",
+    "124.jpg",
+    "125.jpg",
+    "126.jpg",
+    "127.jpg",
+    "128.jpg",
+    "129.jpg",
+    "130.jpg",
+    "131.jpg",
+    "132.jpg",
+    "133.jpg",
+    "134.jpg",
+    "135.jpg",
+    "136.jpg",
+    "137.jpg",
+    "138.jpg",
+    "139.jpg",
+    "140.jpg",
+    "141.jpg",
+    "142.jpg",
+    "145.jpg",
+    "147.jpg",
+    "148.jpg",
+    "149.jpg",
+    "150.jpg",
+    "151.jpg",
+    "152.jpg",
+    "153.jpg",
+    "154.jpg",
+    "155.jpg",
+    "156.jpg",
+    "157.jpg",
+    "158.jpg",
+    "159.jpg",
+    "160.jpg",
+    "161.jpg",
+    "162.jpg",
+    "163.jpg",
+    "164.jpg",
+    "165.jpg",
+    "166.jpg",
+    "167.jpg",
+    "168.jpg",
+    "169.jpg",
+    "170.jpg",
+    "171.jpg",
+    "172.jpg",
+    "173.jpg",
+    "176.jpg",
+    "177.jpg",
+    "178.jpg",
+    "181.jpg",
+    "182.jpg",
+    "183.jpg",
+    "184.jpg",
+    "185.jpg",
+    "186.jpg",
+    "187.jpg"
+  ],
+  "plan": [
+    {
+      "idBanner": 2,
+      "filename": "2.jpg",
+      "size": 34458,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/2.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 3,
+      "filename": "3.jpg",
+      "size": 68239,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/3.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 4,
+      "filename": "4.jpg",
+      "size": 40500,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/4.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 5,
+      "filename": "5.jpg",
+      "size": 289238,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/5.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 6,
+      "filename": "6.jpg",
+      "size": 282993,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/6.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 7,
+      "filename": "7.jpg",
+      "size": 114024,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/7.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 8,
+      "filename": "8.jpg",
+      "size": 192228,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/8.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 9,
+      "filename": "9.jpg",
+      "size": 233624,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/9.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 10,
+      "filename": "10.jpg",
+      "size": 324961,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/10.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 11,
+      "filename": "11.jpg",
+      "size": 178053,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/11.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 12,
+      "filename": "12.jpg",
+      "size": 309610,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/12.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 13,
+      "filename": "13.jpg",
+      "size": 303761,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/13.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 14,
+      "filename": "14.jpg",
+      "size": 303761,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/14.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 15,
+      "filename": "15.jpg",
+      "size": 2099264,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/15.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 16,
+      "filename": "16.jpg",
+      "size": 456485,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/16.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 17,
+      "filename": "17.jpg",
+      "size": 2080677,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/17.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 18,
+      "filename": "18.jpg",
+      "size": 2040876,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/18.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 19,
+      "filename": "19.jpg",
+      "size": 371579,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/19.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 20,
+      "filename": "20.jpg",
+      "size": 371579,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/20.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 21,
+      "filename": "21.jpg",
+      "size": 405386,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/21.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 22,
+      "filename": "22.jpg",
+      "size": 392223,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/22.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 23,
+      "filename": "23.jpg",
+      "size": 383514,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/23.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 24,
+      "filename": "24.jpg",
+      "size": 490650,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/24.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 25,
+      "filename": "25.jpg",
+      "size": 1353351,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/25.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 26,
+      "filename": "26.jpg",
+      "size": 109117,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/26.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 29,
+      "filename": "29.jpg",
+      "size": 362388,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/29.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 30,
+      "filename": "30.jpg",
+      "size": 2171128,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/30.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 31,
+      "filename": "31.jpg",
+      "size": 2206901,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/31.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 32,
+      "filename": "32.jpg",
+      "size": 2194952,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/32.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 33,
+      "filename": "33.jpg",
+      "size": 2193211,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/33.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 34,
+      "filename": "34.jpg",
+      "size": 2211671,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/34.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 35,
+      "filename": "35.jpg",
+      "size": 2211172,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/35.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 36,
+      "filename": "36.jpg",
+      "size": 2200427,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/36.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 37,
+      "filename": "37.jpg",
+      "size": 2211842,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/37.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 38,
+      "filename": "38.jpg",
+      "size": 2201740,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/38.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 39,
+      "filename": "39.jpg",
+      "size": 2414095,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/39.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 40,
+      "filename": "40.jpg",
+      "size": 2182475,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/40.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 41,
+      "filename": "41.jpg",
+      "size": 2182703,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/41.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 42,
+      "filename": "42.jpg",
+      "size": 2187001,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/42.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 43,
+      "filename": "43.jpg",
+      "size": 2197592,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/43.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 44,
+      "filename": "44.jpg",
+      "size": 2198117,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/44.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 45,
+      "filename": "45.jpg",
+      "size": 2285568,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/45.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 46,
+      "filename": "46.jpg",
+      "size": 2285568,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/46.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 47,
+      "filename": "47.jpg",
+      "size": 2187130,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/47.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 49,
+      "filename": "49.jpg",
+      "size": 2249704,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/49.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 50,
+      "filename": "50.jpg",
+      "size": 2704282,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/50.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 51,
+      "filename": "51.jpg",
+      "size": 420520,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/51.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 52,
+      "filename": "52.jpg",
+      "size": 395803,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/52.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 53,
+      "filename": "53.jpg",
+      "size": 568123,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/53.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 54,
+      "filename": "54.jpg",
+      "size": 498284,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/54.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 55,
+      "filename": "55.jpg",
+      "size": 498284,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/55.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 56,
+      "filename": "56.jpg",
+      "size": 498325,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/56.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 57,
+      "filename": "57.jpg",
+      "size": 317584,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/57.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 58,
+      "filename": "58.jpg",
+      "size": 487159,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/58.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 59,
+      "filename": "59.jpg",
+      "size": 492722,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/59.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 60,
+      "filename": "60.jpg",
+      "size": 485857,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/60.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 61,
+      "filename": "61.jpg",
+      "size": 347484,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/61.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 62,
+      "filename": "62.jpg",
+      "size": 497372,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/62.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 63,
+      "filename": "63.jpg",
+      "size": 1928534,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/63.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 64,
+      "filename": "64.jpg",
+      "size": 197924,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/64.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 65,
+      "filename": "65.jpg",
+      "size": 150233,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/65.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 66,
+      "filename": "66.jpg",
+      "size": 87987,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/66.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 67,
+      "filename": "67.jpg",
+      "size": 87624,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/67.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 68,
+      "filename": "68.jpg",
+      "size": 91456,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/68.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 72,
+      "filename": "72.jpg",
+      "size": 133936,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/72.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 73,
+      "filename": "73.jpg",
+      "size": 245283,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/73.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 75,
+      "filename": "75.jpg",
+      "size": 2117919,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/75.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 76,
+      "filename": "76.jpg",
+      "size": 2159224,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/76.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 77,
+      "filename": "77.jpg",
+      "size": 2109380,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/77.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 78,
+      "filename": "78.jpg",
+      "size": 2155933,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/78.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 79,
+      "filename": "79.jpg",
+      "size": 2097030,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/79.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 80,
+      "filename": "80.jpg",
+      "size": 140265,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/80.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 81,
+      "filename": "81.jpg",
+      "size": 382928,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/81.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 82,
+      "filename": "82.jpg",
+      "size": 151656,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/82.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 83,
+      "filename": "83.jpg",
+      "size": 164450,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/83.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 84,
+      "filename": "84.jpg",
+      "size": 131402,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/84.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 85,
+      "filename": "85.jpg",
+      "size": 181576,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/85.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 86,
+      "filename": "86.jpg",
+      "size": 2183153,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/86.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 87,
+      "filename": "87.jpg",
+      "size": 181576,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/87.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 88,
+      "filename": "88.jpg",
+      "size": 129127,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/88.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 89,
+      "filename": "89.jpg",
+      "size": 148022,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/89.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 90,
+      "filename": "90.jpg",
+      "size": 181121,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/90.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 91,
+      "filename": "91.jpg",
+      "size": 2137387,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/91.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 92,
+      "filename": "92.jpg",
+      "size": 4738850,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/92.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 95,
+      "filename": "95.jpg",
+      "size": 391549,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/95.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 96,
+      "filename": "96.jpg",
+      "size": 391549,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/96.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 97,
+      "filename": "97.jpg",
+      "size": 121500,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/97.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 98,
+      "filename": "98.jpg",
+      "size": 121500,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/98.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 99,
+      "filename": "99.jpg",
+      "size": 209252,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/99.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 100,
+      "filename": "100.jpg",
+      "size": 181827,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/100.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 101,
+      "filename": "101.jpg",
+      "size": 134094,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/101.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 102,
+      "filename": "102.jpg",
+      "size": 113480,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/102.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 103,
+      "filename": "103.jpg",
+      "size": 4831614,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/103.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 104,
+      "filename": "104.jpg",
+      "size": 3980461,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/104.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 106,
+      "filename": "106.jpg",
+      "size": 4956437,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/106.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 107,
+      "filename": "107.jpg",
+      "size": 4712637,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/107.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 108,
+      "filename": "108.jpg",
+      "size": 1293541,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/108.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 109,
+      "filename": "109.jpg",
+      "size": 1390679,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/109.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 110,
+      "filename": "110.jpg",
+      "size": 1608796,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/110.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 111,
+      "filename": "111.jpg",
+      "size": 1111236,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/111.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 112,
+      "filename": "112.jpg",
+      "size": 1045705,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/112.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 113,
+      "filename": "113.jpg",
+      "size": 1234984,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/113.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 114,
+      "filename": "114.jpg",
+      "size": 1084751,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/114.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 115,
+      "filename": "115.jpg",
+      "size": 1322089,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/115.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 116,
+      "filename": "116.jpg",
+      "size": 1010586,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/116.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 117,
+      "filename": "117.jpg",
+      "size": 1554136,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/117.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 118,
+      "filename": "118.jpg",
+      "size": 914533,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/118.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 119,
+      "filename": "119.jpg",
+      "size": 839982,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/119.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 120,
+      "filename": "120.jpg",
+      "size": 96480,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/120.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 121,
+      "filename": "121.jpg",
+      "size": 100263,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/121.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 122,
+      "filename": "122.jpg",
+      "size": 3900679,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/122.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 123,
+      "filename": "123.jpg",
+      "size": 4520482,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/123.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 124,
+      "filename": "124.jpg",
+      "size": 1688848,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/124.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 125,
+      "filename": "125.jpg",
+      "size": 2143411,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/125.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 126,
+      "filename": "126.jpg",
+      "size": 1800577,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/126.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 127,
+      "filename": "127.jpg",
+      "size": 3158614,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/127.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 128,
+      "filename": "128.jpg",
+      "size": 2523082,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/128.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 129,
+      "filename": "129.jpg",
+      "size": 2591631,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/129.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 130,
+      "filename": "130.jpg",
+      "size": 2752326,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/130.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 131,
+      "filename": "131.jpg",
+      "size": 3688341,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/131.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 132,
+      "filename": "132.jpg",
+      "size": 2859507,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/132.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 133,
+      "filename": "133.jpg",
+      "size": 1512485,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/133.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 134,
+      "filename": "134.jpg",
+      "size": 4692946,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/134.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 135,
+      "filename": "135.jpg",
+      "size": 1457602,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/135.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 136,
+      "filename": "136.jpg",
+      "size": 2700737,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/136.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 137,
+      "filename": "137.jpg",
+      "size": 2135244,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/137.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 138,
+      "filename": "138.jpg",
+      "size": 2378987,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/138.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 139,
+      "filename": "139.jpg",
+      "size": 3266367,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/139.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 140,
+      "filename": "140.jpg",
+      "size": 2517771,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/140.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 141,
+      "filename": "141.jpg",
+      "size": 2615525,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/141.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 142,
+      "filename": "142.jpg",
+      "size": 3115652,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/142.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 145,
+      "filename": "145.jpg",
+      "size": 2261288,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/145.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 147,
+      "filename": "147.jpg",
+      "size": 2419927,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/147.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 148,
+      "filename": "148.jpg",
+      "size": 1422363,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/148.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 149,
+      "filename": "149.jpg",
+      "size": 4531031,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/149.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 150,
+      "filename": "150.jpg",
+      "size": 1199781,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/150.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 151,
+      "filename": "151.jpg",
+      "size": 4184393,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/151.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 152,
+      "filename": "152.jpg",
+      "size": 4184393,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/152.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 153,
+      "filename": "153.jpg",
+      "size": 4040903,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/153.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 154,
+      "filename": "154.jpg",
+      "size": 295793,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/154.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 155,
+      "filename": "155.jpg",
+      "size": 501711,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/155.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 156,
+      "filename": "156.jpg",
+      "size": 491467,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/156.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 157,
+      "filename": "157.jpg",
+      "size": 422170,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/157.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 158,
+      "filename": "158.jpg",
+      "size": 641215,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/158.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 159,
+      "filename": "159.jpg",
+      "size": 641215,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/159.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 160,
+      "filename": "160.jpg",
+      "size": 442318,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/160.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 161,
+      "filename": "161.jpg",
+      "size": 442318,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/161.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 162,
+      "filename": "162.jpg",
+      "size": 361782,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/162.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 163,
+      "filename": "163.jpg",
+      "size": 593324,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/163.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 164,
+      "filename": "164.jpg",
+      "size": 333591,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/164.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 165,
+      "filename": "165.jpg",
+      "size": 333883,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/165.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 166,
+      "filename": "166.jpg",
+      "size": 517775,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/166.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 167,
+      "filename": "167.jpg",
+      "size": 517775,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/167.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 168,
+      "filename": "168.jpg",
+      "size": 299206,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/168.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 169,
+      "filename": "169.jpg",
+      "size": 299206,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/169.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 170,
+      "filename": "170.jpg",
+      "size": 579574,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/170.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 171,
+      "filename": "171.jpg",
+      "size": 499699,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/171.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 172,
+      "filename": "172.jpg",
+      "size": 597216,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/172.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 173,
+      "filename": "173.jpg",
+      "size": 568301,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/173.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 176,
+      "filename": "176.jpg",
+      "size": 528884,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/176.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 177,
+      "filename": "177.jpg",
+      "size": 528884,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/177.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 178,
+      "filename": "178.jpg",
+      "size": 685665,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/178.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 181,
+      "filename": "181.jpg",
+      "size": 352881,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/181.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 182,
+      "filename": "182.jpg",
+      "size": 101153,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/182.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 183,
+      "filename": "183.jpg",
+      "size": 100972,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/183.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 184,
+      "filename": "184.jpg",
+      "size": 100972,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/184.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 185,
+      "filename": "185.jpg",
+      "size": 99075,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/185.jpg",
+      "action": "skip_missing_banner"
+    },
+    {
+      "idBanner": 186,
+      "filename": "186.jpg",
+      "size": 1201457,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/186.jpg",
+      "action": "process"
+    },
+    {
+      "idBanner": 187,
+      "filename": "187.jpg",
+      "size": 824000,
+      "existingUrl": null,
+      "publicUrl": "https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/banners-site-pepperone/187.jpg",
+      "action": "process"
+    }
+  ]
+}

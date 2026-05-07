@@ -10,6 +10,7 @@ import {
 import type { ResourceConfig, ResourceField } from "@/types/admin";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "./status-badge";
+import { ProductImagesPanel } from "./product-images-panel";
 
 type Row = Record<string, unknown>;
 
@@ -41,7 +42,12 @@ function FieldControl({
 }) {
   const baseClass =
     "w-full rounded-md border border-stroke bg-gray-2 px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white";
-  const defaultValue = value === undefined || value === null ? "" : String(value);
+  const defaultValue =
+    value === undefined || value === null
+      ? ""
+      : field.type === "date"
+        ? String(value).slice(0, 10)
+        : String(value);
 
   if (field.type === "textarea") {
     return (
@@ -359,6 +365,15 @@ export function ResourcePage({ config }: { config: ResourceConfig }) {
           </form>
         </aside>
       </div>
+
+      {config.imageManager && selected && (
+        <ProductImagesPanel
+          endpoint={config.endpoint}
+          onChanged={loadData}
+          produtoId={String(selected[config.idField])}
+          produtoNome={selected.produto}
+        />
+      )}
     </div>
   );
 }

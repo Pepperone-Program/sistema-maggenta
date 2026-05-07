@@ -5,7 +5,7 @@ const SESSION_COOKIE = "pepperone_session";
 function isPublicPath(pathname: string) {
   return (
     pathname === "/login" ||
-    pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/images/") ||
     pathname === "/favicon.ico"

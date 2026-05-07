@@ -3,6 +3,17 @@ import type { Produto, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produt
 import { throwError } from '@utils/helpers';
 
 export class ProdutoService {
+  private static async attachImages<T extends Produto>(produtos: T[]): Promise<T[]> {
+    const imagesByProduct = await ProdutoModel.findImagesByProductIds(
+      produtos.map((produto) => Number(produto.id_produto))
+    );
+
+    return produtos.map((produto) => ({
+      ...produto,
+      imagens: imagesByProduct.get(Number(produto.id_produto)) || [],
+    }));
+  }
+
   static async createProduto(
     empresaId: number,
     data: CreateProdutoDTO
@@ -19,7 +30,8 @@ export class ProdutoService {
       throwError('CREATE_FAILED', 'Falha ao criar produto', 500);
     }
 
-    return produto as Produto;
+    const [produtoComImagens] = await this.attachImages([produto as Produto]);
+    return produtoComImagens;
   }
 
   static async getProdutoById(
@@ -32,7 +44,8 @@ export class ProdutoService {
       throwError('PRODUTO_NOT_FOUND', 'Produto não encontrado', 404);
     }
 
-    return produto as Produto;
+    const [produtoComImagens] = await this.attachImages([produto as Produto]);
+    return produtoComImagens;
   }
 
   static async listProdutos(
@@ -48,8 +61,59 @@ export class ProdutoService {
       search
     );
 
+    const itemsWithImages = await this.attachImages(items);
+
     return {
-      items,
+      items: itemsWithImages,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  static async listProdutosSite(
+    empresaId: number,
+    page: number = 1,
+    limit: number = 10,
+    search?: string
+  ): Promise<{ items: Produto[]; total: number; page: number; limit: number }> {
+    const { items, total } = await ProdutoModel.findAllForSite(
+      empresaId,
+      page,
+      limit,
+      search
+    );
+    const itemsWithImages = await this.attachImages(items);
+
+    return {
+      items: itemsWithImages,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  static async searchProdutosSite(
+    empresaId: number,
+    term: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ items: Produto[]; total: number; page: number; limit: number }> {
+    const normalizedTerm = term.trim();
+    if (!normalizedTerm) {
+      throwError('INVALID_SEARCH', 'Informe o termo de busca em q', 400);
+    }
+
+    const { items, total } = await ProdutoModel.searchForSite(
+      empresaId,
+      normalizedTerm,
+      page,
+      limit
+    );
+    const itemsWithImages = await this.attachImages(items);
+
+    return {
+      items: itemsWithImages,
       total,
       page,
       limit,
@@ -84,7 +148,8 @@ export class ProdutoService {
       throwError('UPDATE_FAILED', 'Falha ao atualizar produto', 500);
     }
 
-    return updated as Produto;
+    const [produtoComImagens] = await this.attachImages([updated as Produto]);
+    return produtoComImagens;
   }
 
   static async deleteProduto(

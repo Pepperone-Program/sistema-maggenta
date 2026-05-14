@@ -132,6 +132,28 @@ export class ClienteController {
     }
   }
 
+  static async listOrcamentos(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await ClienteService.listOrcamentos(
+        getEmpresaId(req),
+        parseInt(req.params.id, 10),
+        getPage(req),
+        getLimit(req)
+      );
+      paginatedResponse(
+        res,
+        result.items,
+        result.total,
+        result.page,
+        result.limit,
+        'Orcamentos do cliente listados com sucesso'
+      );
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async updateContato(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const contato = await ClienteService.updateContato(

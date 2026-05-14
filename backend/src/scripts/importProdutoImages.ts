@@ -62,17 +62,27 @@ type Config = {
   maxRetries: number;
   requireProductExists: boolean;
   ftpListPrefixes: string[];
+  targetProductIds: number[];
+  useTargetProductJson: boolean;
+  targetProductJsonPath: string;
   debugProductIds: number[];
-  priorityProductIds: number[];
-  priorityWindowMs: number;
   probeAllProducts: boolean;
   probeMaxOrder: number;
+  probeEmptyMaxOrder: number;
+  probeStopAfterMisses: number;
   auditDir: string;
   autoRepeat: boolean;
   autoRepeatDelayMs: number;
   maxRuns: number;
   directProbeOnly: boolean;
   probeConcurrency: number;
+};
+
+type ImportResult = {
+  pending: number;
+  inserted: number;
+  uploaded: number;
+  failed: number;
 };
 
 function createStats(run: number): ImportStats {
@@ -148,11 +158,109 @@ function numberCsvEnv(name: string) {
     .filter((value) => Number.isInteger(value) && value > 0);
 }
 
+function uniqueSortedProductIds(productIds: number[]) {
+  return Array.from(new Set(productIds))
+    .filter((value) => Number.isInteger(value) && value > 0)
+    .sort((a, b) => a - b);
+}
+
+function collectProductIdsFromJson(value: unknown): number[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(collectProductIdsFromJson);
+  }
+
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 ? [value] : [];
+  }
+
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+
+  const record = value as Record<string, unknown>;
+  const directId = record.id_produto ?? record.idProduto ?? record.productId;
+  if (typeof directId === 'number' || typeof directId === 'string') {
+    const parsed = Number(directId);
+    return Number.isInteger(parsed) && parsed > 0 ? [parsed] : [];
+  }
+
+  return Object.values(record).flatMap(collectProductIdsFromJson);
+}
+
+async function loadTargetProductIds(config: Config) {
+  if (config.targetProductIds.length) {
+    return uniqueSortedProductIds(config.targetProductIds);
+  }
+
+  if (!config.useTargetProductJson) {
+    return [];
+  }
+
+  const jsonPath = path.resolve(process.cwd(), config.targetProductJsonPath);
+
+  try {
+    const raw = await fs.readFile(jsonPath, 'utf8');
+    const parsed = JSON.parse(raw) as unknown;
+    const productIds = uniqueSortedProductIds(collectProductIdsFromJson(parsed));
+    if (!productIds.length) {
+      fail(`Nenhum id_produto encontrado em ${jsonPath}`);
+    }
+
+    return productIds;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+async function getAllProductIds() {
+  const rows = (await query(
+    `
+      SELECT id_produto
+      FROM produtos
+      ORDER BY id_produto ASC
+    `
+  )) as Array<{ id_produto: number }>;
+
+  return uniqueSortedProductIds(rows.map((row) => Number(row.id_produto)));
+}
+
+async function getProductIdsWithoutImages(productIds: number[]) {
+  const uniqueProductIds = uniqueSortedProductIds(productIds);
+  if (!uniqueProductIds.length) return [];
+
+  const productIdsWithImages = new Set<number>();
+  const chunkSize = 1000;
+
+  for (let start = 0; start < uniqueProductIds.length; start += chunkSize) {
+    const chunk = uniqueProductIds.slice(start, start + chunkSize);
+    const placeholders = chunk.map(() => '?').join(',');
+    const rows = (await query(
+      `
+        SELECT DISTINCT id_produto
+        FROM imagens_produtos
+        WHERE id_produto IN (${placeholders})
+      `,
+      chunk
+    )) as Array<{ id_produto: number }>;
+
+    for (const row of rows) {
+      productIdsWithImages.add(Number(row.id_produto));
+    }
+  }
+
+  return uniqueProductIds.filter((idProduto) => !productIdsWithImages.has(idProduto));
+}
+
 function getConfig(): Config {
   const ftpBasePath = (process.env.FTP_BASE_PATH || 'sistema/images/produtos').replace(/\/+$/, '');
   const ftpRemotePath = (process.env.PRODUTO_IMAGES_FTP_PATH || `${ftpBasePath}/alta`)
     .replace(/^\/+/, '')
     .replace(/\/+$/, '');
+  const targetProductIds = numberCsvEnv('PRODUTO_IMAGES_PRODUCT_IDS');
 
   return {
     ftpHost: requiredEnv('FTP_HOST'),
@@ -165,18 +273,21 @@ function getConfig(): Config {
     supabaseS3AccessKeyId: requiredEnv('SUPABASE_S3_ACCESS_KEY_ID'),
     supabaseS3SecretAccessKey: requiredEnv('SUPABASE_S3_SECRET_ACCESS_KEY'),
     supabaseS3Region: requiredEnv('SUPABASE_S3_REGION', 'us-east-1'),
-    supabaseBucket: requiredEnv('SUPABASE_STORAGE_BUCKET', 'imagens_produtos_pepperone-site'),
+    supabaseBucket: requiredEnv('SUPABASE_STORAGE_BUCKET', 'imagens_produtos_maggenta-site'),
     batchSize: numberEnv('PRODUTO_IMAGES_BATCH_SIZE', 500),
     batchPauseMs: numberEnv('PRODUTO_IMAGES_BATCH_PAUSE_MS', 60000),
     concurrency: numberEnv('PRODUTO_IMAGES_CONCURRENCY', 8),
     maxRetries: numberEnv('PRODUTO_IMAGES_MAX_RETRIES', 3),
     requireProductExists: booleanEnv('PRODUTO_IMAGES_REQUIRE_PRODUCT_EXISTS', false),
     ftpListPrefixes: csvEnv('PRODUTO_IMAGES_FTP_LIST_PREFIXES', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
+    targetProductIds,
+    useTargetProductJson: booleanEnv('PRODUTO_IMAGES_USE_PRODUCT_IDS_JSON', false),
+    targetProductJsonPath: process.env.PRODUTO_IMAGES_PRODUCT_IDS_JSON?.trim() || 'produtosSemImagem.json',
     debugProductIds: numberCsvEnv('PRODUTO_IMAGES_DEBUG_PRODUCT_IDS'),
-    priorityProductIds: numberCsvEnv('PRODUTO_IMAGES_PRIORITY_PRODUCT_IDS'),
-    priorityWindowMs: numberEnv('PRODUTO_IMAGES_PRIORITY_WINDOW_MS', 10000),
     probeAllProducts: booleanEnv('PRODUTO_IMAGES_PROBE_ALL_PRODUCTS', true),
-    probeMaxOrder: numberEnv('PRODUTO_IMAGES_PROBE_MAX_ORDER', 30),
+    probeMaxOrder: numberEnv('PRODUTO_IMAGES_PROBE_MAX_ORDER', 80),
+    probeEmptyMaxOrder: numberEnv('PRODUTO_IMAGES_PROBE_EMPTY_MAX_ORDER', 8),
+    probeStopAfterMisses: numberEnv('PRODUTO_IMAGES_PROBE_STOP_AFTER_MISSES', 6),
     auditDir: process.env.PRODUTO_IMAGES_AUDIT_DIR?.trim() || 'logs/produto-images-import',
     autoRepeat: booleanEnv('PRODUTO_IMAGES_AUTO_REPEAT', true),
     autoRepeatDelayMs: numberEnv('PRODUTO_IMAGES_AUTO_REPEAT_DELAY_MS', 10000),
@@ -243,6 +354,7 @@ async function listWithCommand(
 }
 
 async function probeProductImages(
+  config: Config,
   client: FtpClient,
   productId: number,
   maxOrder: number,
@@ -250,11 +362,15 @@ async function probeProductImages(
 ) {
   const startedAt = Date.now();
   const found: FtpImage[] = [];
+  let missesAfterLastFound = 0;
 
   for (let order = 1; order <= maxOrder; order += 1) {
     if (deadlineMs && Date.now() - startedAt >= deadlineMs) break;
+    if (!found.length && order > config.probeEmptyMaxOrder) break;
+    if (found.length && missesAfterLastFound >= config.probeStopAfterMisses) break;
 
-    for (const extension of ['jpg', 'jpeg']) {
+    let foundOrder = false;
+    for (const extension of ['jpg', 'jpeg', 'JPG', 'JPEG']) {
       const filename = `${productId}-${order}.${extension}`;
 
       try {
@@ -265,10 +381,16 @@ async function probeProductImages(
           ordemImagem: order,
           size: Number(size || 0),
         });
+        missesAfterLastFound = 0;
+        foundOrder = true;
         break;
       } catch {
         // File absent or SIZE unsupported for this file. The next extension/order is tried.
       }
+    }
+
+    if (!foundOrder) {
+      missesAfterLastFound += 1;
     }
   }
 
@@ -437,11 +559,6 @@ async function getExistingProductIds(productIds: number[]) {
   return existing;
 }
 
-async function getAllProductIds() {
-  const rows = (await query('SELECT id_produto FROM produtos ORDER BY id_produto')) as Array<{ id_produto: number }>;
-  return rows.map((row) => Number(row.id_produto)).filter((value) => Number.isInteger(value) && value > 0);
-}
-
 async function addProbedImages(config: Config, baseImages: FtpImage[], productIds: number[]) {
   if (!productIds.length || config.probeMaxOrder <= 0) return baseImages;
 
@@ -455,7 +572,7 @@ async function addProbedImages(config: Config, baseImages: FtpImage[], productId
     });
 
     for (const productId of productIds) {
-      const found = await probeProductImages(client, productId, config.probeMaxOrder);
+      const found = await probeProductImages(config, client, productId, config.probeMaxOrder);
 
       for (const image of found) {
         if (!byName.has(image.filename)) {
@@ -476,18 +593,45 @@ async function addProbedImages(config: Config, baseImages: FtpImage[], productId
   return Array.from(byName.values()).sort((a, b) => a.idProduto - b.idProduto || a.ordemImagem - b.ordemImagem);
 }
 
+async function listProductImages(client: FtpClient, productId: number) {
+  const byName = new Map<string, FtpImage>();
+
+  try {
+    const items = await client.list(`${productId}-*`);
+    for (const item of items) {
+      if (item.isDirectory) continue;
+
+      const image = parseFtpImage(item.name, Number(item.size || 0));
+      if (image?.idProduto === productId) {
+        byName.set(image.filename, image);
+      }
+    }
+  } catch {
+    // Some FTP servers do not support wildcard LIST. Direct probing is used below.
+  }
+
+  return Array.from(byName.values()).sort((a, b) => a.ordemImagem - b.ordemImagem);
+}
+
+async function discoverImagesForProduct(config: Config, client: FtpClient, productId: number) {
+  const listed = await listProductImages(client, productId);
+  if (listed.length) return listed;
+
+  return probeProductImages(config, client, productId, config.probeMaxOrder);
+}
+
 async function discoverImagesByDirectProbe(config: Config, productIds: number[]) {
   const byName = new Map<string, FtpImage>();
   let nextIndex = 0;
   let checkedProducts = 0;
 
-  log('Consulta direta por id iniciada', {
+  log('Buscando arquivos no FTP', {
     produtos: productIds.length,
     ordemMaxima: config.probeMaxOrder,
     concorrencia: config.probeConcurrency,
   });
 
-  async function worker(workerId: number) {
+  async function worker() {
     const client = await connectFtp(config);
 
     try {
@@ -495,21 +639,23 @@ async function discoverImagesByDirectProbe(config: Config, productIds: number[])
         const currentIndex = nextIndex;
         nextIndex += 1;
         const productId = productIds[currentIndex];
-        const found = await probeProductImages(client, productId, config.probeMaxOrder);
+        const found = await discoverImagesForProduct(config, client, productId);
 
         for (const image of found) {
           byName.set(image.filename, image);
         }
 
         checkedProducts += 1;
-        if (found.length > 0 || checkedProducts % 100 === 0 || checkedProducts === productIds.length) {
-          log('Consulta direta em andamento', {
-            workerId,
-            produtosConsultados: checkedProducts,
-            totalProdutos: productIds.length,
+        if (found.length > 0) {
+          log('Produto com arquivo encontrado', {
             idProduto: productId,
-            encontradosNesteProduto: found.length,
-            totalArquivosEncontrados: byName.size,
+            arquivos: found.map((image) => image.filename),
+          });
+        } else if (checkedProducts % 50 === 0 || checkedProducts === productIds.length) {
+          log('Busca em andamento', {
+            consultados: checkedProducts,
+            total: productIds.length,
+            encontrados: byName.size,
           });
         }
       }
@@ -519,49 +665,15 @@ async function discoverImagesByDirectProbe(config: Config, productIds: number[])
   }
 
   const workerCount = Math.min(config.probeConcurrency, productIds.length);
-  await Promise.all(Array.from({ length: workerCount }, (_, index) => worker(index + 1)));
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 
   const images = Array.from(byName.values()).sort((a, b) => a.idProduto - b.idProduto || a.ordemImagem - b.ordemImagem);
-  log('Consulta direta por id finalizada', {
+  log('Busca no FTP finalizada', {
     produtosConsultados: checkedProducts,
     arquivosEncontrados: images.length,
   });
 
   return images;
-}
-
-async function discoverPriorityImages(config: Config) {
-  const productIds = config.priorityProductIds.length ? config.priorityProductIds : config.debugProductIds;
-  if (!productIds.length) return [];
-
-  const byName = new Map<string, FtpImage>();
-  const deadlinePerProduct = Math.max(1000, Math.floor(config.priorityWindowMs / productIds.length));
-
-  log('Primeiros segundos reservados para produto prioritario', {
-    produtos: productIds,
-    tempoMs: config.priorityWindowMs,
-    ordemMaxima: config.probeMaxOrder,
-  });
-
-  const client = await connectFtp(config);
-  try {
-    for (const productId of productIds) {
-      const found = await probeProductImages(client, productId, config.probeMaxOrder, deadlinePerProduct);
-      for (const image of found) {
-        byName.set(image.filename, image);
-      }
-
-      log('Busca prioritaria concluida para produto', {
-        idProduto: productId,
-        encontrados: found.length,
-        arquivos: found.map((image) => image.filename),
-      });
-    }
-  } finally {
-    client.close();
-  }
-
-  return Array.from(byName.values()).sort((a, b) => a.idProduto - b.idProduto || a.ordemImagem - b.ordemImagem);
 }
 
 function buildImportPlan(
@@ -588,15 +700,10 @@ function buildImportPlan(
     const productExists = existingProductIds.has(idProduto);
     if (!productExists) {
       stats.productNotFoundWarnings += productImages.length;
-
-      for (const image of productImages) {
-        log(config.requireProductExists ? 'Produto nao encontrado, arquivo pulado' : 'Produto nao encontrado, tentativa mantida', {
-          arquivo: image.filename,
-          idProduto: image.idProduto,
-          ordemImagem: image.ordemImagem,
-          acao: config.requireProductExists ? 'pular' : 'tentarInserirMesmoAssim',
-        });
-      }
+      log(config.requireProductExists ? 'Produto ausente no banco' : 'Produto ausente no banco, tentativa mantida', {
+        idProduto,
+        arquivos: productImages.length,
+      });
 
       if (config.requireProductExists) {
         plan.skippedMissingProduct.push(...productImages);
@@ -613,24 +720,12 @@ function buildImportPlan(
       if (dbOrders.has(image.ordemImagem)) {
         plan.skippedExisting.push(image);
         stats.skippedExisting += 1;
-        log('Arquivo pulado por ordem ja cadastrada', {
-          arquivo: image.filename,
-          idProduto: image.idProduto,
-          ordemImagem: image.ordemImagem,
-          motivo: 'id_produto_e_ordem_ja_cadastrados',
-        });
         continue;
       }
 
       if (plannedOrders.has(image.ordemImagem)) {
         plan.skippedDuplicatedInFtp.push(image);
         stats.skippedDuplicatedInFtp += 1;
-        log('Arquivo duplicado no FTP para a mesma ordem', {
-          arquivo: image.filename,
-          idProduto: image.idProduto,
-          ordemImagem: image.ordemImagem,
-          motivo: 'mesmo_id_produto_e_ordem_repetidos_no_ftp',
-        });
         continue;
       }
 
@@ -648,13 +743,11 @@ function buildImportPlan(
 function logProductPlan(plan: ProductPlan) {
   log('Plano do produto', {
     idProduto: plan.idProduto,
-    totalNoFtp: plan.ftpTotal,
-    ordensNoFtp: plan.ftpOrders,
-    ordensExistentes: plan.existingOrders,
-    ordensParaInserir: plan.pending.map((image) => image.ordemImagem),
-    ordensPuladas: plan.skippedExisting.map((image) => image.ordemImagem),
-    duplicadasNoFtp: plan.skippedDuplicatedInFtp.map((image) => image.ordemImagem),
-    produtoAusente: plan.skippedMissingProduct.map((image) => image.ordemImagem),
+    ftp: plan.ftpTotal,
+    inserir: plan.pending.length,
+    jaExistiam: plan.skippedExisting.length,
+    duplicadas: plan.skippedDuplicatedInFtp.length,
+    produtoAusente: plan.skippedMissingProduct.length,
   });
 }
 
@@ -884,22 +977,10 @@ async function processImage(config: Config, client: FtpClient, image: FtpImage, 
   const storageKey = `${image.idProduto}/${image.filename}`;
   const publicUrl = buildPublicUrl(config, storageKey);
 
-  log('Imagem iniciada', {
-    sequencia: sequence,
-    total,
-    arquivo: image.filename,
-    idProduto: image.idProduto,
-    ordemImagem: image.ordemImagem,
-    bytesNoFtp: image.size,
-    storageKey,
-  });
-
   const buffer = await withRetry(config, `ftp.download:${image.filename}`, () => downloadFtpBuffer(client, image.filename));
-  log('Imagem baixada do FTP', { arquivo: image.filename, bytes: buffer.length });
 
   await withRetry(config, `supabase.upload:${storageKey}`, () => uploadToSupabaseS3(config, storageKey, buffer));
   stats.uploaded += 1;
-  log('Imagem enviada ao bucket', { arquivo: image.filename, storageKey, publicUrl });
 
   const inserted = await withRetry(config, `mysql.insert:${image.filename}`, async () => {
     try {
@@ -928,14 +1009,16 @@ async function processImage(config: Config, client: FtpClient, image: FtpImage, 
   });
   if (inserted) {
     stats.inserted += 1;
-    log('Imagem cadastrada no banco', {
+    log('Imagem importada', {
+      sequencia: `${sequence}/${total}`,
       arquivo: image.filename,
       idProduto: image.idProduto,
       ordemImagem: image.ordemImagem,
+      bytes: buffer.length,
     });
   } else {
     stats.skippedExisting += 1;
-    log('Insert ignorado porque a ordem ja existia', {
+    log('Imagem ja existia no banco', {
       arquivo: image.filename,
       idProduto: image.idProduto,
       ordemImagem: image.ordemImagem,
@@ -946,9 +1029,8 @@ async function processImage(config: Config, client: FtpClient, image: FtpImage, 
 async function processBatch(config: Config, batch: FtpImage[], offset: number, total: number) {
   let nextIndex = 0;
 
-  async function worker(workerId: number) {
+  async function worker() {
     const client = await connectFtp(config);
-    log('Worker conectado ao FTP', { workerId });
 
     try {
       while (nextIndex < batch.length) {
@@ -971,34 +1053,28 @@ async function processBatch(config: Config, batch: FtpImage[], offset: number, t
       }
     } finally {
       client.close();
-      log('Worker fechado', { workerId });
     }
   }
 
   const workerCount = Math.min(config.concurrency, batch.length);
-  await Promise.all(Array.from({ length: workerCount }, (_, index) => worker(index + 1)));
-}
-
-function mergeImages(...imageGroups: FtpImage[][]) {
-  const byName = new Map<string, FtpImage>();
-
-  for (const images of imageGroups) {
-    for (const image of images) {
-      byName.set(image.filename, image);
-    }
-  }
-
-  return Array.from(byName.values()).sort((a, b) => a.idProduto - b.idProduto || a.ordemImagem - b.ordemImagem);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
 }
 
 function orderPendingImages(config: Config, pendingImages: FtpImage[]) {
-  const priority = new Set(config.priorityProductIds.length ? config.priorityProductIds : config.debugProductIds);
+  const priority = new Set(config.targetProductIds.length ? config.targetProductIds : config.debugProductIds);
 
   return pendingImages.sort((a, b) => {
     const aPriority = priority.has(a.idProduto) ? 0 : 1;
     const bPriority = priority.has(b.idProduto) ? 0 : 1;
     return aPriority - bPriority || a.idProduto - b.idProduto || a.ordemImagem - b.ordemImagem;
   });
+}
+
+function filterImagesByTargetProductIds(images: FtpImage[], targetProductIds: number[]) {
+  if (!targetProductIds.length) return images;
+
+  const targetProductIdSet = new Set(targetProductIds);
+  return images.filter((image) => targetProductIdSet.has(image.idProduto));
 }
 
 async function planImages(config: Config, images: FtpImage[]) {
@@ -1066,51 +1142,41 @@ async function processPendingImages(config: Config, pendingImages: FtpImage[], l
   }
 }
 
-async function runImportOnce(config: Config, run: number) {
+async function runImportOnce(config: Config, run: number, productIds: number[], label: string): Promise<ImportResult> {
   stats = createStats(run);
   log('Importacao iniciada', {
     execucao: run,
+    etapa: label,
     ftp: config.ftpRemotePath,
     bucket: config.supabaseBucket,
     lote: config.batchSize,
     intervaloMs: config.batchPauseMs,
     concorrencia: config.concurrency,
-    repetirAutomaticamente: config.autoRepeat,
+    produtosAlvo: productIds.length,
   });
 
-  const priorityImages = await discoverPriorityImages(config);
-  const priorityProductIds = new Set(priorityImages.map((image) => image.idProduto));
-  if (priorityImages.length > 0) {
-    const priorityPlan = await planImages(config, priorityImages);
+  const allProductIds = uniqueSortedProductIds(productIds);
+  log('Produtos selecionados', {
+    etapa: label,
+    total: allProductIds.length,
+    primeirosIds: allProductIds.slice(0, 50),
+    listaTruncada: allProductIds.length > 50,
+  });
 
-    for (const plan of priorityPlan.plans) {
-      logProductPlan(plan);
-    }
-
-    log('Processando produto prioritario antes da varredura geral', {
-      produtos: priorityPlan.uniqueProductIds,
-      arquivosEncontrados: priorityImages.length,
-      arquivosParaInserir: priorityPlan.pendingImages.length,
-    });
-
-    await processPendingImages(config, priorityPlan.pendingImages, 'prioritario');
-    await verifyPendingImages(priorityPlan.pendingImages);
-  }
-
-  const allProductIds = await getAllProductIds();
-  const remainingProductIds = allProductIds.filter((idProduto) => !priorityProductIds.has(idProduto));
   let ftpImages: FtpImage[];
 
   if (config.directProbeOnly) {
-    const directImages = await discoverImagesByDirectProbe(config, remainingProductIds);
-    ftpImages = mergeImages(priorityImages, directImages);
+    ftpImages = await discoverImagesByDirectProbe(config, allProductIds);
     stats.totalFtpItems = ftpImages.length;
     stats.validImages = ftpImages.length;
   } else {
-    ftpImages = mergeImages(priorityImages, await listFtpImages(config));
+    ftpImages = filterImagesByTargetProductIds(await listFtpImages(config), allProductIds);
+    stats.totalFtpItems = ftpImages.length;
+    stats.validImages = ftpImages.length;
 
     if (config.probeAllProducts) {
-      ftpImages = await addProbedImages(config, ftpImages, remainingProductIds);
+      ftpImages = await addProbedImages(config, ftpImages, allProductIds);
+      ftpImages = filterImagesByTargetProductIds(ftpImages, allProductIds);
       stats.totalFtpItems = ftpImages.length;
       stats.validImages = ftpImages.length;
     }
@@ -1138,6 +1204,7 @@ async function runImportOnce(config: Config, run: number) {
   log('Planejamento finalizado', {
     produtosNoFtp: groupedFtpImages.size,
     ids: uniqueProductIds,
+    produtosSemArquivoNoFtp: allProductIds.filter((idProduto) => !groupedFtpImages.has(idProduto)),
     produtosEncontradosNoBanco: existingProductIds.size,
     produtosNaoEncontradosNoBanco: uniqueProductIds.length - existingProductIds.size,
     arquivosParaProcessar: orderedPendingImages.length,
@@ -1154,7 +1221,7 @@ async function runImportOnce(config: Config, run: number) {
     inserirNoBanco: orderedPendingImages.length,
   });
 
-  await processPendingImages(config, orderedPendingImages, 'geral');
+  await processPendingImages(config, orderedPendingImages, label);
 
   const missingAfterImport = await verifyPendingImages(orderedPendingImages);
   if (missingAfterImport.length > 0) {
@@ -1180,31 +1247,72 @@ async function runImportOnce(config: Config, run: number) {
 
 async function main() {
   const config = getConfig();
+
+  const configuredProductIds = await loadTargetProductIds(config);
+  const allProductIds = configuredProductIds.length ? configuredProductIds : await getAllProductIds();
+  if (!allProductIds.length) {
+    fail('Nenhum produto encontrado para varredura');
+  }
+
+  log('Estrategia de importacao definida', {
+    produtos: allProductIds.length,
+    origem: configuredProductIds.length ? 'PRODUTO_IMAGES_PRODUCT_IDS/produtosSemImagem.json' : 'todos os produtos do banco',
+  });
+
+  const results: ImportResult[] = [];
   let run = 1;
 
-  while (true) {
-    const result = await runImportOnce(config, run);
-    const reachedMaxRuns = config.maxRuns > 0 && run >= config.maxRuns;
-    const shouldRepeat =
-      config.autoRepeat &&
-      !reachedMaxRuns &&
-      result.pending > 0 &&
-      (result.inserted > 0 || result.uploaded > 0);
+  results.push(await runImportOnce(config, run, allProductIds, '1-varredura-todos-produtos'));
 
-    if (!shouldRepeat) {
-      if (result.failed > 0) {
-        process.exitCode = 1;
-      }
-      break;
+  let productsWithoutImages = await getProductIdsWithoutImages(allProductIds);
+  log('Primeira varredura concluida', {
+    produtosSemImagem: productsWithoutImages.length,
+    primeirosIds: productsWithoutImages.slice(0, 100),
+    listaTruncada: productsWithoutImages.length > 100,
+  });
+
+  if (productsWithoutImages.length) {
+    run += 1;
+    if (config.autoRepeatDelayMs > 0) {
+      log('Intervalo antes da segunda revisao', { aguardarMs: config.autoRepeatDelayMs });
+      await sleep(config.autoRepeatDelayMs);
     }
 
-    run += 1;
-    log('Reinicio automatico agendado', {
-      proximaExecucao: run,
-      aguardarMs: config.autoRepeatDelayMs,
+    results.push(await runImportOnce(config, run, productsWithoutImages, '2-revisao-produtos-sem-imagem'));
+  }
+
+  productsWithoutImages = await getProductIdsWithoutImages(allProductIds);
+  log('Segunda revisao concluida', {
+    produtosSemImagem: productsWithoutImages.length,
+    primeirosIds: productsWithoutImages.slice(0, 100),
+    listaTruncada: productsWithoutImages.length > 100,
+  });
+
+  if (productsWithoutImages.length) {
+    log('Iniciando revisao individual dos produtos ainda sem imagem', {
+      produtos: productsWithoutImages.length,
     });
-    await sleep(config.autoRepeatDelayMs);
-    log('Reinicio automatico iniciado', { execucao: run });
+
+    for (const idProduto of productsWithoutImages) {
+      run += 1;
+      results.push(await runImportOnce(config, run, [idProduto], '3-revisao-individual'));
+    }
+  }
+
+  const remainingWithoutImages = await getProductIdsWithoutImages(allProductIds);
+  const totalFailed = results.reduce((sum, result) => sum + result.failed, 0);
+  log('Fluxo de importacao finalizado', {
+    execucoes: results.length,
+    enviadosBucket: results.reduce((sum, result) => sum + result.uploaded, 0),
+    inseridosBanco: results.reduce((sum, result) => sum + result.inserted, 0),
+    falhas: totalFailed,
+    produtosAindaSemImagem: remainingWithoutImages.length,
+    primeirosAindaSemImagem: remainingWithoutImages.slice(0, 200),
+    listaAindaSemImagemTruncada: remainingWithoutImages.length > 200,
+  });
+
+  if (totalFailed > 0) {
+    process.exitCode = 1;
   }
 }
 

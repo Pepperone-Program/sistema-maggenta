@@ -92,6 +92,40 @@ export class OrcamentoModel {
     return { items: items as Orcamento[], total };
   }
 
+  static async findByCliente(
+    empresaId: number,
+    clienteId: number,
+    page: number = 1,
+    limit: number = 50
+  ): Promise<{ items: Orcamento[]; total: number }> {
+    const safePage = Math.max(page, 1);
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const values = [empresaId, String(clienteId)];
+
+    const countResult = await query(
+      `
+        SELECT COUNT(*) as total
+        FROM orcamentos
+        WHERE id_empresa = ? AND id_cliente = ?
+      `,
+      values
+    );
+    const total = (countResult as any[])[0].total;
+
+    const items = await query(
+      `
+        SELECT *
+        FROM orcamentos
+        WHERE id_empresa = ? AND id_cliente = ?
+        ORDER BY data_orcamento DESC, id_orcamento DESC
+        LIMIT ? OFFSET ?
+      `,
+      [...values, safeLimit, (safePage - 1) * safeLimit]
+    );
+
+    return { items: items as Orcamento[], total };
+  }
+
   static async update(
     empresaId: number,
     orcamentoId: number,

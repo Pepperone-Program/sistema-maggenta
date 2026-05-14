@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '@middleware/auth';
+import { CacheService } from '@services/CacheService';
 import { ProdutoService } from '@services/ProdutoService';
 import { ProdutoImageService } from '@services/ProdutoImageService';
 import { successResponse, paginatedResponse, errorResponse } from '@utils/response';
@@ -12,6 +13,8 @@ export class ProdutoController {
         empresaId,
         req.body
       );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
 
       successResponse(res, produto, 'Produto criado com sucesso', 201);
     } catch (error) {
@@ -42,12 +45,16 @@ export class ProdutoController {
       const page = parseInt((req.query.page as string) || '1', 10);
       const limit = parseInt((req.query.limit as string) || '10', 10);
       const search = req.query.search as string | undefined;
+      const habilitado = req.query.habilitado as string | undefined;
+      const site = req.query.site as string | undefined;
 
       const result = await ProdutoService.listProdutos(
         empresaId,
         page,
         limit,
-        search
+        search,
+        habilitado,
+        site
       );
 
       paginatedResponse(
@@ -129,6 +136,8 @@ export class ProdutoController {
         parseInt(id, 10),
         req.body
       );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
 
       successResponse(res, produto, 'Produto atualizado com sucesso');
     } catch (error) {
@@ -145,8 +154,23 @@ export class ProdutoController {
         empresaId,
         parseInt(id, 10)
       );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
 
       successResponse(res, null, 'Produto deletado com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async listLinks(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const empresaId = req.user?.id_empresa || 1;
+      const { id } = req.params;
+      const links = await ProdutoService.getProdutoLinks(empresaId, parseInt(id, 10));
+
+      successResponse(res, links, 'Vinculos do produto listados com sucesso');
     } catch (error) {
       const err = error as any;
       errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
@@ -204,6 +228,8 @@ export class ProdutoController {
       const { id } = req.params;
       const files = (req.files || []) as Express.Multer.File[];
       const imagens = await ProdutoImageService.upload(empresaId, parseInt(id, 10), files);
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
 
       console.log('[ProdutoController] uploadImages:success', {
         produtoId: id,
@@ -228,11 +254,20 @@ export class ProdutoController {
 
   static async reorderImages(req: AuthenticatedRequest, res: Response): Promise<void> {
     const startedAt = Date.now();
+    const orderedImages =
+      req.body?.imageIds ||
+      req.body?.id_imagens ||
+      req.body?.ids ||
+      req.body?.filenames ||
+      req.body?.images ||
+      [];
+
     console.log('[ProdutoController] reorderImages:start', {
       produtoId: req.params.id,
       empresaId: req.user?.id_empresa,
       userId: req.user?.id_usuario,
-      filenames: req.body?.filenames,
+      imageIds: req.body?.imageIds,
+      bodyKeys: Object.keys(req.body || {}),
     });
     try {
       const empresaId = req.user?.id_empresa || 1;
@@ -240,8 +275,10 @@ export class ProdutoController {
       const imagens = await ProdutoImageService.reorder(
         empresaId,
         parseInt(id, 10),
-        req.body.filenames || []
+        orderedImages
       );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
 
       console.log('[ProdutoController] reorderImages:success', {
         produtoId: id,
@@ -280,6 +317,8 @@ export class ProdutoController {
         parseInt(id, 10),
         filename
       );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
 
       console.log('[ProdutoController] removeImage:success', {
         produtoId: id,

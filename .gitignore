@@ -19,6 +19,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+backend/logs/
+
+# generated catalogs
+backend/catalogos/*.pdf
 
 # OS/editor
 .DS_Store

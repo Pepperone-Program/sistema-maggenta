@@ -29,6 +29,7 @@ export const productSchema = Joi.object({
   video: Joi.string().allow(null, ''),
   habilitado: Joi.string().valid('S', 'N').allow(null, '').default('S'),
   cod_forn: Joi.string().max(50).allow(null, ''),
+  quantidade_minima: Joi.string().max(20).allow(null, ''),
 });
 
 export const orcamentoSchema = Joi.object({
@@ -95,6 +96,7 @@ export const categoriaSchema = Joi.object({
   descricao: Joi.string().allow(null, ''),
   icon: Joi.string().max(255).allow(null, ''),
   habilitado: Joi.string().valid('S', 'N').allow(null, '').default('S'),
+  url_capa: Joi.string().allow(null, ''),
 });
 
 export const subcategoriaSchema = Joi.object({

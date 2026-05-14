@@ -114,4 +114,16 @@ export class BannerService {
       throwError('DELETE_FAILED', 'Falha ao deletar banner', 500);
     }
   }
+
+  static async reorderBanners(empresaId: number, bannerIds: number[]): Promise<Banner[]> {
+    const requestedIds = bannerIds.map(Number).filter((id) => Number.isInteger(id) && id > 0);
+
+    if (!requestedIds.length || requestedIds.length !== new Set(requestedIds).size) {
+      throwError('INVALID_ORDER', 'Informe uma ordem valida de banners', 400);
+    }
+
+    await BannerModel.reorder(empresaId, requestedIds);
+    const { items } = await BannerModel.findAll(empresaId, 1, 500);
+    return items;
+  }
 }

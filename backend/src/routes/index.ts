@@ -10,6 +10,10 @@ import datasPromocionaisRoutes from './datas-promocionais';
 import estatisticasProdutosRoutes from './estatisticas-produtos';
 import clientesRoutes from './clientes';
 import bannersRoutes from './banners';
+import tiposProdutosRoutes from './tipos-produtos';
+import contatoRoutes from './contato';
+import newsletterRoutes from './newsletter';
+import siteTokenRoutes from './site-token';
 
 const router = Router();
 
@@ -24,6 +28,10 @@ router.use('/api/v1/datas-promocionais', datasPromocionaisRoutes);
 router.use('/api/v1/estatisticas-produtos', estatisticasProdutosRoutes);
 router.use('/api/v1/clientes', clientesRoutes);
 router.use('/api/v1/banners', bannersRoutes);
+router.use('/api/v1/tipos-produtos', tiposProdutosRoutes);
+router.use('/api/v1/contato', contatoRoutes);
+router.use('/api/v1/newsletter', newsletterRoutes);
+router.use('/api/v1/site-token', siteTokenRoutes);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

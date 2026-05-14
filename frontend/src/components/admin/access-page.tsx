@@ -1,114 +1,149 @@
 "use client";
 
 import { apiRequest } from "@/lib/api";
-import { FormEvent, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { StatusBadge } from "./status-badge";
 
-type Grupo = {
-  grupo: string;
-  total_permissoes: number;
-  total_usuarios: number;
+type UsuarioPermissao = {
+  id_empresa: number;
+  id_usuario: number;
+  usuario: string | null;
+  nome: string | null;
+  email: string | null;
+  ramal: string | null;
+  tel: string | null;
+  cel: string | null;
+  cidade: string | null;
+  uf: string | null;
+  comissao: string | null;
+  data_inicial: string | null;
+  data_final: string | null;
+  last_login: string | null;
+  habilitado: string | null;
+  last_online: string | null;
+  last_ip: string | null;
+  grupos: string | null;
+  grupo: string | null;
 };
 
-type GrupoPermissao = {
+type PermissaoOption = {
   grupo: string;
   permissao: string;
 };
 
-type GrupoUsuario = {
-  grupo: string;
-  id_usuario: number;
+type UsuariosPermissoesResponse = {
+  items: UsuarioPermissao[];
+  permissoes: PermissaoOption[];
+  total: number;
+  page: number;
+  limit: number;
 };
 
+function text(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  return String(value);
+}
+
+function dateText(value: unknown) {
+  return value ? String(value).slice(0, 19).replace("T", " ") : "-";
+}
+
 export function AccessPage() {
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [selectedGrupo, setSelectedGrupo] = useState("admin");
-  const [permissoes, setPermissoes] = useState<GrupoPermissao[]>([]);
-  const [usuarios, setUsuarios] = useState<GrupoUsuario[]>([]);
+  const [data, setData] = useState<UsuariosPermissoesResponse | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [selectedGroups, setSelectedGroups] = useState<Record<number, string>>({});
+  const [savingUserId, setSavingUserId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
+  const loadData = useCallback(async () => {
+    setLoading(true);
     setError("");
-    try {
-      const gruposData = await apiRequest<{ items: Grupo[] }>("/api/v1/grupos", {
-        query: { limit: 100 },
-      });
-      setGrupos(gruposData.items);
 
-      const grupo = selectedGrupo || gruposData.items[0]?.grupo || "admin";
-      const [permissoesData, usuariosData] = await Promise.all([
-        apiRequest<{ items: GrupoPermissao[] }>(`/api/v1/grupos/${grupo}/permissoes`, {
-          query: { limit: 100 },
-        }),
-        apiRequest<{ items: GrupoUsuario[] }>(`/api/v1/grupos/${grupo}/usuarios`, {
-          query: { limit: 100 },
-        }),
-      ]);
-      setPermissoes(permissoesData.items);
-      setUsuarios(usuariosData.items);
+    try {
+      const response = await apiRequest<UsuariosPermissoesResponse>("/api/v1/grupos/usuarios", {
+        query: { page, limit: 50, search },
+      });
+      setData(response);
+      setSelectedGroups(
+        response.items.reduce<Record<number, string>>((acc, item) => {
+          acc[item.id_usuario] = item.grupo || "";
+          return acc;
+        }, {}),
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar permissoes");
+      setError(err instanceof Error ? err.message : "Falha ao carregar usuarios");
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [page, search]);
 
   useEffect(() => {
-    load();
-  }, [selectedGrupo]);
+    loadData();
+  }, [loadData]);
 
-  async function addPermissao(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const permissao = String(form.get("permissao") || "").trim();
-    if (!permissao) return;
+  const groupOptions = useMemo(() => {
+    const byGroup = new Map<string, string[]>();
 
-    await apiRequest(`/api/v1/grupos/${selectedGrupo}/permissoes`, {
-      method: "POST",
-      body: JSON.stringify({ permissao }),
-    });
-    event.currentTarget.reset();
-    load();
-  }
+    for (const item of data?.permissoes || []) {
+      const current = byGroup.get(item.grupo) || [];
+      current.push(item.permissao);
+      byGroup.set(item.grupo, current);
+    }
 
-  async function addUsuario(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const id_usuario = Number(form.get("id_usuario"));
-    if (!id_usuario) return;
+    return Array.from(byGroup.entries()).map(([grupo, permissoes]) => ({
+      grupo,
+      label: `${grupo} - ${permissoes.join(", ")}`,
+    }));
+  }, [data?.permissoes]);
 
-    await apiRequest(`/api/v1/grupos/${selectedGrupo}/usuarios`, {
-      method: "POST",
-      body: JSON.stringify({ id_usuario }),
-    });
-    event.currentTarget.reset();
-    load();
-  }
+  async function saveGroup(usuarioId: number) {
+    const grupo = selectedGroups[usuarioId];
+    if (!grupo) return;
 
-  async function removePermissao(permissao: string) {
-    await apiRequest(`/api/v1/grupos/${selectedGrupo}/permissoes/${permissao}`, {
-      method: "DELETE",
-    });
-    load();
-  }
+    setSavingUserId(usuarioId);
+    setError("");
 
-  async function removeUsuario(idUsuario: number) {
-    await apiRequest(`/api/v1/grupos/${selectedGrupo}/usuarios/${idUsuario}`, {
-      method: "DELETE",
-    });
-    load();
+    try {
+      await apiRequest(`/api/v1/grupos/usuarios/${usuarioId}/grupo`, {
+        method: "PUT",
+        body: JSON.stringify({ grupo }),
+      });
+      setEditingUserId(null);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao atualizar grupo do usuario");
+    } finally {
+      setSavingUserId(null);
+    }
   }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-          Controle de acesso
-        </p>
-        <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
-          Grupos e permissoes
-        </h1>
-        <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
-          Defina permissoes por grupo e associe usuarios a grupos operacionais.
-        </p>
-      </div>
+      <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+        <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">
+              Controle de acesso
+            </p>
+            <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
+              Permissoes de usuarios
+            </h1>
+            <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
+              Gerencie o grupo de permissao de qualquer usuario em uma unica tabela.
+            </p>
+          </div>
+          <button
+            className="rounded-md border border-stroke px-4 py-3 text-sm font-bold text-dark hover:border-primary hover:text-primary dark:border-dark-3 dark:text-white"
+            onClick={loadData}
+            type="button"
+          >
+            Atualizar
+          </button>
+        </div>
+      </section>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -116,99 +151,177 @@ export function AccessPage() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-        <aside className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
-          <label className="text-sm font-semibold text-dark dark:text-white">
-            Grupo
-          </label>
+      <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
+        <div className="border-b border-stroke p-4 dark:border-dark-3">
           <input
-            className="mt-2 w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
-            onChange={(event) => setSelectedGrupo(event.target.value)}
-            value={selectedGrupo}
+            className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white lg:max-w-xl"
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="Buscar por ID, usuario, nome ou email"
+            value={search}
           />
+        </div>
 
-          <div className="mt-4 space-y-2">
-            {grupos.map((grupo) => (
-              <button
-                className="flex w-full items-center justify-between rounded-md border border-stroke px-3 py-2 text-left text-sm hover:border-primary dark:border-dark-3"
-                key={grupo.grupo}
-                onClick={() => setSelectedGrupo(grupo.grupo)}
-                type="button"
-              >
-                <span className="font-semibold text-dark dark:text-white">
-                  {grupo.grupo}
-                </span>
-                <span className="text-xs text-dark-4">
-                  {grupo.total_permissoes} perm. / {grupo.total_usuarios} usuarios
-                </span>
-              </button>
-            ))}
-          </div>
-        </aside>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1280px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
+                {[
+                  "ID",
+                  "Usuario",
+                  "Nome",
+                  "Email",
+                  "Contato",
+                  "Periodo",
+                  "Online",
+                  "Status",
+                  "Grupo",
+                  "Acao",
+                ].map((header) => (
+                  <th className="px-4 py-3 font-semibold" key={header}>
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-dark-4" colSpan={12}>
+                    Carregando usuarios...
+                  </td>
+                </tr>
+              ) : data?.items.length ? (
+                data.items.map((usuario) => {
+                  const isEditing = editingUserId === usuario.id_usuario;
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
-            <h2 className="text-lg font-bold text-dark dark:text-white">Permissoes</h2>
-            <form className="mt-4 flex gap-2" onSubmit={addPermissao}>
-              <input
-                className="min-w-0 flex-1 rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
-                name="permissao"
-                placeholder="ex: administrador"
-              />
-              <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white">
-                Adicionar
-              </button>
-            </form>
-            <div className="mt-4 divide-y divide-stroke dark:divide-dark-3">
-              {permissoes.map((item) => (
-                <div className="flex items-center justify-between py-3" key={item.permissao}>
-                  <span className="font-medium text-dark dark:text-white">
-                    {item.permissao}
-                  </span>
-                  <button
-                    className="text-sm font-semibold text-red-600"
-                    onClick={() => removePermissao(item.permissao)}
-                    type="button"
-                  >
-                    Remover
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+                  return (
+                    <tr
+                      className="border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
+                      key={usuario.id_usuario}
+                    >
+                      <td className="px-4 py-3 font-bold">#{usuario.id_usuario}</td>
+                      <td className="px-4 py-3">{text(usuario.usuario)}</td>
+                      <td className="max-w-[220px] px-4 py-3">
+                        <span className="block truncate font-semibold">{text(usuario.nome)}</span>
+                      </td>
+                      <td className="max-w-[260px] px-4 py-3">
+                        <span className="block truncate">{text(usuario.email)}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-0.5">
+                          <p>{text(usuario.ramal)}</p>
+                          <p className="text-xs text-dark-4">{text(usuario.tel || usuario.cel)}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">{dateText(usuario.data_inicial).slice(0, 10)} a {dateText(usuario.data_final).slice(0, 10)}</td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-0.5">
+                          <p>{dateText(usuario.last_online)}</p>
+                          <p className="text-xs text-dark-4">{text(usuario.last_ip)}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge value={usuario.habilitado} />
+                      </td>
+                      <td className="min-w-[280px] px-4 py-3">
+                        {isEditing ? (
+                          <select
+                            className="w-full rounded-md border border-stroke bg-white px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                            onChange={(event) =>
+                              setSelectedGroups((current) => ({
+                                ...current,
+                                [usuario.id_usuario]: event.target.value,
+                              }))
+                            }
+                            value={selectedGroups[usuario.id_usuario] || ""}
+                          >
+                            <option value="">Selecione um grupo</option>
+                            {groupOptions.map((option) => (
+                              <option key={option.grupo} value={option.grupo}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div>
+                            <p className="font-bold text-dark dark:text-white">{text(usuario.grupo)}</p>
+                            <p className="text-xs text-dark-4">Todos: {text(usuario.grupos)}</p>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {isEditing ? (
+                          <div className="flex gap-2">
+                            <button
+                              className="rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+                              disabled={savingUserId === usuario.id_usuario || !selectedGroups[usuario.id_usuario]}
+                              onClick={() => saveGroup(usuario.id_usuario)}
+                              type="button"
+                            >
+                              {savingUserId === usuario.id_usuario ? "Salvando..." : "Salvar"}
+                            </button>
+                            <button
+                              className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold dark:border-dark-3"
+                              onClick={() => setEditingUserId(null)}
+                              type="button"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3"
+                            onClick={() => setEditingUserId(usuario.id_usuario)}
+                            type="button"
+                          >
+                            Editar permissao
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className="px-4 py-8 text-center text-dark-4" colSpan={12}>
+                    Nenhum usuario encontrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
-            <h2 className="text-lg font-bold text-dark dark:text-white">Usuarios</h2>
-            <form className="mt-4 flex gap-2" onSubmit={addUsuario}>
-              <input
-                className="min-w-0 flex-1 rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
-                name="id_usuario"
-                placeholder="ID do usuario"
-                type="number"
-              />
-              <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white">
-                Vincular
-              </button>
-            </form>
-            <div className="mt-4 divide-y divide-stroke dark:divide-dark-3">
-              {usuarios.map((item) => (
-                <div className="flex items-center justify-between py-3" key={item.id_usuario}>
-                  <span className="font-medium text-dark dark:text-white">
-                    Usuario #{item.id_usuario}
-                  </span>
-                  <button
-                    className="text-sm font-semibold text-red-600"
-                    onClick={() => removeUsuario(item.id_usuario)}
-                    type="button"
-                  >
-                    Remover
-                  </button>
-                </div>
-              ))}
-            </div>
+        <div className="flex items-center justify-between border-t border-stroke p-4 text-sm dark:border-dark-3">
+          <span className="text-dark-4 dark:text-dark-6">
+            {data ? `${data.total} usuarios` : "Sem dados"}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              className="rounded-md border border-stroke px-3 py-2 disabled:opacity-40 dark:border-dark-3"
+              disabled={page <= 1}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              type="button"
+            >
+              Anterior
+            </button>
+            <span className="text-dark dark:text-white">
+              {page} / {data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1}
+            </span>
+            <button
+              className="rounded-md border border-stroke px-3 py-2 disabled:opacity-40 dark:border-dark-3"
+              disabled={!data || page >= Math.ceil(data.total / data.limit)}
+              onClick={() => setPage((value) => value + 1)}
+              type="button"
+            >
+              Proxima
+            </button>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { CategoriaModel, SubcategoriaModel } from '@models/Categoria';
+import { uploadToSupabaseStorage } from '@services/SupabaseStorageService';
 import type {
   Categoria,
   CategoriaProduto,
@@ -11,6 +12,7 @@ import type {
   VincularProdutoDTO,
 } from '@/types/categoria';
 import { throwError } from '@utils/helpers';
+import sharp from 'sharp';
 
 export class CategoriaService {
   static async createCategoria(
@@ -167,6 +169,74 @@ export class CategoriaService {
     );
 
     return { items, total, page, limit };
+  }
+
+  static async uploadCapa(
+    empresaId: number,
+    categoriaId: number,
+    file: Express.Multer.File
+  ): Promise<Categoria> {
+    await this.getCategoriaById(empresaId, categoriaId);
+    if (!file) {
+      throwError('NO_IMAGE', 'Envie uma imagem para a categoria', 400);
+    }
+
+    const buffer = await sharp(file.buffer)
+      .rotate()
+      .resize({ width: 1800, withoutEnlargement: true })
+      .jpeg({ quality: 90, mozjpeg: true })
+      .toBuffer();
+    const bucket = process.env.CATEGORIA_IMAGES_SUPABASE_BUCKET || 'imagem_empresa';
+    const publicUrl = await uploadToSupabaseStorage({
+      bucket,
+      key: `categorias/${categoriaId}-${Date.now()}.jpg`,
+      body: buffer,
+      contentType: 'image/jpeg',
+    });
+
+    return this.updateCategoria(empresaId, categoriaId, { url_capa: publicUrl });
+  }
+
+  static async getCatalogoCategoria(
+    empresaId: number,
+    categoriaId: number,
+    query: {
+      page?: number | string;
+      limit?: number | string;
+      subcategorias?: string;
+      publicos_alvos?: string;
+      quantidade_minima_min?: string;
+      quantidade_minima_max?: string;
+    }
+  ) {
+    const categoria = await this.getCategoriaById(empresaId, categoriaId);
+    const parseIds = (value?: string) =>
+      String(value || '')
+        .split(',')
+        .map((item) => Number(item.trim()))
+        .filter((id) => Number.isInteger(id) && id > 0);
+    const toNumber = (value?: string) => {
+      if (value === undefined || value === '') return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const produtos = await CategoriaModel.findCatalogProducts(empresaId, categoriaId, {
+      page: Number(query.page || 1),
+      limit: Number(query.limit || 100),
+      subcategorias: parseIds(query.subcategorias),
+      publicosAlvos: parseIds(query.publicos_alvos),
+      quantidadeMinimaMin: toNumber(query.quantidade_minima_min),
+      quantidadeMinimaMax: toNumber(query.quantidade_minima_max),
+    });
+    const filtros = await CategoriaModel.findCatalogFacets(empresaId, categoriaId);
+
+    return {
+      categoria,
+      filtros,
+      ...produtos,
+      totalPages: Math.ceil(produtos.total / produtos.limit),
+    };
   }
 }
 

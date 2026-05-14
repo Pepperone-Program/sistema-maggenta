@@ -8,7 +8,6 @@ const router = Router();
 
 router.post(
   '/',
-  authMiddleware,
   validationMiddleware(orcamentoSchema),
   OrcamentoController.create
 );
@@ -43,7 +42,6 @@ router.delete(
 
 router.post(
   '/:id/itens',
-  authMiddleware,
   validationMiddleware(orcamentoItemSchema),
   OrcamentoController.addItem
 );

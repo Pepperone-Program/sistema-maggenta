@@ -41,12 +41,6 @@ export const NAV_DATA: NavSection[] = [
         items: [],
       },
       {
-        title: "Contatos",
-        url: "/clientes/contatos",
-        icon: Icons.User,
-        items: [],
-      },
-      {
         title: "Orcamentos",
         url: "/orcamentos",
         icon: Icons.Calendar,
@@ -85,12 +79,6 @@ export const NAV_DATA: NavSection[] = [
         title: "Banners",
         url: "/banners",
         icon: Icons.Table,
-        items: [],
-      },
-      {
-        title: "Vinculos",
-        url: "/vinculos",
-        icon: Icons.FourCircle,
         items: [],
       },
     ],

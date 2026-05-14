@@ -56,6 +56,22 @@ export class GrupoPermissaoController {
     }
   }
 
+  static async listUsuariosComGrupos(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await GrupoPermissaoService.listUsuariosComGrupos(
+        getEmpresaId(req),
+        getPage(req),
+        getLimit(req),
+        req.query.search as string | undefined
+      );
+
+      successResponse(res, result, 'Usuarios e permissoes listados com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async addPermissao(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const permissao = await GrupoPermissaoService.addPermissao(
@@ -133,6 +149,21 @@ export class GrupoPermissaoController {
       );
 
       successResponse(res, null, 'Usuario removido do grupo com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async setUsuarioGrupo(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const usuarioGrupo = await GrupoPermissaoService.setUsuarioGrupo(
+        getEmpresaId(req),
+        parseInt(req.params.usuarioId, 10),
+        req.body?.grupo
+      );
+
+      successResponse(res, usuarioGrupo, 'Grupo do usuario atualizado com sucesso');
     } catch (error) {
       const err = error as any;
       errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);

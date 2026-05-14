@@ -31,6 +31,7 @@ export interface Produto {
   video: string;
   habilitado: string;
   cod_forn: string | null;
+  quantidade_minima: string | null;
   imagens?: ProdutoImagem[];
 }
 
@@ -71,6 +72,7 @@ export interface CreateProdutoDTO {
   video?: string;
   habilitado?: string;
   cod_forn?: string;
+  quantidade_minima?: string;
 }
 
 export type UpdateProdutoDTO = Partial<CreateProdutoDTO>;

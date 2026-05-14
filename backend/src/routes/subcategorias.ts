@@ -19,13 +19,11 @@ router.post(
 
 router.get(
   '/',
-  authMiddleware,
   SubcategoriaController.list
 );
 
 router.get(
   '/:id/produtos',
-  authMiddleware,
   SubcategoriaController.listProdutos
 );
 
@@ -44,7 +42,6 @@ router.delete(
 
 router.get(
   '/:id',
-  authMiddleware,
   SubcategoriaController.getById
 );
 

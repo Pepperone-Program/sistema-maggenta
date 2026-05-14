@@ -1,4 +1,4 @@
-import { query } from '@database/connection';
+import { getConnection, query } from '@database/connection';
 import type { Produto, ProdutoImagem, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produto';
 
 export class ProdutoModel {
@@ -13,10 +13,10 @@ export class ProdutoModel {
         caixa1, caixa2, caixa3, caixa4, caixa5, ncm, imagem,
         data_inclusao, data_inicial, data_final, obs, site,
         sugerir_sempre, lancamento, promocao, premium, marketplace,
-        video, habilitado, cod_forn
+        video, habilitado, cod_forn, quantidade_minima
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `;
 
@@ -50,6 +50,7 @@ export class ProdutoModel {
       data.video || null,
       data.habilitado || 'S',
       data.cod_forn || null,
+      data.quantidade_minima || null,
     ];
 
     const result = await query(sql, values);
@@ -99,19 +100,187 @@ export class ProdutoModel {
     return imagesByProduct;
   }
 
+  static async findImagesByProductId(produtoId: number): Promise<ProdutoImagem[]> {
+    const rows = (await query(
+      `
+        SELECT id_imagem, id_produto, url_imagem, ordem_imagem, created_at
+        FROM imagens_produtos
+        WHERE id_produto = ?
+        ORDER BY ordem_imagem ASC, id_imagem ASC
+      `,
+      [produtoId]
+    )) as ProdutoImagem[];
+
+    return rows;
+  }
+
+  static async insertImage(produtoId: number, urlImagem: string, ordemImagem: number): Promise<number> {
+    const result = (await query(
+      `
+        INSERT INTO imagens_produtos (id_produto, url_imagem, ordem_imagem)
+        VALUES (?, ?, ?)
+      `,
+      [produtoId, urlImagem, ordemImagem]
+    )) as { insertId: number };
+
+    return result.insertId;
+  }
+
+  static async deleteImage(produtoId: number, imageId: number): Promise<boolean> {
+    const result = (await query(
+      `
+        DELETE FROM imagens_produtos
+        WHERE id_produto = ? AND id_imagem = ?
+      `,
+      [produtoId, imageId]
+    )) as { affectedRows: number };
+
+    return result.affectedRows > 0;
+  }
+
+  static async findProductLinks(produtoId: number) {
+    const [categorias, subcategorias, publicosAlvos, datasPromocionais] = await Promise.all([
+      query(
+        `
+          SELECT c.id_categoria, c.categoria, c.habilitado
+          FROM aux_categorias_produtos acp
+          INNER JOIN categorias c
+            ON c.id_empresa = acp.id_empresa AND c.id_categoria = acp.id_categoria
+          WHERE acp.id_produto = ?
+          ORDER BY c.categoria ASC
+        `,
+        [produtoId]
+      ),
+      query(
+        `
+          SELECT s.id_subcategoria, s.id_categoria, s.subcategoria, s.habilitado
+          FROM aux_subcategorias_produtos asp
+          INNER JOIN subcategorias s
+            ON s.id_empresa = asp.id_empresa AND s.id_subcategoria = asp.id_subcategoria
+          WHERE asp.id_produto = ?
+          ORDER BY s.ordem ASC, s.subcategoria ASC
+        `,
+        [produtoId]
+      ),
+      query(
+        `
+          SELECT pa.id_publico_alvo, pa.publico_alvo, pa.habilitado
+          FROM aux_publicos_alvos_produtos app
+          INNER JOIN publicos_alvos pa
+            ON pa.id_publico_alvo = app.id_publico_alvo
+          WHERE app.id_produto = ?
+          ORDER BY pa.ordem ASC, pa.publico_alvo ASC
+        `,
+        [produtoId]
+      ),
+      query(
+        `
+          SELECT dp.id_data_promocional, dp.data_promocional, dp.data, dp.habilitado
+          FROM aux_datas_promocionais_produtos adp
+          INNER JOIN datas_promocionais dp
+            ON dp.id_data_promocional = adp.id_data_promocional
+          WHERE adp.id_produto = ?
+          ORDER BY dp.ordem ASC, dp.data_promocional ASC
+        `,
+        [produtoId]
+      ),
+    ]);
+
+    return {
+      categorias,
+      subcategorias,
+      publicos_alvos: publicosAlvos,
+      datas_promocionais: datasPromocionais,
+    };
+  }
+
+  static async reorderImages(produtoId: number, imageIds: number[]): Promise<void> {
+    if (!imageIds.length) return;
+
+    const connection = await getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const placeholders = imageIds.map(() => '?').join(',');
+      const rows = (await connection.execute(
+        `
+          SELECT id_imagem
+          FROM imagens_produtos
+          WHERE id_produto = ? AND id_imagem IN (${placeholders})
+          FOR UPDATE
+        `,
+        [produtoId, ...imageIds]
+      ).then(([result]) => result)) as Array<{ id_imagem: number }>;
+
+      if (rows.length !== imageIds.length) {
+        const error = new Error('A nova ordem contem imagens invalidas para este produto') as Error & {
+          code: string;
+          statusCode: number;
+        };
+        error.code = 'INVALID_ORDER';
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const temporaryCase = imageIds.map(() => 'WHEN ? THEN ?').join(' ');
+      const temporaryValues = imageIds.flatMap((idImagem, index) => [idImagem, -(index + 1)]);
+      await connection.execute(
+        `
+          UPDATE imagens_produtos
+          SET ordem_imagem = CASE id_imagem ${temporaryCase} END
+          WHERE id_produto = ? AND id_imagem IN (${placeholders})
+        `,
+        [...temporaryValues, produtoId, ...imageIds]
+      );
+
+      const finalCase = imageIds.map(() => 'WHEN ? THEN ?').join(' ');
+      const finalValues = imageIds.flatMap((idImagem, index) => [idImagem, index + 1]);
+      await connection.execute(
+        `
+          UPDATE imagens_produtos
+          SET ordem_imagem = CASE id_imagem ${finalCase} END
+          WHERE id_produto = ? AND id_imagem IN (${placeholders})
+        `,
+        [...finalValues, produtoId, ...imageIds]
+      );
+
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   static async findAll(
     empresaId: number,
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
+    habilitado?: string,
+    site?: string
   ): Promise<{ items: Produto[]; total: number }> {
     let sql = 'SELECT * FROM produtos WHERE id_empresa = ?';
     const values: any[] = [empresaId];
 
     if (search) {
-      sql += ` AND (produto LIKE ? OR codigo LIKE ? OR descricao LIKE ?)`;
+      const numericSearch = Number(search);
+      sql += ` AND (produto LIKE ? OR codigo LIKE ? OR descricao LIKE ?${Number.isInteger(numericSearch) ? ' OR id_produto = ?' : ''})`;
       const searchPattern = `%${search}%`;
       values.push(searchPattern, searchPattern, searchPattern);
+      if (Number.isInteger(numericSearch)) values.push(numericSearch);
+    }
+
+    if (habilitado === 'S' || habilitado === 'N') {
+      sql += ' AND habilitado = ?';
+      values.push(habilitado);
+    }
+
+    if (site === 'S' || site === 'N') {
+      sql += ' AND site = ?';
+      values.push(site);
     }
 
     const countResult = await query(
@@ -134,7 +303,7 @@ export class ProdutoModel {
     limit: number = 10,
     search?: string
   ): Promise<{ items: Produto[]; total: number }> {
-    let sql = "SELECT * FROM produtos WHERE id_empresa = ? AND site = 'S'";
+    let sql = "SELECT * FROM produtos WHERE id_empresa = ? AND site = 'S' AND habilitado = 'S'";
     const values: any[] = [empresaId];
 
     if (search) {
@@ -169,6 +338,7 @@ export class ProdutoModel {
       FROM produtos
       WHERE id_empresa = ?
         AND site = 'S'
+        AND habilitado = 'S'
         AND (
           codigo LIKE ?
           OR produto LIKE ?

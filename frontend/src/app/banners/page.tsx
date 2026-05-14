@@ -1,6 +1,5 @@
-import { ResourcePage } from "@/components/admin/resource-page";
-import { resources } from "@/config/resources";
+import { BannersPage as BannersAdminPage } from "@/components/admin/banners-page";
 
 export default function BannersPage() {
-  return <ResourcePage config={resources.banners} />;
+  return <BannersAdminPage />;
 }

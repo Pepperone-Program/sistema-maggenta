@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '@middleware/auth';
+import { CacheService } from '@services/CacheService';
 import { DataPromocionalService } from '@services/DataPromocionalService';
 import { errorResponse, paginatedResponse, successResponse } from '@utils/response';
 
@@ -13,6 +14,9 @@ export class DataPromocionalController {
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const dataPromocional = await DataPromocionalService.createDataPromocional(req.body);
+      await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
       successResponse(res, dataPromocional, 'Data promocional criada com sucesso', 201);
     } catch (error) {
       const err = error as any;
@@ -22,8 +26,12 @@ export class DataPromocionalController {
 
   static async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const dataPromocional = await DataPromocionalService.getDataPromocionalById(
-        parseInt(req.params.id, 10)
+      const dataPromocional = await CacheService.getOrSet(
+        CacheService.buildKey('datas-promocionais', `${getEmpresaId(req)}:${req.originalUrl}`),
+        () =>
+          DataPromocionalService.getDataPromocionalById(
+            parseInt(req.params.id, 10)
+          )
       );
       successResponse(res, dataPromocional);
     } catch (error) {
@@ -34,11 +42,15 @@ export class DataPromocionalController {
 
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const result = await DataPromocionalService.listDatasPromocionais(
-        getPage(req),
-        getLimit(req),
-        req.query.search as string | undefined,
-        req.query.habilitado as string | undefined
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('datas-promocionais', `${getEmpresaId(req)}:${req.originalUrl}`),
+        () =>
+          DataPromocionalService.listDatasPromocionais(
+            getPage(req),
+            getLimit(req),
+            req.query.search as string | undefined,
+            req.query.habilitado as string | undefined
+          )
       );
       paginatedResponse(
         res,
@@ -60,6 +72,9 @@ export class DataPromocionalController {
         parseInt(req.params.id, 10),
         req.body
       );
+      await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
       successResponse(res, dataPromocional, 'Data promocional atualizada com sucesso');
     } catch (error) {
       const err = error as any;
@@ -70,6 +85,9 @@ export class DataPromocionalController {
   static async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       await DataPromocionalService.deleteDataPromocional(parseInt(req.params.id, 10));
+      await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
       successResponse(res, null, 'Data promocional deletada com sucesso');
     } catch (error) {
       const err = error as any;
@@ -79,10 +97,14 @@ export class DataPromocionalController {
 
   static async listProdutos(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const result = await DataPromocionalService.listProdutos(
-        parseInt(req.params.id, 10),
-        getPage(req),
-        getLimit(req)
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('datas-promocionais', `${getEmpresaId(req)}:${req.originalUrl}`),
+        () =>
+          DataPromocionalService.listProdutos(
+            parseInt(req.params.id, 10),
+            getPage(req),
+            getLimit(req)
+          )
       );
       paginatedResponse(
         res,
@@ -105,6 +127,9 @@ export class DataPromocionalController {
         parseInt(req.params.id, 10),
         req.body
       );
+      await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
       successResponse(res, vinculo, 'Produto vinculado a data promocional com sucesso', 201);
     } catch (error) {
       const err = error as any;
@@ -118,6 +143,9 @@ export class DataPromocionalController {
         parseInt(req.params.id, 10),
         parseInt(req.params.produtoId, 10)
       );
+      await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('tipos-produtos');
       successResponse(res, null, 'Produto desvinculado da data promocional com sucesso');
     } catch (error) {
       const err = error as any;

@@ -19,13 +19,11 @@ router.post(
 
 router.get(
   '/',
-  authMiddleware,
   PublicoAlvoController.list
 );
 
 router.get(
   '/:id/produtos',
-  authMiddleware,
   PublicoAlvoController.listProdutos
 );
 
@@ -44,7 +42,6 @@ router.delete(
 
 router.get(
   '/:id',
-  authMiddleware,
   PublicoAlvoController.getById
 );
 

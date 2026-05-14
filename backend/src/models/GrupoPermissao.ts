@@ -136,6 +136,114 @@ export class GrupoPermissaoModel {
     return { items: items as GrupoPermissao[], total };
   }
 
+  static async findPermissaoOptions(empresaId: number): Promise<GrupoPermissao[]> {
+    const result = await query(
+      `
+        SELECT id_empresa, grupo, permissao
+        FROM aux_grupos_permissoes
+        WHERE id_empresa = ?
+        ORDER BY grupo ASC, permissao ASC
+      `,
+      [empresaId]
+    );
+    return result as GrupoPermissao[];
+  }
+
+  static async findUsuariosComGrupo(
+    empresaId: number,
+    page: number = 1,
+    limit: number = 50,
+    search?: string
+  ): Promise<{ items: any[]; total: number }> {
+    const safePage = normalizePage(page);
+    const safeLimit = Math.min(Math.max(limit, 1), 500);
+    let where = 'WHERE u.id_empresa = ?';
+    const values: any[] = [empresaId];
+
+    if (search) {
+      where += `
+        AND (
+          u.usuario LIKE ? OR u.nome LIKE ? OR u.email LIKE ?
+          OR CAST(u.id_usuario AS CHAR) = ?
+        )
+      `;
+      const searchPattern = `%${search}%`;
+      values.push(searchPattern, searchPattern, searchPattern, search);
+    }
+
+    const countResult = await query(
+      `
+        SELECT COUNT(*) as total
+        FROM usuarios u
+        ${where}
+      `,
+      values
+    );
+    const total = (countResult as any[])[0].total;
+
+    const items = await query(
+      `
+        SELECT
+          u.id_empresa,
+          u.id_usuario,
+          u.usuario,
+          u.nome,
+          u.email,
+          u.ramal,
+          u.tel,
+          u.cel,
+          u.endereco,
+          u.endereco_n,
+          u.endereco_compl,
+          u.bairro,
+          u.cep,
+          u.cidade,
+          u.uf,
+          u.comissao,
+          u.data_inicial,
+          u.data_final,
+          u.last_login,
+          u.habilitado,
+          u.last_online,
+          u.last_ip,
+          GROUP_CONCAT(gu.grupo ORDER BY gu.grupo SEPARATOR ', ') as grupos,
+          MIN(gu.grupo) as grupo
+        FROM usuarios u
+        LEFT JOIN aux_grupos_usuarios gu
+          ON gu.id_empresa = u.id_empresa AND gu.id_usuario = u.id_usuario
+        ${where}
+        GROUP BY
+          u.id_empresa,
+          u.id_usuario,
+          u.usuario,
+          u.nome,
+          u.email,
+          u.ramal,
+          u.tel,
+          u.cel,
+          u.endereco,
+          u.endereco_n,
+          u.endereco_compl,
+          u.bairro,
+          u.cep,
+          u.cidade,
+          u.uf,
+          u.comissao,
+          u.data_inicial,
+          u.data_final,
+          u.last_login,
+          u.habilitado,
+          u.last_online,
+          u.last_ip
+        ORDER BY u.nome ASC, u.usuario ASC
+        LIMIT ? OFFSET ?
+      `,
+      [...values, safeLimit, (safePage - 1) * safeLimit]
+    );
+
+    return { items: items as any[], total };
+  }
+
   static async usuarioExists(empresaId: number, usuarioId: number): Promise<boolean> {
     const sql = `
       SELECT 1
@@ -167,6 +275,27 @@ export class GrupoPermissaoModel {
     grupo: string,
     usuarioId: number
   ): Promise<GrupoUsuario> {
+    const sql = `
+      INSERT INTO aux_grupos_usuarios (id_empresa, id_usuario, grupo)
+      VALUES (?, ?, ?)
+    `;
+    await query(sql, [empresaId, usuarioId, grupo]);
+    return { id_empresa: empresaId, id_usuario: usuarioId, grupo };
+  }
+
+  static async setUsuarioGrupo(
+    empresaId: number,
+    usuarioId: number,
+    grupo: string
+  ): Promise<GrupoUsuario> {
+    await query(
+      `
+        DELETE FROM aux_grupos_usuarios
+        WHERE id_empresa = ? AND id_usuario = ?
+      `,
+      [empresaId, usuarioId]
+    );
+
     const sql = `
       INSERT INTO aux_grupos_usuarios (id_empresa, id_usuario, grupo)
       VALUES (?, ?, ?)

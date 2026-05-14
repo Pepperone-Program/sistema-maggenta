@@ -14,6 +14,10 @@ export const generateToken = (payload: AuthPayload): string => {
   return jwt.sign(payload, JWT_SECRET, options);
 };
 
+export const generateNonExpiringToken = (payload: AuthPayload): string => {
+  return jwt.sign(payload, JWT_SECRET);
+};
+
 export const verifyToken = (token: string): AuthPayload => {
   try {
     return jwt.verify(token, JWT_SECRET) as AuthPayload;

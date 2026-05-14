@@ -13,9 +13,21 @@ router.get(
 );
 
 router.get(
+  '/usuarios',
+  authMiddleware,
+  GrupoPermissaoController.listUsuariosComGrupos
+);
+
+router.get(
   '/usuarios/:usuarioId/grupos',
   authMiddleware,
   GrupoPermissaoController.listGruposByUsuario
+);
+
+router.put(
+  '/usuarios/:usuarioId/grupo',
+  authMiddleware,
+  GrupoPermissaoController.setUsuarioGrupo
 );
 
 router.get(

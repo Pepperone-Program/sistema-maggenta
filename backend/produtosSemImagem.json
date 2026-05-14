@@ -1,0 +1,167 @@
+[
+  {
+    "id_produto": 131,
+    "codigo": "PEPBL06",
+    "produto": "Bloco de Anotações e Autocolantes Personalizado"
+  },
+  {
+    "id_produto": 795,
+    "codigo": "PEPUT8017",
+    "produto": "Kit Gastronomia para dar de Brinde"
+  },
+  {
+    "id_produto": 858,
+    "codigo": "PEPCAL15",
+    "produto": "Bloco de Anotações com Calculadora Personalizado"
+  },
+  {
+    "id_produto": 1205,
+    "codigo": "PEPLF2037",
+    "produto": "Espelho de Bolsa Brinde"
+  },
+  {
+    "id_produto": 2034,
+    "codigo": "PEPCPO01",
+    "produto": "Copo Plástico 400ml para Brindes Promocionais"
+  },
+  {
+    "id_produto": 5073,
+    "codigo": "PEPCH3252",
+    "produto": "Chaveiro de Metal Personalizado"
+  },
+  {
+    "id_produto": 5075,
+    "codigo": "PEPCH3254",
+    "produto": "Chaveiro Lanterna Personalizado"
+  },
+  {
+    "id_produto": 5146,
+    "codigo": "PEPBL99999",
+    "produto": "Bloco De Anotações Com Pauta Promocional"
+  },
+  {
+    "id_produto": 5302,
+    "codigo": "PEPMC197",
+    "produto": "Mochila para Notebook Personalizada"
+  },
+  {
+    "id_produto": 5361,
+    "codigo": "PEPCE2594",
+    "produto": "Caneta Plastica 3 em 1 com Ponteira Touch Personalizada"
+  },
+  {
+    "id_produto": 5442,
+    "codigo": "NC84",
+    "produto": "Necessaire Cabideira c/ Gancho Personalizada"
+  },
+  {
+    "id_produto": 5497,
+    "codigo": "KCH49",
+    "produto": "Kit Churrasco com 2 peças Personalizado"
+  },
+  {
+    "id_produto": 5622,
+    "codigo": "PEPPEN100-4GB",
+    "produto": "Pen Drive 8GB Personalizado"
+  },
+  {
+    "id_produto": 5626,
+    "codigo": "PEPPEN100-8GB",
+    "produto": "Pen Drive 8GB Personalizado"
+  },
+  {
+    "id_produto": 6186,
+    "codigo": "PEPKBC1028",
+    "produto": "Kit Bebida Com Espumante Personalizado"
+  },
+  {
+    "id_produto": 6787,
+    "codigo": "PEPPR3024",
+    "produto": "Porta Retrato A5 Personalizado"
+  },
+  {
+    "id_produto": 6965,
+    "codigo": "PEPCE2839",
+    "produto": "Caneta de Metal Personalizada"
+  },
+  {
+    "id_produto": 7311,
+    "codigo": "",
+    "produto": "Tábua de corte em bambu Personalizado"
+  },
+  {
+    "id_produto": 7592,
+    "codigo": "PEPUT821400000001",
+    "produto": "Kit Para Petisco Com Tábua, Espátulas e Ramekins - 5 Peças Promocional"
+  },
+  {
+    "id_produto": 7932,
+    "codigo": "KITFXEC001",
+    "produto": "Kit Ferramentas Executivo Premium"
+  },
+  {
+    "id_produto": 7933,
+    "codigo": "CPU123",
+    "produto": "Copo instaley"
+  },
+  {
+    "id_produto": 7935,
+    "codigo": "IMAG245",
+    "produto": "Imagem do banco de dados"
+  },
+  {
+    "id_produto": 8076,
+    "codigo": "PEPGCH063",
+    "produto": "guarda-chuva"
+  },
+  {
+    "id_produto": 8077,
+    "codigo": "PEPGCH061",
+    "produto": "guarda-chuva"
+  },
+  {
+    "id_produto": 8078,
+    "codigo": "PEPMC639",
+    "produto": "Mochila para Notebook Personalizável"
+  },
+  {
+    "id_produto": 8079,
+    "codigo": "PEPTEC353",
+    "produto": "Fones de ouvido wireless em ABS"
+  },
+  {
+    "id_produto": 8080,
+    "codigo": "PEPBT221",
+    "produto": "Bolsa Termica em Poliester 300D"
+  },
+  {
+    "id_produto": 8081,
+    "codigo": "PEPCAD202",
+    "produto": "Caderno A5 de capa dura em cortica com 160 paginas lisas"
+  },
+  {
+    "id_produto": 8082,
+    "codigo": "PEPCAD203",
+    "produto": "AGENDA DIARIA 2026"
+  },
+  {
+    "id_produto": 8083,
+    "codigo": "PEPTEC354",
+    "produto": "Kit de adaptadores USB em ABS"
+  },
+  {
+    "id_produto": 8084,
+    "codigo": "PEPTEC355",
+    "produto": "CRICK 2"
+  },
+  {
+    "id_produto": 8085,
+    "codigo": "PEPCAD204",
+    "produto": "RUSHDIE A5. Caderno A5 de capa dura em cortica com 160 paginas lisas"
+  },
+  {
+    "id_produto": 8184,
+    "codigo": "PEPGT211",
+    "produto": "Garrafa Térmica 500ml"
+  }
+]

@@ -1,4 +1,5 @@
 import { ClienteContatoModel, ClienteModel } from '@models/Cliente';
+import { OrcamentoModel } from '@models/Orcamento';
 import type {
   Cliente,
   ClienteContato,
@@ -196,5 +197,17 @@ export class ClienteService {
     if (!success) {
       throwError('DELETE_FAILED', 'Falha ao deletar contato do cliente', 500);
     }
+  }
+
+  static async listOrcamentos(
+    empresaId: number,
+    clienteId: number,
+    page: number = 1,
+    limit: number = 50
+  ) {
+    await this.getClienteById(empresaId, clienteId);
+    const { items, total } = await OrcamentoModel.findByCliente(empresaId, clienteId, page, limit);
+
+    return { items, total, page, limit };
   }
 }

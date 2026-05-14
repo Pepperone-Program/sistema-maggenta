@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from '@routes/index';
-import { corsMiddleware, securityHeaders, requestLogger } from '@middleware/common';
+import { allowedCorsOrigins, corsMiddleware, securityHeaders, requestLogger } from '@middleware/common';
 import { errorHandler, notFoundHandler } from '@middleware/error';
 import { testDatabaseConnection } from '@database/connection';
 
@@ -14,7 +14,16 @@ const app: Express = express();
 
 // Middleware de segurança
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedCorsOrigins().includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error('Origem nao permitida pelo CORS'));
+  },
+  credentials: true,
+}));
 
 // Middleware de headers customizados
 app.use(corsMiddleware);

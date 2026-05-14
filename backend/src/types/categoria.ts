@@ -7,6 +7,7 @@ export interface Categoria {
   descricao: string | null;
   icon: string | null;
   habilitado: HabilitadoFlag;
+  url_capa: string | null;
 }
 
 export interface Subcategoria {
@@ -38,6 +39,7 @@ export interface CreateCategoriaDTO {
   descricao?: string | null;
   icon?: string | null;
   habilitado?: HabilitadoFlag;
+  url_capa?: string | null;
 }
 
 export type UpdateCategoriaDTO = Partial<CreateCategoriaDTO>;

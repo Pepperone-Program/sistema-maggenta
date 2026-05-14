@@ -19,13 +19,11 @@ router.post(
 
 router.get(
   '/',
-  authMiddleware,
   DataPromocionalController.list
 );
 
 router.get(
   '/:id/produtos',
-  authMiddleware,
   DataPromocionalController.listProdutos
 );
 
@@ -38,13 +36,11 @@ router.post(
 
 router.delete(
   '/:id/produtos/:produtoId',
-  authMiddleware,
   DataPromocionalController.desvincularProduto
 );
 
 router.get(
   '/:id',
-  authMiddleware,
   DataPromocionalController.getById
 );
 

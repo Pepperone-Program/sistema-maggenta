@@ -1,14 +1,18 @@
 "use client";
 
 import { apiFormRequest, apiRequest } from "@/lib/api";
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type ProdutoImage = {
+  id_imagem: number;
+  id_produto: number;
+  url_imagem: string;
+  ordem_imagem: number;
   filename: string;
   ordem: number;
-  url: string | null;
+  url: string;
   version?: string;
-  sources?: Array<"alta" | "thumb">;
+  sources?: Array<"database">;
 };
 
 type Row = Record<string, unknown>;
@@ -22,9 +26,10 @@ type Props = {
 
 export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged }: Props) {
   const [images, setImages] = useState<ProdutoImage[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [dragActive, setDragActive] = useState(false);
   const [orderChanged, setOrderChanged] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -59,22 +64,35 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
     await onChanged?.();
   }
 
-  async function handleUpload() {
-    if (!selectedFiles?.length) return;
+  async function persistOrder() {
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await apiRequest<ProdutoImage[]>(`${imageEndpoint}/reorder`, {
+        method: "PUT",
+        body: JSON.stringify({ imageIds: images.map((image) => image.id_imagem) }),
+      });
+      await refreshAfterChange(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao reordenar imagens");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUpload(files = selectedFiles) {
+    if (!files.length) return;
 
     setSaving(true);
     setError("");
 
     const formData = new FormData();
-    Array.from(selectedFiles).forEach((file) => {
-      formData.append("images", file);
-    });
+    files.forEach((file) => formData.append("images", file));
 
     try {
       const response = await apiFormRequest<ProdutoImage[]>(imageEndpoint, formData);
-      setSelectedFiles(null);
-      const input = document.getElementById(`images-${produtoId}`) as HTMLInputElement | null;
-      if (input) input.value = "";
+      setSelectedFiles([]);
       await refreshAfterChange(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao enviar imagens");
@@ -83,21 +101,36 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
     }
   }
 
-  async function persistOrder() {
+  async function removeImage(image: ProdutoImage) {
+    const confirmed = window.confirm(`Remover ${image.filename}?`);
+    if (!confirmed) return;
+
     setSaving(true);
     setError("");
 
     try {
-      const response = await apiRequest<ProdutoImage[]>(`${imageEndpoint}/reorder`, {
-        method: "PUT",
-        body: JSON.stringify({ filenames: images.map((image) => image.filename) }),
-      });
+      const response = await apiRequest<ProdutoImage[]>(
+        `${imageEndpoint}/${encodeURIComponent(String(image.id_imagem))}`,
+        { method: "DELETE" },
+      );
       await refreshAfterChange(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao reordenar imagens");
+      setError(err instanceof Error ? err.message : "Falha ao remover imagem");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleFileInput(event: ChangeEvent<HTMLInputElement>) {
+    setSelectedFiles(Array.from(event.target.files || []));
+  }
+
+  function handleDropFiles(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragActive(false);
+    const files = Array.from(event.dataTransfer.files || []).filter((file) => file.type.startsWith("image/"));
+    setSelectedFiles(files);
+    handleUpload(files);
   }
 
   function moveImage(index: number, direction: -1 | 1) {
@@ -127,30 +160,9 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
   }
 
   function getImageSrc(image: ProdutoImage) {
-    const encoded = encodeURIComponent(image.filename);
-    const baseUrl = image.url || `${imageEndpoint}/${encoded}/view?folder=thumb`;
+    const baseUrl = image.url || image.url_imagem;
     const separator = baseUrl.includes("?") ? "&" : "?";
-    return `${baseUrl}${separator}v=${encodeURIComponent(image.version || `${image.filename}-${image.ordem}`)}`;
-  }
-
-  async function removeImage(image: ProdutoImage) {
-    const confirmed = window.confirm(`Remover ${image.filename}?`);
-    if (!confirmed) return;
-
-    setSaving(true);
-    setError("");
-
-    try {
-      const response = await apiRequest<ProdutoImage[]>(
-        `${imageEndpoint}/${encodeURIComponent(image.filename)}`,
-        { method: "DELETE" },
-      );
-      await refreshAfterChange(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao remover imagem");
-    } finally {
-      setSaving(false);
-    }
+    return `${baseUrl}${separator}v=${encodeURIComponent(image.version || `${image.id_imagem}-${image.ordem_imagem}`)}`;
   }
 
   return (
@@ -173,29 +185,45 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
         </div>
       )}
 
-      <div className="mb-5 flex flex-col gap-3 rounded-md border border-stroke p-3 dark:border-dark-3">
-        <input
-          accept="image/*"
-          className="block w-full text-sm text-dark file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white dark:text-white"
-          id={`images-${produtoId}`}
-          multiple
-          onChange={(event: ChangeEvent<HTMLInputElement>) => setSelectedFiles(event.target.files)}
-          type="file"
-        />
-        <button
-          className="rounded-md bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-60"
-          disabled={saving || !selectedFiles?.length}
-          onClick={handleUpload}
-          type="button"
-        >
-          {saving ? "Processando..." : "Enviar imagens"}
-        </button>
+      <div
+        className={`mb-4 rounded-md border border-dashed p-4 transition ${
+          dragActive ? "border-primary bg-primary/5" : "border-stroke bg-gray-2 dark:border-dark-3 dark:bg-dark-2"
+        }`}
+        onDragLeave={() => setDragActive(false)}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDrop={handleDropFiles}
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-dark dark:text-white">Adicionar imagens</p>
+            <p className="text-xs text-dark-4 dark:text-dark-6">
+              Arraste arquivos aqui ou selecione imagens para enviar ao storage e registrar na tabela.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="cursor-pointer rounded-md border border-stroke bg-white px-3 py-2 text-xs font-semibold text-dark hover:border-primary hover:text-primary dark:border-dark-3 dark:bg-gray-dark dark:text-white">
+              Selecionar
+              <input accept="image/*" className="hidden" multiple onChange={handleFileInput} type="file" />
+            </label>
+            <button
+              className="rounded-md bg-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+              disabled={saving || !selectedFiles.length}
+              onClick={() => handleUpload()}
+              type="button"
+            >
+              {saving ? "Enviando..." : `Enviar${selectedFiles.length ? ` (${selectedFiles.length})` : ""}`}
+            </button>
+          </div>
+        </div>
       </div>
 
       {images.length > 1 && (
         <div className="mb-4 flex flex-col gap-3 rounded-md border border-stroke bg-gray-2 p-3 dark:border-dark-3 dark:bg-dark-2 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-sm font-medium text-dark dark:text-white">
-            {orderChanged ? "Ordem alterada. Salve para renomear no FTP." : "Arraste pela alca para reordenar."}
+            {orderChanged ? "Ordem alterada. Salve para atualizar a tabela." : "Arraste pela alca para reordenar."}
           </span>
           <button
             className="rounded-md bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-50"
@@ -224,7 +252,7 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
               onDragOver={(event) => event.preventDefault()}
               onDragStart={() => setDraggedIndex(index)}
               onDrop={() => handleDrop(index)}
-              key={image.filename}
+              key={image.id_imagem}
             >
               <button
                 aria-label={`Arrastar ${image.filename}`}
@@ -244,14 +272,13 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
               </div>
 
               <div className="min-w-0">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-dark dark:text-white">
                       {image.filename}
                     </p>
                     <p className="text-xs text-dark-4 dark:text-dark-6">
                       Ordem {index + 1}
-                      {image.sources?.length ? ` · ${image.sources.join(" + ")}` : ""}
                     </p>
                   </div>
                   <button
@@ -260,7 +287,7 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
                     onClick={() => removeImage(image)}
                     type="button"
                   >
-                    Remover
+                    Excluir
                   </button>
                 </div>
 
@@ -287,7 +314,7 @@ export function ProductImagesPanel({ endpoint, produtoId, produtoNome, onChanged
           ))
         ) : (
           <div className="rounded-md border border-stroke px-4 py-6 text-center text-sm text-dark-4 dark:border-dark-3">
-            Nenhuma imagem enviada.
+            Nenhuma imagem cadastrada na tabela imagens_produtos.
           </div>
         )}
       </div>

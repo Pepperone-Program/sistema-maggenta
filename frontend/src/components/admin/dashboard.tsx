@@ -151,20 +151,6 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-lg bg-[#0f172a] p-6 text-white shadow-1">
-        <div className="max-w-4xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[#7dd3fc]">
-            Pepperone Admin
-          </p>
-          <h1 className="mt-3 text-3xl font-bold md:text-4xl">
-            Operacao comercial conectada ao backend
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-300 md:text-base">
-            Produtos, clientes, orcamentos, rankings e cadastros usam as APIs
-            do sistema com sessao autenticada.
-          </p>
-        </div>
-      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">

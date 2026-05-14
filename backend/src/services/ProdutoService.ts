@@ -52,13 +52,17 @@ export class ProdutoService {
     empresaId: number,
     page: number = 1,
     limit: number = 10,
-    search?: string
+    search?: string,
+    habilitado?: string,
+    site?: string
   ): Promise<{ items: Produto[]; total: number; page: number; limit: number }> {
     const { items, total } = await ProdutoModel.findAll(
       empresaId,
       page,
       limit,
-      search
+      search,
+      habilitado,
+      site
     );
 
     const itemsWithImages = await this.attachImages(items);
@@ -167,5 +171,15 @@ export class ProdutoService {
     if (!success) {
       throwError('DELETE_FAILED', 'Falha ao deletar produto', 500);
     }
+  }
+
+  static async getProdutoLinks(empresaId: number, produtoId: number) {
+    const produto = await ProdutoModel.findById(empresaId, produtoId);
+
+    if (!produto) {
+      throwError('PRODUTO_NOT_FOUND', 'Produto nÃ£o encontrado', 404);
+    }
+
+    return ProdutoModel.findProductLinks(produtoId);
   }
 }

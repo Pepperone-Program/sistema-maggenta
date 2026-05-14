@@ -44,6 +44,26 @@ export class GrupoPermissaoService {
     return { items, total, page, limit };
   }
 
+  static async listUsuariosComGrupos(
+    empresaId: number,
+    page: number = 1,
+    limit: number = 50,
+    search?: string
+  ) {
+    const [{ items, total }, permissoes] = await Promise.all([
+      GrupoPermissaoModel.findUsuariosComGrupo(empresaId, page, limit, search),
+      GrupoPermissaoModel.findPermissaoOptions(empresaId),
+    ]);
+
+    return {
+      items,
+      permissoes,
+      total,
+      page,
+      limit,
+    };
+  }
+
   static async addPermissao(
     empresaId: number,
     grupo: string,
@@ -138,6 +158,26 @@ export class GrupoPermissaoService {
     if (!success) {
       throwError('USUARIO_GRUPO_NOT_FOUND', 'Usuario nao vinculado ao grupo', 404);
     }
+  }
+
+  static async setUsuarioGrupo(
+    empresaId: number,
+    usuarioId: number,
+    grupo: string
+  ): Promise<GrupoUsuario> {
+    const normalizedGrupo = normalizeGrupo(grupo);
+
+    if (!(await GrupoPermissaoModel.usuarioExists(empresaId, usuarioId))) {
+      throwError('USUARIO_NOT_FOUND', 'Usuario nao encontrado', 404);
+    }
+
+    const opcoes = await GrupoPermissaoModel.findPermissaoOptions(empresaId);
+    const grupoExiste = opcoes.some((item) => item.grupo === normalizedGrupo);
+    if (!grupoExiste) {
+      throwError('GRUPO_NOT_FOUND', 'Grupo nao encontrado em permissoes', 404);
+    }
+
+    return GrupoPermissaoModel.setUsuarioGrupo(empresaId, usuarioId, normalizedGrupo);
   }
 
   static async listGruposByUsuario(

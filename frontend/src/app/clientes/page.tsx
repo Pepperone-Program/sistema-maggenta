@@ -1,6 +1,5 @@
-import { ResourcePage } from "@/components/admin/resource-page";
-import { resources } from "@/config/resources";
+import { ClientsPage } from "@/components/admin/clients-page";
 
 export default function ClientesPage() {
-  return <ResourcePage config={resources.clientes} />;
+  return <ClientsPage />;
 }

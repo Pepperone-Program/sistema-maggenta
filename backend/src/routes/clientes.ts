@@ -41,6 +41,12 @@ router.get(
 );
 
 router.get(
+  '/:id/orcamentos',
+  authMiddleware,
+  ClienteController.listOrcamentos
+);
+
+router.get(
   '/:id/contatos/:email',
   authMiddleware,
   ClienteController.getContato

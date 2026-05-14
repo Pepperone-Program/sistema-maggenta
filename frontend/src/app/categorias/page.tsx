@@ -1,6 +1,5 @@
-import { ResourcePage } from "@/components/admin/resource-page";
-import { resources } from "@/config/resources";
+import { CategoriesPage } from "@/components/admin/categories-page";
 
 export default function CategoriasPage() {
-  return <ResourcePage config={resources.categorias} />;
+  return <CategoriesPage />;
 }

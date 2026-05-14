@@ -191,4 +191,40 @@ export class BannerModel {
 
     return (result as any).affectedRows > 0;
   }
+
+  static async reorder(empresaId: number, bannerIds: number[]): Promise<void> {
+    if (!bannerIds.length) return;
+
+    const placeholders = bannerIds.map(() => '?').join(',');
+    const rows = (await query(
+      `
+        SELECT id_banner
+        FROM banners
+        WHERE id_empresa = ? AND id_banner IN (${placeholders})
+      `,
+      [empresaId, ...bannerIds]
+    )) as Array<{ id_banner: number }>;
+
+    if (rows.length !== bannerIds.length) {
+      const error = new Error('A nova ordem contem banners invalidos') as Error & {
+        code: string;
+        statusCode: number;
+      };
+      error.code = 'INVALID_ORDER';
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const caseSql = bannerIds.map(() => 'WHEN ? THEN ?').join(' ');
+    const caseValues = bannerIds.flatMap((idBanner, index) => [idBanner, index + 1]);
+
+    await query(
+      `
+        UPDATE banners
+        SET ordem = CASE id_banner ${caseSql} ELSE ordem END
+        WHERE id_empresa = ? AND id_banner IN (${placeholders})
+      `,
+      [...caseValues, empresaId, ...bannerIds]
+    );
+  }
 }

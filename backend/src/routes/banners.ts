@@ -19,7 +19,6 @@ router.post(
 
 router.get(
   '/',
-  authMiddleware,
   BannerController.list
 );
 
@@ -27,6 +26,12 @@ router.get(
   '/ativos',
   
   BannerController.listActive
+);
+
+router.put(
+  '/reorder',
+  authMiddleware,
+  BannerController.reorder
 );
 
 router.get(

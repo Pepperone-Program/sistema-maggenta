@@ -120,7 +120,7 @@ export async function apiFormRequest<T>(path: string, formData: FormData) {
 
 export function listResource<T>(
   path: string,
-  query: { page?: number; limit?: number; search?: string; habilitado?: string } = {},
+  query: { page?: number; limit?: number; search?: string; habilitado?: string; site?: string } = {},
 ) {
   return apiRequest<PaginatedData<T>>(path, {
     query: {
@@ -128,6 +128,7 @@ export function listResource<T>(
       limit: query.limit || 10,
       search: query.search,
       habilitado: query.habilitado,
+      site: query.site,
     },
   });
 }

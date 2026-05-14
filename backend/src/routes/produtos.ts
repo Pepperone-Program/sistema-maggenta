@@ -23,15 +23,18 @@ const upload = multer({
 
 router.post(
   '/',
-  authMiddleware,
   validationMiddleware(productSchema),
   ProdutoController.create
 );
 
 router.get(
   '/:id/images',
-  authMiddleware,
   ProdutoController.listImages
+);
+
+router.get(
+  '/:id/links',
+  ProdutoController.listLinks
 );
 
 router.post(
@@ -71,13 +74,11 @@ router.get(
 
 router.get(
   '/:id',
-  authMiddleware,
   ProdutoController.getById
 );
 
 router.get(
   '/',
-  authMiddleware,
   ProdutoController.list
 );
 

@@ -51,8 +51,23 @@ export class CacheService {
     const pattern = `${CACHE_PREFIX}:${normalizePart(namespace)}:*`;
 
     try {
-      const keysResponse = await this.command<string[]>(['KEYS', pattern]);
-      const keys = Array.isArray(keysResponse.result) ? keysResponse.result : [];
+      const keys: string[] = [];
+      let cursor = '0';
+
+      do {
+        const response = await this.command<[string, string[]]>([
+          'SCAN',
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          '100',
+        ]);
+        const result = response.result;
+        cursor = result?.[0] || '0';
+        keys.push(...(result?.[1] || []));
+      } while (cursor !== '0');
+
       if (keys.length === 0) return;
       await this.command<number>(['DEL', ...keys]);
     } catch (error) {

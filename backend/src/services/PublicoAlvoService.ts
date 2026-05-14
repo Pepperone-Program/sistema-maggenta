@@ -1,3 +1,4 @@
+import { CatalogoProdutoModel } from '@models/CatalogoProduto';
 import { PublicoAlvoModel } from '@models/PublicoAlvo';
 import type {
   CreatePublicoAlvoDTO,
@@ -9,6 +10,37 @@ import type {
 import { throwError } from '@utils/helpers';
 
 export class PublicoAlvoService {
+  private static parseCatalogQuery(query: {
+    page?: number | string;
+    limit?: number | string;
+    subcategorias?: string;
+    publicos_alvos?: string;
+    datas_promocionais?: string;
+    quantidade_minima_min?: string;
+    quantidade_minima_max?: string;
+  }) {
+    const parseIds = (value?: string) =>
+      String(value || '')
+        .split(',')
+        .map((item) => Number(item.trim()))
+        .filter((id) => Number.isInteger(id) && id > 0);
+    const toNumber = (value?: string) => {
+      if (value === undefined || value === '') return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    return {
+      page: Number(query.page || 1),
+      limit: Number(query.limit || 100),
+      subcategorias: parseIds(query.subcategorias),
+      publicosAlvos: parseIds(query.publicos_alvos),
+      datasPromocionais: parseIds(query.datas_promocionais),
+      quantidadeMinimaMin: toNumber(query.quantidade_minima_min),
+      quantidadeMinimaMax: toNumber(query.quantidade_minima_max),
+    };
+  }
+
   static async createPublicoAlvo(data: CreatePublicoAlvoDTO): Promise<PublicoAlvo> {
     if (data.id_publico_alvo !== undefined) {
       const existentePorId = await PublicoAlvoModel.findById(data.id_publico_alvo);
@@ -150,5 +182,43 @@ export class PublicoAlvoService {
     );
 
     return { items, total, page, limit };
+  }
+
+  static async getCatalogoPublicoAlvo(
+    empresaId: number,
+    publicoAlvoId: number,
+    query: {
+      page?: number | string;
+      limit?: number | string;
+      subcategorias?: string;
+      publicos_alvos?: string;
+      datas_promocionais?: string;
+      quantidade_minima_min?: string;
+      quantidade_minima_max?: string;
+    }
+  ) {
+    const publicoAlvo = await this.getPublicoAlvoById(publicoAlvoId);
+    const filters = this.parseCatalogQuery(query);
+
+    const [produtos, filtros] = await Promise.all([
+      CatalogoProdutoModel.findRelatedProducts(
+        empresaId,
+        { table: 'aux_publicos_alvos_produtos', column: 'id_publico_alvo' },
+        publicoAlvoId,
+        filters
+      ),
+      CatalogoProdutoModel.findRelatedFacets(
+        empresaId,
+        { table: 'aux_publicos_alvos_produtos', column: 'id_publico_alvo' },
+        publicoAlvoId
+      ),
+    ]);
+
+    return {
+      publico_alvo: publicoAlvo,
+      filtros,
+      ...produtos,
+      totalPages: Math.ceil(produtos.total / produtos.limit),
+    };
   }
 }

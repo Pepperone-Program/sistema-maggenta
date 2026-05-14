@@ -27,6 +27,11 @@ router.get(
   DataPromocionalController.listProdutos
 );
 
+router.get(
+  '/:id/catalogo',
+  DataPromocionalController.catalogo
+);
+
 router.post(
   '/:id/produtos',
   authMiddleware,

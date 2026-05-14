@@ -15,6 +15,8 @@ export class ProdutoController {
       );
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       successResponse(res, produto, 'Produto criado com sucesso', 201);
     } catch (error) {
@@ -138,6 +140,8 @@ export class ProdutoController {
       );
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       successResponse(res, produto, 'Produto atualizado com sucesso');
     } catch (error) {
@@ -156,6 +160,8 @@ export class ProdutoController {
       );
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       successResponse(res, null, 'Produto deletado com sucesso');
     } catch (error) {
@@ -230,6 +236,8 @@ export class ProdutoController {
       const imagens = await ProdutoImageService.upload(empresaId, parseInt(id, 10), files);
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       console.log('[ProdutoController] uploadImages:success', {
         produtoId: id,
@@ -279,6 +287,8 @@ export class ProdutoController {
       );
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       console.log('[ProdutoController] reorderImages:success', {
         produtoId: id,
@@ -319,6 +329,8 @@ export class ProdutoController {
       );
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       console.log('[ProdutoController] removeImage:success', {
         produtoId: id,

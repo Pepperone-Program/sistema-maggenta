@@ -13,6 +13,8 @@ export class CategoriaController {
     try {
       const categoria = await CategoriaService.createCategoria(getEmpresaId(req), req.body);
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, categoria, 'Categoria criada com sucesso', 201);
     } catch (error) {
       const err = error as any;
@@ -72,6 +74,8 @@ export class CategoriaController {
         req.body
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, categoria, 'Categoria atualizada com sucesso');
     } catch (error) {
       const err = error as any;
@@ -83,6 +87,8 @@ export class CategoriaController {
     try {
       await CategoriaService.deleteCategoria(getEmpresaId(req), parseInt(req.params.id, 10));
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, null, 'Categoria deletada com sucesso');
     } catch (error) {
       const err = error as any;
@@ -171,6 +177,8 @@ export class CategoriaController {
         req.file as Express.Multer.File
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, categoria, 'Capa da categoria atualizada com sucesso');
     } catch (error) {
       const err = error as any;
@@ -186,6 +194,8 @@ export class CategoriaController {
         req.body
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, vinculo, 'Produto vinculado a categoria com sucesso', 201);
     } catch (error) {
       const err = error as any;
@@ -201,6 +211,8 @@ export class CategoriaController {
         parseInt(req.params.produtoId, 10)
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, null, 'Produto desvinculado da categoria com sucesso');
     } catch (error) {
       const err = error as any;
@@ -217,6 +229,8 @@ export class SubcategoriaController {
         req.body
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, subcategoria, 'Subcategoria criada com sucesso', 201);
     } catch (error) {
       const err = error as any;
@@ -272,6 +286,8 @@ export class SubcategoriaController {
         req.body
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, subcategoria, 'Subcategoria atualizada com sucesso');
     } catch (error) {
       const err = error as any;
@@ -286,6 +302,8 @@ export class SubcategoriaController {
         parseInt(req.params.id, 10)
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, null, 'Subcategoria deletada com sucesso');
     } catch (error) {
       const err = error as any;
@@ -323,6 +341,8 @@ export class SubcategoriaController {
         req.body
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, vinculo, 'Produto vinculado a subcategoria com sucesso', 201);
     } catch (error) {
       const err = error as any;
@@ -338,6 +358,8 @@ export class SubcategoriaController {
         parseInt(req.params.produtoId, 10)
       );
       await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, null, 'Produto desvinculado da subcategoria com sucesso');
     } catch (error) {
       const err = error as any;

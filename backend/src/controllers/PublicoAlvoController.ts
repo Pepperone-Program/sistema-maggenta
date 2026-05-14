@@ -14,8 +14,10 @@ export class PublicoAlvoController {
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const publicoAlvo = await PublicoAlvoService.createPublicoAlvo(req.body);
+      await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, publicoAlvo, 'Publico-alvo criado com sucesso', 201);
     } catch (error) {
       const err = error as any;
@@ -25,8 +27,9 @@ export class PublicoAlvoController {
 
   static async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const publicoAlvo = await PublicoAlvoService.getPublicoAlvoById(
-        parseInt(req.params.id, 10)
+      const publicoAlvo = await CacheService.getOrSet(
+        CacheService.buildKey('publicos-alvos', `${getEmpresaId(req)}:${req.originalUrl}`),
+        () => PublicoAlvoService.getPublicoAlvoById(parseInt(req.params.id, 10))
       );
 
       successResponse(res, publicoAlvo);
@@ -38,11 +41,15 @@ export class PublicoAlvoController {
 
   static async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const result = await PublicoAlvoService.listPublicosAlvos(
-        getPage(req),
-        getLimit(req),
-        req.query.search as string | undefined,
-        req.query.habilitado as string | undefined
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('publicos-alvos', `${getEmpresaId(req)}:${req.originalUrl}`),
+        () =>
+          PublicoAlvoService.listPublicosAlvos(
+            getPage(req),
+            getLimit(req),
+            req.query.search as string | undefined,
+            req.query.habilitado as string | undefined
+          )
       );
 
       paginatedResponse(
@@ -65,8 +72,10 @@ export class PublicoAlvoController {
         parseInt(req.params.id, 10),
         req.body
       );
+      await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       successResponse(res, publicoAlvo, 'Publico-alvo atualizado com sucesso');
     } catch (error) {
@@ -78,8 +87,10 @@ export class PublicoAlvoController {
   static async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       await PublicoAlvoService.deletePublicoAlvo(parseInt(req.params.id, 10));
+      await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('datas-promocionais');
       successResponse(res, null, 'Publico-alvo deletado com sucesso');
     } catch (error) {
       const err = error as any;
@@ -109,6 +120,34 @@ export class PublicoAlvoController {
     }
   }
 
+  static async catalogo(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const empresaId = parseInt((req.query.empresaId as string) || String(getEmpresaId(req)), 10);
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('publicos-alvos', `${empresaId}:${req.originalUrl}`),
+        () =>
+          PublicoAlvoService.getCatalogoPublicoAlvo(
+            empresaId,
+            parseInt(req.params.id, 10),
+            {
+              page: req.query.page as string | undefined,
+              limit: req.query.limit as string | undefined,
+              subcategorias: req.query.subcategorias as string | undefined,
+              publicos_alvos: req.query.publicos_alvos as string | undefined,
+              datas_promocionais: req.query.datas_promocionais as string | undefined,
+              quantidade_minima_min: req.query.quantidade_minima_min as string | undefined,
+              quantidade_minima_max: req.query.quantidade_minima_max as string | undefined,
+            }
+          )
+      );
+
+      successResponse(res, result, 'Catalogo do publico-alvo listado com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async vincularProduto(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const vinculo = await PublicoAlvoService.vincularProduto(
@@ -116,8 +155,10 @@ export class PublicoAlvoController {
         parseInt(req.params.id, 10),
         req.body
       );
+      await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       successResponse(res, vinculo, 'Produto vinculado ao publico-alvo com sucesso', 201);
     } catch (error) {
@@ -132,8 +173,10 @@ export class PublicoAlvoController {
         parseInt(req.params.id, 10),
         parseInt(req.params.produtoId, 10)
       );
+      await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('categorias');
       await CacheService.invalidateNamespace('tipos-produtos');
+      await CacheService.invalidateNamespace('datas-promocionais');
 
       successResponse(res, null, 'Produto desvinculado do publico-alvo com sucesso');
     } catch (error) {

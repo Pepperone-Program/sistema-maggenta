@@ -1,3 +1,4 @@
+import { CatalogoProdutoModel } from '@models/CatalogoProduto';
 import { DataPromocionalModel } from '@models/DataPromocional';
 import type {
   CreateDataPromocionalDTO,
@@ -9,6 +10,37 @@ import type {
 import { throwError } from '@utils/helpers';
 
 export class DataPromocionalService {
+  private static parseCatalogQuery(query: {
+    page?: number | string;
+    limit?: number | string;
+    subcategorias?: string;
+    publicos_alvos?: string;
+    datas_promocionais?: string;
+    quantidade_minima_min?: string;
+    quantidade_minima_max?: string;
+  }) {
+    const parseIds = (value?: string) =>
+      String(value || '')
+        .split(',')
+        .map((item) => Number(item.trim()))
+        .filter((id) => Number.isInteger(id) && id > 0);
+    const toNumber = (value?: string) => {
+      if (value === undefined || value === '') return undefined;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    return {
+      page: Number(query.page || 1),
+      limit: Number(query.limit || 100),
+      subcategorias: parseIds(query.subcategorias),
+      publicosAlvos: parseIds(query.publicos_alvos),
+      datasPromocionais: parseIds(query.datas_promocionais),
+      quantidadeMinimaMin: toNumber(query.quantidade_minima_min),
+      quantidadeMinimaMax: toNumber(query.quantidade_minima_max),
+    };
+  }
+
   static async createDataPromocional(
     data: CreateDataPromocionalDTO
   ): Promise<DataPromocional> {
@@ -155,5 +187,43 @@ export class DataPromocionalService {
     );
 
     return { items, total, page, limit };
+  }
+
+  static async getCatalogoDataPromocional(
+    empresaId: number,
+    dataPromocionalId: number,
+    query: {
+      page?: number | string;
+      limit?: number | string;
+      subcategorias?: string;
+      publicos_alvos?: string;
+      datas_promocionais?: string;
+      quantidade_minima_min?: string;
+      quantidade_minima_max?: string;
+    }
+  ) {
+    const dataPromocional = await this.getDataPromocionalById(dataPromocionalId);
+    const filters = this.parseCatalogQuery(query);
+
+    const [produtos, filtros] = await Promise.all([
+      CatalogoProdutoModel.findRelatedProducts(
+        empresaId,
+        { table: 'aux_datas_promocionais_produtos', column: 'id_data_promocional' },
+        dataPromocionalId,
+        filters
+      ),
+      CatalogoProdutoModel.findRelatedFacets(
+        empresaId,
+        { table: 'aux_datas_promocionais_produtos', column: 'id_data_promocional' },
+        dataPromocionalId
+      ),
+    ]);
+
+    return {
+      data_promocional: dataPromocional,
+      filtros,
+      ...produtos,
+      totalPages: Math.ceil(produtos.total / produtos.limit),
+    };
   }
 }

@@ -27,6 +27,11 @@ router.get(
   PublicoAlvoController.listProdutos
 );
 
+router.get(
+  '/:id/catalogo',
+  PublicoAlvoController.catalogo
+);
+
 router.post(
   '/:id/produtos',
   authMiddleware,

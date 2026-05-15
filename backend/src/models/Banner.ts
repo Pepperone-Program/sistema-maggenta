@@ -16,7 +16,8 @@ const bannerColumns = `
   ordem,
   habilitado,
   cliques,
-  url_banner
+  url_banner,
+  tamanho_tela
 `;
 
 export class BannerModel {
@@ -33,6 +34,7 @@ export class BannerModel {
       'habilitado',
       'cliques',
       'url_banner',
+      'tamanho_tela',
     ];
     const placeholders = columns.map(() => '?');
     const values: any[] = [
@@ -47,6 +49,7 @@ export class BannerModel {
       data.habilitado || 'S',
       data.cliques ?? null,
       data.url_banner || null,
+      data.tamanho_tela || null,
     ];
 
     if (data.id_banner !== undefined) {
@@ -158,6 +161,7 @@ export class BannerModel {
       'habilitado',
       'cliques',
       'url_banner',
+      'tamanho_tela',
     ];
     const updates: string[] = [];
     const values: any[] = [];

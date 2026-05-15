@@ -4,6 +4,7 @@ const defaultAllowedOrigins = [
   'http://localhost:3000',
   'https://site-peppeerone.vercel.app',
   'https://sistema-pepperone.vercel.app',
+  'https://www.pepperone.com.br',
 ];
 
 export function allowedCorsOrigins() {

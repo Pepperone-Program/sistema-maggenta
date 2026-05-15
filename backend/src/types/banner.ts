@@ -15,6 +15,7 @@ export interface Banner {
   habilitado: HabilitadoFlag;
   cliques: number | null;
   url_banner: string | null;
+  tamanho_tela: string | null;
 }
 
 export type BannersByTipo = Record<string, Banner[]>;
@@ -31,6 +32,7 @@ export interface CreateBannerDTO {
   habilitado?: HabilitadoFlag;
   cliques?: number | null;
   url_banner?: string | null;
+  tamanho_tela?: string | null;
 }
 
 export type UpdateBannerDTO = Partial<CreateBannerDTO>;

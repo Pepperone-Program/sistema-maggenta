@@ -14,6 +14,7 @@ import tiposProdutosRoutes from './tipos-produtos';
 import contatoRoutes from './contato';
 import newsletterRoutes from './newsletter';
 import siteTokenRoutes from './site-token';
+import cacheRoutes from './cache';
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.use('/api/v1/tipos-produtos', tiposProdutosRoutes);
 router.use('/api/v1/contato', contatoRoutes);
 router.use('/api/v1/newsletter', newsletterRoutes);
 router.use('/api/v1/site-token', siteTokenRoutes);
+router.use('/api/v1/cache', cacheRoutes);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

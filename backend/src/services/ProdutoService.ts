@@ -14,6 +14,28 @@ export class ProdutoService {
     }));
   }
 
+  private static async attachCategories<T extends Produto>(
+    empresaId: number,
+    produtos: T[]
+  ): Promise<T[]> {
+    const categoriesByProduct = await ProdutoModel.findCategoriesByProductIds(
+      empresaId,
+      produtos.map((produto) => Number(produto.id_produto))
+    );
+
+    return produtos.map((produto) => {
+      const categorias = categoriesByProduct.get(Number(produto.id_produto)) || [];
+      const primeiraCategoria = categorias[0] || null;
+
+      return {
+        ...produto,
+        id_categoria: primeiraCategoria?.id_categoria || null,
+        categoria: primeiraCategoria?.categoria || null,
+        categorias,
+      };
+    });
+  }
+
   static async createProduto(
     empresaId: number,
     data: CreateProdutoDTO
@@ -31,7 +53,8 @@ export class ProdutoService {
     }
 
     const [produtoComImagens] = await this.attachImages([produto as Produto]);
-    return produtoComImagens;
+    const [produtoComCategorias] = await this.attachCategories(empresaId, [produtoComImagens]);
+    return produtoComCategorias;
   }
 
   static async getProdutoById(
@@ -45,7 +68,8 @@ export class ProdutoService {
     }
 
     const [produtoComImagens] = await this.attachImages([produto as Produto]);
-    return produtoComImagens;
+    const [produtoComCategorias] = await this.attachCategories(empresaId, [produtoComImagens]);
+    return produtoComCategorias;
   }
 
   static async listProdutos(
@@ -66,9 +90,10 @@ export class ProdutoService {
     );
 
     const itemsWithImages = await this.attachImages(items);
+    const itemsWithCategories = await this.attachCategories(empresaId, itemsWithImages);
 
     return {
-      items: itemsWithImages,
+      items: itemsWithCategories,
       total,
       page,
       limit,
@@ -153,7 +178,8 @@ export class ProdutoService {
     }
 
     const [produtoComImagens] = await this.attachImages([updated as Produto]);
-    return produtoComImagens;
+    const [produtoComCategorias] = await this.attachCategories(empresaId, [produtoComImagens]);
+    return produtoComCategorias;
   }
 
   static async deleteProduto(

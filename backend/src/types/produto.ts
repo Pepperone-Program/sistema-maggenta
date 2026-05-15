@@ -33,6 +33,9 @@ export interface Produto {
   cod_forn: string | null;
   quantidade_minima: string | null;
   imagens?: ProdutoImagem[];
+  id_categoria?: number | null;
+  categoria?: string | null;
+  categorias?: ProdutoCategoria[];
 }
 
 export interface ProdutoImagem {
@@ -41,6 +44,11 @@ export interface ProdutoImagem {
   url_imagem: string;
   ordem_imagem: number;
   created_at: string;
+}
+
+export interface ProdutoCategoria {
+  id_categoria: number;
+  categoria: string;
 }
 
 export interface CreateProdutoDTO {

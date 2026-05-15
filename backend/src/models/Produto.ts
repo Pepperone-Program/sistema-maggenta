@@ -1,5 +1,11 @@
 import { getConnection, query } from '@database/connection';
-import type { Produto, ProdutoImagem, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produto';
+import type {
+  Produto,
+  ProdutoCategoria,
+  ProdutoImagem,
+  CreateProdutoDTO,
+  UpdateProdutoDTO,
+} from '@/types/produto';
 
 export class ProdutoModel {
   static async create(
@@ -98,6 +104,48 @@ export class ProdutoModel {
     }
 
     return imagesByProduct;
+  }
+
+  static async findCategoriesByProductIds(
+    empresaId: number,
+    produtoIds: number[]
+  ): Promise<Map<number, ProdutoCategoria[]>> {
+    const categoriesByProduct = new Map<number, ProdutoCategoria[]>();
+    const uniqueIds = Array.from(new Set(produtoIds.filter((id) => Number.isInteger(id) && id > 0)));
+
+    if (!uniqueIds.length) {
+      return categoriesByProduct;
+    }
+
+    const chunkSize = 1000;
+
+    for (let start = 0; start < uniqueIds.length; start += chunkSize) {
+      const chunk = uniqueIds.slice(start, start + chunkSize);
+      const placeholders = chunk.map(() => '?').join(',');
+      const rows = (await query(
+        `
+          SELECT acp.id_produto, c.id_categoria, c.categoria
+          FROM aux_categorias_produtos acp
+          INNER JOIN categorias c
+            ON c.id_empresa = acp.id_empresa AND c.id_categoria = acp.id_categoria
+          WHERE acp.id_empresa = ? AND acp.id_produto IN (${placeholders})
+          ORDER BY c.categoria ASC, c.id_categoria ASC
+        `,
+        [empresaId, ...chunk]
+      )) as Array<ProdutoCategoria & { id_produto: number }>;
+
+      for (const row of rows) {
+        const produtoId = Number(row.id_produto);
+        const current = categoriesByProduct.get(produtoId) || [];
+        current.push({
+          id_categoria: row.id_categoria,
+          categoria: row.categoria,
+        });
+        categoriesByProduct.set(produtoId, current);
+      }
+    }
+
+    return categoriesByProduct;
   }
 
   static async findImagesByProductId(produtoId: number): Promise<ProdutoImagem[]> {

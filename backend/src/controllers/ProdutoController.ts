@@ -17,6 +17,7 @@ export class ProdutoController {
       await CacheService.invalidateNamespace('tipos-produtos');
       await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('produtos');
 
       successResponse(res, produto, 'Produto criado com sucesso', 201);
     } catch (error) {
@@ -29,9 +30,13 @@ export class ProdutoController {
     try {
       const empresaId = req.user?.id_empresa || 1;
       const { id } = req.params;
-      const produto = await ProdutoService.getProdutoById(
-        empresaId,
-        parseInt(id, 10)
+      const produto = await CacheService.getOrSet(
+        CacheService.buildKey('produtos', `${empresaId}:${req.originalUrl}`),
+        () =>
+          ProdutoService.getProdutoById(
+            empresaId,
+            parseInt(id, 10)
+          )
       );
 
       successResponse(res, produto);
@@ -50,13 +55,17 @@ export class ProdutoController {
       const habilitado = req.query.habilitado as string | undefined;
       const site = req.query.site as string | undefined;
 
-      const result = await ProdutoService.listProdutos(
-        empresaId,
-        page,
-        limit,
-        search,
-        habilitado,
-        site
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('produtos', `${empresaId}:${req.originalUrl}`),
+        () =>
+          ProdutoService.listProdutos(
+            empresaId,
+            page,
+            limit,
+            search,
+            habilitado,
+            site
+          )
       );
 
       paginatedResponse(
@@ -80,11 +89,15 @@ export class ProdutoController {
       const limit = parseInt((req.query.limit as string) || '10', 10);
       const search = req.query.search as string | undefined;
 
-      const result = await ProdutoService.listProdutosSite(
-        empresaId,
-        page,
-        limit,
-        search
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('produtos', `${empresaId}:${req.originalUrl}`),
+        () =>
+          ProdutoService.listProdutosSite(
+            empresaId,
+            page,
+            limit,
+            search
+          )
       );
 
       paginatedResponse(
@@ -108,11 +121,15 @@ export class ProdutoController {
       const limit = parseInt((req.query.limit as string) || '10', 10);
       const term = String(req.query.q || '');
 
-      const result = await ProdutoService.searchProdutosSite(
-        empresaId,
-        term,
-        page,
-        limit
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('produtos', `${empresaId}:${req.originalUrl}`),
+        () =>
+          ProdutoService.searchProdutosSite(
+            empresaId,
+            term,
+            page,
+            limit
+          )
       );
 
       paginatedResponse(
@@ -142,6 +159,7 @@ export class ProdutoController {
       await CacheService.invalidateNamespace('tipos-produtos');
       await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('produtos');
 
       successResponse(res, produto, 'Produto atualizado com sucesso');
     } catch (error) {
@@ -162,6 +180,7 @@ export class ProdutoController {
       await CacheService.invalidateNamespace('tipos-produtos');
       await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('produtos');
 
       successResponse(res, null, 'Produto deletado com sucesso');
     } catch (error) {
@@ -238,6 +257,7 @@ export class ProdutoController {
       await CacheService.invalidateNamespace('tipos-produtos');
       await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('produtos');
 
       console.log('[ProdutoController] uploadImages:success', {
         produtoId: id,
@@ -289,6 +309,7 @@ export class ProdutoController {
       await CacheService.invalidateNamespace('tipos-produtos');
       await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('produtos');
 
       console.log('[ProdutoController] reorderImages:success', {
         produtoId: id,
@@ -331,6 +352,7 @@ export class ProdutoController {
       await CacheService.invalidateNamespace('tipos-produtos');
       await CacheService.invalidateNamespace('publicos-alvos');
       await CacheService.invalidateNamespace('datas-promocionais');
+      await CacheService.invalidateNamespace('produtos');
 
       console.log('[ProdutoController] removeImage:success', {
         produtoId: id,

@@ -4,6 +4,12 @@ type RedisCommandResponse<T = unknown> = {
 };
 
 const CACHE_PREFIX = 'site-pep';
+const productRelatedNamespaces = new Set([
+  'categorias',
+  'tipos-produtos',
+  'datas-promocionais',
+  'publicos-alvos',
+]);
 
 const getRedisConfig = (): { url?: string; token?: string } => ({
   url: process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, ''),
@@ -46,6 +52,16 @@ export class CacheService {
   }
 
   static async invalidateNamespace(namespace: string): Promise<void> {
+    if (!isEnabled()) return;
+
+    await this.invalidateNamespaceOnly(namespace);
+
+    if (productRelatedNamespaces.has(namespace)) {
+      await this.invalidateNamespaceOnly('produtos');
+    }
+  }
+
+  private static async invalidateNamespaceOnly(namespace: string): Promise<void> {
     if (!isEnabled()) return;
 
     const pattern = `${CACHE_PREFIX}:${normalizePart(namespace)}:*`;

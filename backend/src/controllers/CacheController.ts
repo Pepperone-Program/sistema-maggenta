@@ -9,6 +9,7 @@ const allowedNamespaces = new Set([
   'tipos-produtos',
   'datas-promocionais',
   'publicos-alvos',
+  'produtos',
 ]);
 
 const normalizeNamespace = (namespace: string): string => namespace.trim().toLowerCase();

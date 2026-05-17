@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import routes from '@routes/index';
 import { allowedCorsOrigins, corsMiddleware, securityHeaders, requestLogger } from '@middleware/common';
 import { errorHandler, notFoundHandler } from '@middleware/error';
-import { testDatabaseConnection } from '@database/connection';
+import { closeDatabasePool, testDatabaseConnection } from '@database/connection';
 
 dotenv.config();
 
@@ -48,7 +48,14 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3001;
 
 const bootstrap = async (): Promise<void> => {
-  await testDatabaseConnection();
+  try {
+    await testDatabaseConnection();
+  } catch (error) {
+    console.warn(
+      'Database startup check failed; server will keep running and retry on requests:',
+      error instanceof Error ? error.message : String(error)
+    );
+  }
 
   const server = app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
@@ -56,21 +63,17 @@ const bootstrap = async (): Promise<void> => {
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
+  const shutdown = (signal: string) => {
+    console.log(`${signal} signal received: closing HTTP server`);
+    server.close(async () => {
       console.log('HTTP server closed');
+      await closeDatabasePool();
       process.exit(0);
     });
-  });
+  };
 
-  process.on('SIGINT', () => {
-    console.log('SIGINT signal received: closing HTTP server');
-    server.close(() => {
-      console.log('HTTP server closed');
-      process.exit(0);
-    });
-  });
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 };
 
 bootstrap().catch((error) => {

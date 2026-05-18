@@ -14,6 +14,35 @@ const normalizeLimit = (limit: number): number => Math.min(Math.max(limit, 1), 5
 const normalizePage = (page: number): number => Math.max(page, 1);
 
 export class CategoriaModel {
+  static async findSearchCandidates(
+    empresaId: number,
+    term: string,
+    limit: number = 20
+  ): Promise<Categoria[]> {
+    const searchPattern = `%${term}%`;
+    const result = await query(
+      `
+        SELECT id_empresa, id_categoria, categoria, descricao, icon, habilitado, url_capa
+        FROM categorias
+        WHERE id_empresa = ?
+          AND habilitado = 'S'
+          AND categoria LIKE ?
+        ORDER BY
+          CASE
+            WHEN categoria LIKE ? THEN 0
+            WHEN categoria LIKE ? THEN 1
+            ELSE 2
+          END,
+          categoria ASC,
+          id_categoria ASC
+        LIMIT ?
+      `,
+      [empresaId, searchPattern, `${term}%`, `% ${term}%`, limit]
+    );
+
+    return result as Categoria[];
+  }
+
   static async create(empresaId: number, data: CreateCategoriaDTO): Promise<number> {
     const columns = ['id_empresa', 'categoria', 'descricao', 'icon', 'habilitado', 'url_capa'];
     const placeholders = ['?', '?', '?', '?', '?', '?'];

@@ -132,12 +132,17 @@ export class ProdutoController {
           )
       );
 
-      paginatedResponse(
+      successResponse(
         res,
-        result.items,
-        result.total,
-        result.page,
-        result.limit,
+        {
+          items: result.items,
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: Math.ceil(result.total / result.limit),
+          destino_busca: result.destino_busca,
+          busca: result.busca,
+        },
         'Produtos encontrados com sucesso'
       );
     } catch (error) {

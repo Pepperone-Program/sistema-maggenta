@@ -4,6 +4,35 @@ const normalizeLimit = (limit: number): number => Math.min(Math.max(limit, 1), 5
 const normalizePage = (page: number): number => Math.max(page, 1);
 
 export class TipoProdutoModel {
+  static async findSearchCandidates(
+    empresaId: number,
+    term: string,
+    limit: number = 20
+  ) {
+    const searchPattern = `%${term}%`;
+    const result = await query(
+      `
+        SELECT id_empresa, id_tipo_produto, tipo_produto, descricao, habilitado
+        FROM tipos_produtos
+        WHERE id_empresa = ?
+          AND habilitado = 'S'
+          AND tipo_produto LIKE ?
+        ORDER BY
+          CASE
+            WHEN tipo_produto LIKE ? THEN 0
+            WHEN tipo_produto LIKE ? THEN 1
+            ELSE 2
+          END,
+          tipo_produto ASC,
+          id_tipo_produto ASC
+        LIMIT ?
+      `,
+      [empresaId, searchPattern, `${term}%`, `% ${term}%`, limit]
+    );
+
+    return result as any[];
+  }
+
   static async findAll(
     empresaId: number,
     page: number = 1,

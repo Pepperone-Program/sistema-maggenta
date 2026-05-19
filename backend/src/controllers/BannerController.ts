@@ -6,7 +6,7 @@ import { errorResponse, successResponse } from '@utils/response';
 
 const getEmpresaId = (req: AuthenticatedRequest): number => req.user?.id_empresa || 1;
 const getPage = (req: AuthenticatedRequest): number => parseInt((req.query.page as string) || '1', 10);
-const getLimit = (req: AuthenticatedRequest): number => parseInt((req.query.limit as string) || '50', 10);
+const getLimit = (req: AuthenticatedRequest): number => parseInt((req.query.limit as string) || '100', 10);
 
 export class BannerController {
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -70,7 +70,9 @@ export class BannerController {
         () =>
           BannerService.listActiveBanners(
             getEmpresaId(req),
-            req.query.tipo as string | undefined
+            req.query.tipo as string | undefined,
+            getPage(req),
+            getLimit(req)
           )
       );
       successResponse(res, result, 'Banners ativos listados com sucesso');

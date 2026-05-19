@@ -208,7 +208,7 @@ export class ProdutoService {
   static async listProdutos(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string,
     site?: string
@@ -236,7 +236,7 @@ export class ProdutoService {
   static async listProdutosSite(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Produto[]; total: number; page: number; limit: number }> {
     const { items, total } = await ProdutoModel.findAllForSite(
@@ -259,7 +259,7 @@ export class ProdutoService {
     empresaId: number,
     term: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<SiteSearchResult> {
     const normalizedTerm = term.trim();
     if (!normalizedTerm) {

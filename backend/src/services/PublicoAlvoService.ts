@@ -76,7 +76,7 @@ export class PublicoAlvoService {
 
   static async listPublicosAlvos(
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: PublicoAlvo[]; total: number; page: number; limit: number }> {
@@ -172,7 +172,7 @@ export class PublicoAlvoService {
   static async listProdutos(
     publicoAlvoId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: PublicoAlvoProduto[]; total: number; page: number; limit: number }> {
     await this.getPublicoAlvoById(publicoAlvoId);
     const { items, total } = await PublicoAlvoModel.findProdutos(

@@ -66,7 +66,7 @@ export class OrcamentoModel {
   static async findAll(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Orcamento[]; total: number }> {
     let sql = 'SELECT * FROM orcamentos WHERE id_empresa = ?';
@@ -96,7 +96,7 @@ export class OrcamentoModel {
     empresaId: number,
     clienteId: number,
     page: number = 1,
-    limit: number = 50
+    limit: number = 100
   ): Promise<{ items: Orcamento[]; total: number }> {
     const safePage = Math.max(page, 1);
     const safeLimit = Math.min(Math.max(limit, 1), 100);

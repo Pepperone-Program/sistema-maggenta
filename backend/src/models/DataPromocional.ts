@@ -59,7 +59,7 @@ export class DataPromocionalModel {
 
   static async findAll(
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: DataPromocional[]; total: number }> {
@@ -188,7 +188,7 @@ export class DataPromocionalModel {
   static async findProdutos(
     dataPromocionalId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: DataPromocionalProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);

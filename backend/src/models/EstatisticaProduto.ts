@@ -4,7 +4,7 @@ import type { ProdutoRanking } from '@/types/estatistica-produto';
 export class EstatisticaProdutoModel {
   static async ranking(
     empresaId: number,
-    limit: number = 10,
+    limit: number = 100,
     startDate?: string,
     endDate?: string
   ): Promise<ProdutoRanking[]> {

@@ -125,7 +125,7 @@ export function listResource<T>(
   return apiRequest<PaginatedData<T>>(path, {
     query: {
       page: query.page || 1,
-      limit: query.limit || 10,
+      limit: query.limit || 100,
       search: query.search,
       habilitado: query.habilitado,
       site: query.site,

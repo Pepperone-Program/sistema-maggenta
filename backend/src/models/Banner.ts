@@ -86,7 +86,7 @@ export class BannerModel {
   static async findAll(
     empresaId: number,
     page: number = 1,
-    limit: number = 50,
+    limit: number = 100,
     filters: { search?: string; habilitado?: string; tipo?: string } = {}
   ): Promise<{ items: Banner[]; total: number }> {
     const safePage = normalizePage(page);
@@ -127,7 +127,14 @@ export class BannerModel {
     return { items: items as Banner[], total };
   }
 
-  static async findActiveByTipo(empresaId: number, tipo?: string): Promise<Banner[]> {
+  static async findActiveByTipo(
+    empresaId: number,
+    tipo?: string,
+    page: number = 1,
+    limit: number = 100
+  ): Promise<{ items: Banner[]; total: number }> {
+    const safePage = normalizePage(page);
+    const safeLimit = normalizeLimit(limit);
     let where = 'WHERE id_empresa = ? AND habilitado = ?';
     const values: any[] = [empresaId, 'S'];
 
@@ -136,17 +143,24 @@ export class BannerModel {
       values.push(tipo);
     }
 
+    const countResult = await query(
+      `SELECT COUNT(*) as total FROM banners ${where}`,
+      values
+    );
+    const total = (countResult as any[])[0].total;
+
     const result = await query(
       `
         SELECT ${bannerColumns}
         FROM banners
         ${where}
         ORDER BY tipo ASC, ordem ASC, id_banner ASC
+        LIMIT ? OFFSET ?
       `,
-      values
+      [...values, safeLimit, (safePage - 1) * safeLimit]
     );
 
-    return result as Banner[];
+    return { items: result as Banner[], total };
   }
 
   static async update(empresaId: number, bannerId: number, data: UpdateBannerDTO): Promise<boolean> {

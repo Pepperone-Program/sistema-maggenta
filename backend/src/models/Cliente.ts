@@ -116,7 +116,7 @@ export class ClienteModel {
   static async findAll(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: Cliente[]; total: number }> {
@@ -268,7 +268,7 @@ export class ClienteContatoModel {
     empresaId: number,
     clienteId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: ClienteContato[]; total: number }> {

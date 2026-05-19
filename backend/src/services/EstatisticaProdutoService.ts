@@ -23,7 +23,7 @@ const startOfNextYear = (date: Date): Date =>
 export class EstatisticaProdutoService {
   static async ranking(
     empresaId: number,
-    limit: number = 10,
+    limit: number = 100,
     startDate?: string,
     endDate?: string
   ): Promise<ProdutoRanking[]> {
@@ -36,7 +36,7 @@ export class EstatisticaProdutoService {
 
   static async melhoresDoDia(
     empresaId: number,
-    limit: number = 10,
+    limit: number = 100,
     date: string = toDateOnly(new Date())
   ): Promise<ProdutoRanking[]> {
     const start = new Date(`${date}T00:00:00.000Z`);
@@ -45,7 +45,7 @@ export class EstatisticaProdutoService {
 
   static async melhoresDoMes(
     empresaId: number,
-    limit: number = 10,
+    limit: number = 100,
     date: string = toDateOnly(new Date())
   ): Promise<ProdutoRanking[]> {
     const target = new Date(`${date}T00:00:00.000Z`);
@@ -59,7 +59,7 @@ export class EstatisticaProdutoService {
 
   static async melhoresDoAno(
     empresaId: number,
-    limit: number = 10,
+    limit: number = 100,
     date: string = toDateOnly(new Date())
   ): Promise<ProdutoRanking[]> {
     const target = new Date(`${date}T00:00:00.000Z`);
@@ -73,7 +73,7 @@ export class EstatisticaProdutoService {
 
   static async resumo(
     empresaId: number,
-    limit: number = 10,
+    limit: number = 100,
     date: string = toDateOnly(new Date())
   ): Promise<EstatisticasProdutosResumo> {
     const [maisOrcados, melhoresDoDia, melhoresDoMes, melhoresDoAno] = await Promise.all([

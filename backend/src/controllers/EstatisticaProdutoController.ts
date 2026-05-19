@@ -5,7 +5,7 @@ import { errorResponse, successResponse } from '@utils/response';
 
 const getEmpresaId = (req: AuthenticatedRequest): number => req.user?.id_empresa || 1;
 const getLimit = (req: AuthenticatedRequest): number =>
-  parseInt((req.query.limit as string) || '10', 10);
+  parseInt((req.query.limit as string) || '100', 10);
 
 export class EstatisticaProdutoController {
   static async ranking(req: AuthenticatedRequest, res: Response): Promise<void> {

@@ -94,7 +94,7 @@ export class UsuarioService {
   static async listUsuarios(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Omit<Usuario, 'senha'>[]; total: number; page: number; limit: number }> {
     const { items, total } = await UsuarioModel.findAll(

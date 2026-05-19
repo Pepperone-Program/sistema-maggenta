@@ -41,7 +41,7 @@ export class OrcamentoService {
   static async listOrcamentos(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Orcamento[]; total: number; page: number; limit: number }> {
     const { items, total } = await OrcamentoModel.findAll(

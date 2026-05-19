@@ -15,7 +15,7 @@ export class GrupoPermissaoService {
   static async listGrupos(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Grupo[]; total: number; page: number; limit: number }> {
     const { items, total } = await GrupoPermissaoModel.findGrupos(
@@ -32,7 +32,7 @@ export class GrupoPermissaoService {
     empresaId: number,
     grupo: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: GrupoPermissao[]; total: number; page: number; limit: number }> {
     const { items, total } = await GrupoPermissaoModel.findPermissoes(
       empresaId,
@@ -47,7 +47,7 @@ export class GrupoPermissaoService {
   static async listUsuariosComGrupos(
     empresaId: number,
     page: number = 1,
-    limit: number = 50,
+    limit: number = 100,
     search?: string
   ) {
     const [{ items, total }, permissoes] = await Promise.all([
@@ -108,7 +108,7 @@ export class GrupoPermissaoService {
     empresaId: number,
     grupo: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: GrupoUsuario[]; total: number; page: number; limit: number }> {
     const { items, total } = await GrupoPermissaoModel.findUsuarios(
       empresaId,

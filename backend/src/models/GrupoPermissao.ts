@@ -8,7 +8,7 @@ export class GrupoPermissaoModel {
   static async findGrupos(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Grupo[]; total: number }> {
     const safePage = normalizePage(page);
@@ -109,7 +109,7 @@ export class GrupoPermissaoModel {
     empresaId: number,
     grupo: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: GrupoPermissao[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
@@ -152,7 +152,7 @@ export class GrupoPermissaoModel {
   static async findUsuariosComGrupo(
     empresaId: number,
     page: number = 1,
-    limit: number = 50,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: any[]; total: number }> {
     const safePage = normalizePage(page);
@@ -321,7 +321,7 @@ export class GrupoPermissaoModel {
     empresaId: number,
     grupo: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: GrupoUsuario[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);

@@ -100,7 +100,7 @@ export class CategoriaModel {
   static async findAll(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: Categoria[]; total: number }> {
@@ -248,7 +248,7 @@ export class CategoriaModel {
     empresaId: number,
     categoriaId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: CategoriaProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
@@ -650,7 +650,7 @@ export class SubcategoriaModel {
   static async findAll(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     categoriaId?: number,
     habilitado?: string
@@ -789,7 +789,7 @@ export class SubcategoriaModel {
     empresaId: number,
     subcategoriaId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: SubcategoriaProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);

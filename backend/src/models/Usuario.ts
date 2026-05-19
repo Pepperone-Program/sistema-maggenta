@@ -96,7 +96,7 @@ export class UsuarioModel {
   static async findAll(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Omit<Usuario, 'senha'>[]; total: number }> {
     let sql = 'SELECT * FROM usuarios WHERE id_empresa = ?';

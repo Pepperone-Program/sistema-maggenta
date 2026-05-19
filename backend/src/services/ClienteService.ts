@@ -49,7 +49,7 @@ export class ClienteService {
   static async listClientes(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: Cliente[]; total: number; page: number; limit: number }> {
@@ -136,7 +136,7 @@ export class ClienteService {
     empresaId: number,
     clienteId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: ClienteContato[]; total: number; page: number; limit: number }> {
@@ -203,7 +203,7 @@ export class ClienteService {
     empresaId: number,
     clienteId: number,
     page: number = 1,
-    limit: number = 50
+    limit: number = 100
   ) {
     await this.getClienteById(empresaId, clienteId);
     const { items, total } = await OrcamentoModel.findByCliente(empresaId, clienteId, page, limit);

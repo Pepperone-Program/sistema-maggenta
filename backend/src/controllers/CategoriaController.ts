@@ -6,7 +6,7 @@ import { errorResponse, paginatedResponse, successResponse } from '@utils/respon
 
 const getEmpresaId = (req: AuthenticatedRequest): number => req.user?.id_empresa || 1;
 const getPage = (req: AuthenticatedRequest): number => parseInt((req.query.page as string) || '1', 10);
-const getLimit = (req: AuthenticatedRequest): number => parseInt((req.query.limit as string) || '10', 10);
+const getLimit = (req: AuthenticatedRequest): number => parseInt((req.query.limit as string) || '100', 10);
 
 export class CategoriaController {
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {

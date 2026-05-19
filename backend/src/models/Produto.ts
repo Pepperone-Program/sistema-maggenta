@@ -305,7 +305,7 @@ export class ProdutoModel {
   static async findAll(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string,
     site?: string
@@ -348,7 +348,7 @@ export class ProdutoModel {
   static async findAllForSite(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string
   ): Promise<{ items: Produto[]; total: number }> {
     let sql = "SELECT * FROM produtos WHERE id_empresa = ? AND site = 'S' AND habilitado = 'S'";
@@ -378,7 +378,7 @@ export class ProdutoModel {
     empresaId: number,
     term: string,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: Produto[]; total: number }> {
     const searchPattern = `%${term}%`;
     let sql = `

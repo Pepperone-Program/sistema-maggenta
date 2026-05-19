@@ -50,7 +50,7 @@ export class ProdutoController {
     try {
       const empresaId = req.user?.id_empresa || 1;
       const page = parseInt((req.query.page as string) || '1', 10);
-      const limit = parseInt((req.query.limit as string) || '10', 10);
+      const limit = parseInt((req.query.limit as string) || '100', 10);
       const search = req.query.search as string | undefined;
       const habilitado = req.query.habilitado as string | undefined;
       const site = req.query.site as string | undefined;
@@ -86,7 +86,7 @@ export class ProdutoController {
     try {
       const empresaId = parseInt((req.query.empresaId as string) || '1', 10);
       const page = parseInt((req.query.page as string) || '1', 10);
-      const limit = parseInt((req.query.limit as string) || '10', 10);
+      const limit = parseInt((req.query.limit as string) || '100', 10);
       const search = req.query.search as string | undefined;
 
       const result = await CacheService.getOrSet(
@@ -118,7 +118,7 @@ export class ProdutoController {
     try {
       const empresaId = parseInt((req.query.empresaId as string) || '1', 10);
       const page = parseInt((req.query.page as string) || '1', 10);
-      const limit = parseInt((req.query.limit as string) || '10', 10);
+      const limit = parseInt((req.query.limit as string) || '100', 10);
       const term = String(req.query.q || '');
 
       const result = await CacheService.getOrSet(

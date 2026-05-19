@@ -7,7 +7,7 @@ const getEmpresaId = (req: AuthenticatedRequest): number => req.user?.id_empresa
 const getPage = (req: AuthenticatedRequest): number =>
   parseInt((req.query.page as string) || '1', 10);
 const getLimit = (req: AuthenticatedRequest): number =>
-  parseInt((req.query.limit as string) || '10', 10);
+  parseInt((req.query.limit as string) || '100', 10);
 
 export class GrupoPermissaoController {
   static async listGrupos(req: AuthenticatedRequest, res: Response): Promise<void> {

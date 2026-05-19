@@ -58,7 +58,7 @@ export class PublicoAlvoModel {
 
   static async findAll(
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: PublicoAlvo[]; total: number }> {
@@ -188,7 +188,7 @@ export class PublicoAlvoModel {
   static async findProdutos(
     publicoAlvoId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: PublicoAlvoProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);

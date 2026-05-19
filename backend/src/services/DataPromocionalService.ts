@@ -78,7 +78,7 @@ export class DataPromocionalService {
 
   static async listDatasPromocionais(
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: DataPromocional[]; total: number; page: number; limit: number }> {
@@ -177,7 +177,7 @@ export class DataPromocionalService {
   static async listProdutos(
     dataPromocionalId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: DataPromocionalProduto[]; total: number; page: number; limit: number }> {
     await this.getDataPromocionalById(dataPromocionalId);
     const { items, total } = await DataPromocionalModel.findProdutos(

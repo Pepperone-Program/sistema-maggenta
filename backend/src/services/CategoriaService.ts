@@ -57,7 +57,7 @@ export class CategoriaService {
   static async listCategorias(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     habilitado?: string
   ): Promise<{ items: Categoria[]; total: number; page: number; limit: number }> {
@@ -158,7 +158,7 @@ export class CategoriaService {
     empresaId: number,
     categoriaId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: CategoriaProduto[]; total: number; page: number; limit: number }> {
     await this.getCategoriaById(empresaId, categoriaId);
     const { items, total } = await CategoriaModel.findProdutos(
@@ -292,7 +292,7 @@ export class SubcategoriaService {
   static async listSubcategorias(
     empresaId: number,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 100,
     search?: string,
     categoriaId?: number,
     habilitado?: string
@@ -416,7 +416,7 @@ export class SubcategoriaService {
     empresaId: number,
     subcategoriaId: number,
     page: number = 1,
-    limit: number = 10
+    limit: number = 100
   ): Promise<{ items: SubcategoriaProduto[]; total: number; page: number; limit: number }> {
     await this.getSubcategoriaById(empresaId, subcategoriaId);
     const { items, total } = await SubcategoriaModel.findProdutos(

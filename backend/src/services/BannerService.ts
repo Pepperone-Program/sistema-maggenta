@@ -55,7 +55,7 @@ export class BannerService {
   static async listBanners(
     empresaId: number,
     page: number = 1,
-    limit: number = 50,
+    limit: number = 100,
     filters: { search?: string; habilitado?: string; tipo?: string } = {}
   ): Promise<{
     items: Banner[];
@@ -79,14 +79,26 @@ export class BannerService {
 
   static async listActiveBanners(
     empresaId: number,
-    tipo?: string
-  ): Promise<{ items: Banner[]; grouped: BannersByTipo; total: number }> {
-    const items = await BannerModel.findActiveByTipo(empresaId, tipo);
+    tipo?: string,
+    page: number = 1,
+    limit: number = 100
+  ): Promise<{
+    items: Banner[];
+    grouped: BannersByTipo;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const { items, total } = await BannerModel.findActiveByTipo(empresaId, tipo, page, limit);
 
     return {
       items,
       grouped: groupByTipo(items),
-      total: items.length,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 

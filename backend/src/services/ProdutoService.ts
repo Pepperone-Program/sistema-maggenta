@@ -2,6 +2,20 @@ import { ProdutoModel } from '@models/Produto';
 import type { Produto, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produto';
 import { throwError } from '@utils/helpers';
 
+type SiteSearchResult =
+  | {
+      match_exato_codigo: true;
+      id_produto: number;
+      codigo: string;
+    }
+  | {
+      match_exato_codigo: false;
+      items: Produto[];
+      total: number;
+      page: number;
+      limit: number;
+    };
+
 export class ProdutoService {
   private static async attachImages<T extends Produto>(produtos: T[]): Promise<T[]> {
     const imagesByProduct = await ProdutoModel.findImagesByProductIds(
@@ -127,10 +141,19 @@ export class ProdutoService {
     term: string,
     page: number = 1,
     limit: number = 100
-  ): Promise<{ items: Produto[]; total: number; page: number; limit: number }> {
+  ): Promise<SiteSearchResult> {
     const normalizedTerm = term.trim();
     if (!normalizedTerm) {
       throwError('INVALID_SEARCH', 'Informe o termo de busca em q', 400);
+    }
+
+    const exactCodeMatch = await ProdutoModel.searchByCodigoForSite(empresaId, normalizedTerm);
+    if (exactCodeMatch) {
+      return {
+        match_exato_codigo: true,
+        id_produto: exactCodeMatch.id_produto,
+        codigo: exactCodeMatch.codigo,
+      };
     }
 
     const { items, total } = await ProdutoModel.searchForSite(
@@ -142,6 +165,7 @@ export class ProdutoService {
     const itemsWithImages = await this.attachImages(items);
 
     return {
+      match_exato_codigo: false,
       items: itemsWithImages,
       total,
       page,

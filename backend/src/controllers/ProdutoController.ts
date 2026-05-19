@@ -132,6 +132,19 @@ export class ProdutoController {
           )
       );
 
+      if (result.match_exato_codigo === true) {
+        successResponse(
+          res,
+          {
+            match_exato_codigo: true,
+            id_produto: result.id_produto,
+            codigo: result.codigo,
+          },
+          'Produto encontrado por codigo exato'
+        );
+        return;
+      }
+
       paginatedResponse(
         res,
         result.items,

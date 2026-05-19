@@ -423,6 +423,26 @@ export class ProdutoModel {
     return { items: items as Produto[], total };
   }
 
+  static async searchByCodigoForSite(
+    empresaId: number,
+    codigo: string
+  ): Promise<Pick<Produto, 'id_produto' | 'codigo'> | null> {
+    const result = await query(
+      `
+        SELECT id_produto, codigo
+        FROM produtos
+        WHERE id_empresa = ?
+          AND site = 'S'
+          AND habilitado = 'S'
+          AND codigo = ?
+        LIMIT 1
+      `,
+      [empresaId, codigo]
+    );
+
+    return (result as Array<Pick<Produto, 'id_produto' | 'codigo'>>)[0] || null;
+  }
+
   static async update(
     empresaId: number,
     produtoId: number,

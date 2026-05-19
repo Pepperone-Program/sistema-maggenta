@@ -147,7 +147,11 @@ export class ProdutoService {
       throwError('INVALID_SEARCH', 'Informe o termo de busca em q', 400);
     }
 
-    const exactCodeMatch = await ProdutoModel.searchByCodigoForSite(empresaId, normalizedTerm);
+    const exactCodeMatch =
+      (await ProdutoModel.searchByCodigoForSite(empresaId, normalizedTerm)) ||
+      (!normalizedTerm.toUpperCase().startsWith('PEP')
+        ? await ProdutoModel.searchByCodigoForSite(empresaId, `PEP${normalizedTerm}`)
+        : null);
     if (exactCodeMatch) {
       return {
         match_exato_codigo: true,

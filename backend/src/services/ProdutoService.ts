@@ -1,4 +1,4 @@
-import { CategoriaModel } from '@models/Categoria';
+import { CategoriaModel, SubcategoriaModel } from '@models/Categoria';
 import { ProdutoModel } from '@models/Produto';
 import { TipoProdutoModel } from '@models/TipoProduto';
 import type { Produto, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produto';
@@ -9,6 +9,14 @@ type SearchDestination =
       tipo: 'categoria';
       id_categoria: number;
       categoria: string;
+      posicao_palavra: number;
+      url_sugerida: string;
+    }
+  | {
+      tipo: 'subcategoria';
+      id_categoria: number;
+      id_subcategoria: number;
+      subcategoria: string;
       posicao_palavra: number;
       url_sugerida: string;
     }
@@ -40,17 +48,91 @@ const normalizeText = (value: string): string =>
     .toLowerCase()
     .trim();
 
-const wordPosition = (label: string, term: string): number => {
+type SearchRank = {
+  score: number;
+  position: number;
+};
+
+const notFoundRank: SearchRank = {
+  score: Number.MAX_SAFE_INTEGER,
+  position: Number.MAX_SAFE_INTEGER,
+};
+
+const searchRank = (label: string, term: string): SearchRank => {
   const normalizedTerm = normalizeText(term);
-  const words = normalizeText(label)
+  const normalizedLabel = normalizeText(label);
+
+  if (!normalizedTerm || !normalizedLabel) {
+    return notFoundRank;
+  }
+
+  if (normalizedLabel === normalizedTerm) {
+    return { score: 0, position: 1 };
+  }
+
+  if (normalizedLabel.startsWith(`${normalizedTerm} `)) {
+    return { score: 1, position: 1 };
+  }
+
+  const phraseIndex = normalizedLabel.indexOf(` ${normalizedTerm} `);
+  if (phraseIndex >= 0) {
+    const previousWords = normalizedLabel.slice(0, phraseIndex).split(/\s+/).filter(Boolean);
+    return { score: 2, position: previousWords.length + 1 };
+  }
+
+  if (normalizedLabel.endsWith(` ${normalizedTerm}`)) {
+    const previousWords = normalizedLabel
+      .slice(0, normalizedLabel.length - normalizedTerm.length)
+      .split(/\s+/)
+      .filter(Boolean);
+    return { score: 2, position: previousWords.length + 1 };
+  }
+
+  const termWords = normalizedTerm.split(/[^a-z0-9]+/i).filter(Boolean);
+  const labelWords = normalizedLabel
     .split(/[^a-z0-9]+/i)
     .filter(Boolean);
 
-  const index = words.findIndex(
+  if (termWords.length > 1) {
+    for (let start = 0; start <= labelWords.length - termWords.length; start += 1) {
+      const matchesSequence = termWords.every((termWord, offset) => {
+        const labelWord = labelWords[start + offset];
+        return labelWord === termWord || labelWord.startsWith(termWord);
+      });
+
+      if (matchesSequence) {
+        return { score: 3, position: start + 1 };
+      }
+    }
+
+    const allWordsFound = termWords.every((termWord) =>
+      labelWords.some((labelWord) => labelWord === termWord || labelWord.startsWith(termWord))
+    );
+
+    if (!allWordsFound) {
+      return notFoundRank;
+    }
+
+    const firstPosition = Math.min(
+      ...termWords.map((termWord) =>
+        labelWords.findIndex((labelWord) => labelWord === termWord || labelWord.startsWith(termWord))
+      )
+    );
+
+    return { score: 4, position: firstPosition + 1 };
+  }
+
+  const index = labelWords.findIndex(
     (word) => word === normalizedTerm || word.startsWith(normalizedTerm)
   );
 
-  return index >= 0 ? index + 1 : Number.MAX_SAFE_INTEGER;
+  return index >= 0 ? { score: 5, position: index + 1 } : notFoundRank;
+};
+
+const compareRanks = <T extends { rank: SearchRank; label: string }>(a: T, b: T): number => {
+  if (a.rank.score !== b.rank.score) return a.rank.score - b.rank.score;
+  if (a.rank.position !== b.rank.position) return a.rank.position - b.rank.position;
+  return a.label.localeCompare(b.label);
 };
 
 export class ProdutoService {
@@ -204,7 +286,7 @@ export class ProdutoService {
       busca: {
         termo: normalizedTerm,
         regra:
-          'A busca de produtos continua igual. Para Enter sem selecionar sugestao, use destino_busca: primeiro categoria com o termo em qualquer palavra; se nao achar, tipo_produto.',
+          'A busca de produtos continua igual. Para Enter sem selecionar sugestao, use destino_busca: primeiro categoria com o termo em qualquer palavra; se nao achar, subcategoria; se nao achar, tipo_produto.',
       },
     };
   }
@@ -217,10 +299,11 @@ export class ProdutoService {
     const categoriaMatches = categorias
       .map((categoria) => ({
         categoria,
-        posicao: wordPosition(categoria.categoria, term),
+        rank: searchRank(categoria.categoria, term),
+        label: categoria.categoria,
       }))
-      .filter((item) => item.posicao !== Number.MAX_SAFE_INTEGER)
-      .sort((a, b) => a.posicao - b.posicao || a.categoria.categoria.localeCompare(b.categoria.categoria));
+      .filter((item) => item.rank.score !== Number.MAX_SAFE_INTEGER)
+      .sort(compareRanks);
 
     const categoriaMatch = categoriaMatches[0];
     if (categoriaMatch) {
@@ -228,8 +311,30 @@ export class ProdutoService {
         tipo: 'categoria',
         id_categoria: categoriaMatch.categoria.id_categoria,
         categoria: categoriaMatch.categoria.categoria,
-        posicao_palavra: categoriaMatch.posicao,
+        posicao_palavra: categoriaMatch.rank.position,
         url_sugerida: `/categorias/${categoriaMatch.categoria.id_categoria}`,
+      };
+    }
+
+    const subcategorias = await SubcategoriaModel.findSearchCandidates(empresaId, term);
+    const subcategoriaMatches = subcategorias
+      .map((subcategoria) => ({
+        subcategoria,
+        rank: searchRank(subcategoria.subcategoria, term),
+        label: subcategoria.subcategoria,
+      }))
+      .filter((item) => item.rank.score !== Number.MAX_SAFE_INTEGER)
+      .sort(compareRanks);
+
+    const subcategoriaMatch = subcategoriaMatches[0];
+    if (subcategoriaMatch) {
+      return {
+        tipo: 'subcategoria',
+        id_categoria: subcategoriaMatch.subcategoria.id_categoria,
+        id_subcategoria: subcategoriaMatch.subcategoria.id_subcategoria,
+        subcategoria: subcategoriaMatch.subcategoria.subcategoria,
+        posicao_palavra: subcategoriaMatch.rank.position,
+        url_sugerida: `/subcategorias/${subcategoriaMatch.subcategoria.id_subcategoria}`,
       };
     }
 
@@ -237,13 +342,11 @@ export class ProdutoService {
     const tipoMatches = tiposProdutos
       .map((tipoProduto) => ({
         tipoProduto,
-        posicao: wordPosition(String(tipoProduto.tipo_produto || ''), term),
+        rank: searchRank(String(tipoProduto.tipo_produto || ''), term),
+        label: String(tipoProduto.tipo_produto || ''),
       }))
-      .filter((item) => item.posicao !== Number.MAX_SAFE_INTEGER)
-      .sort((a, b) =>
-        a.posicao - b.posicao ||
-        String(a.tipoProduto.tipo_produto).localeCompare(String(b.tipoProduto.tipo_produto))
-      );
+      .filter((item) => item.rank.score !== Number.MAX_SAFE_INTEGER)
+      .sort(compareRanks);
 
     const tipoMatch = tipoMatches[0];
     if (!tipoMatch) {
@@ -254,7 +357,7 @@ export class ProdutoService {
       tipo: 'tipo_produto',
       id_tipo_produto: Number(tipoMatch.tipoProduto.id_tipo_produto),
       tipo_produto: String(tipoMatch.tipoProduto.tipo_produto),
-      posicao_palavra: tipoMatch.posicao,
+      posicao_palavra: tipoMatch.rank.position,
       url_sugerida: `/tipos-produtos/${tipoMatch.tipoProduto.id_tipo_produto}`,
     };
   }

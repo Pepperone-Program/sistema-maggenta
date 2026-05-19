@@ -9,6 +9,9 @@ export class TipoProdutoModel {
     term: string,
     limit: number = 20
   ) {
+    const words = term.split(/\s+/).map((word) => word.trim()).filter(Boolean);
+    const wordConditions = words.map(() => 'tipo_produto LIKE ?').join(' AND ');
+    const wordValues = words.map((word) => `%${word}%`);
     const searchPattern = `%${term}%`;
     const result = await query(
       `
@@ -16,7 +19,7 @@ export class TipoProdutoModel {
         FROM tipos_produtos
         WHERE id_empresa = ?
           AND habilitado = 'S'
-          AND tipo_produto LIKE ?
+          AND (tipo_produto LIKE ?${wordConditions ? ` OR (${wordConditions})` : ''})
         ORDER BY
           CASE
             WHEN tipo_produto LIKE ? THEN 0
@@ -27,7 +30,7 @@ export class TipoProdutoModel {
           id_tipo_produto ASC
         LIMIT ?
       `,
-      [empresaId, searchPattern, `${term}%`, `% ${term}%`, limit]
+      [empresaId, searchPattern, ...wordValues, `${term}%`, `% ${term}%`, limit]
     );
 
     return result as any[];

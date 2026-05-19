@@ -19,6 +19,9 @@ export class CategoriaModel {
     term: string,
     limit: number = 20
   ): Promise<Categoria[]> {
+    const words = term.split(/\s+/).map((word) => word.trim()).filter(Boolean);
+    const wordConditions = words.map(() => 'categoria LIKE ?').join(' AND ');
+    const wordValues = words.map((word) => `%${word}%`);
     const searchPattern = `%${term}%`;
     const result = await query(
       `
@@ -26,7 +29,7 @@ export class CategoriaModel {
         FROM categorias
         WHERE id_empresa = ?
           AND habilitado = 'S'
-          AND categoria LIKE ?
+          AND (categoria LIKE ?${wordConditions ? ` OR (${wordConditions})` : ''})
         ORDER BY
           CASE
             WHEN categoria LIKE ? THEN 0
@@ -37,7 +40,7 @@ export class CategoriaModel {
           id_categoria ASC
         LIMIT ?
       `,
-      [empresaId, searchPattern, `${term}%`, `% ${term}%`, limit]
+      [empresaId, searchPattern, ...wordValues, `${term}%`, `% ${term}%`, limit]
     );
 
     return result as Categoria[];
@@ -546,6 +549,39 @@ export class CategoriaModel {
 }
 
 export class SubcategoriaModel {
+  static async findSearchCandidates(
+    empresaId: number,
+    term: string,
+    limit: number = 20
+  ): Promise<Subcategoria[]> {
+    const words = term.split(/\s+/).map((word) => word.trim()).filter(Boolean);
+    const wordConditions = words.map(() => 'subcategoria LIKE ?').join(' AND ');
+    const wordValues = words.map((word) => `%${word}%`);
+    const searchPattern = `%${term}%`;
+    const result = await query(
+      `
+        SELECT id_empresa, id_categoria, id_subcategoria, subcategoria, descricao, icon, habilitado, ordem
+        FROM subcategorias
+        WHERE id_empresa = ?
+          AND habilitado = 'S'
+          AND (subcategoria LIKE ?${wordConditions ? ` OR (${wordConditions})` : ''})
+        ORDER BY
+          CASE
+            WHEN subcategoria LIKE ? THEN 0
+            WHEN subcategoria LIKE ? THEN 1
+            ELSE 2
+          END,
+          ordem ASC,
+          subcategoria ASC,
+          id_subcategoria ASC
+        LIMIT ?
+      `,
+      [empresaId, searchPattern, ...wordValues, `${term}%`, `% ${term}%`, limit]
+    );
+
+    return result as Subcategoria[];
+  }
+
   static async create(empresaId: number, data: CreateSubcategoriaDTO): Promise<number> {
     const columns = [
       'id_empresa',

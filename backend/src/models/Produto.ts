@@ -443,6 +443,46 @@ export class ProdutoModel {
     return (result as Array<Pick<Produto, 'id_produto' | 'codigo'>>)[0] || null;
   }
 
+  static async searchByCodigoLikeForSite(
+    empresaId: number,
+    codigo: string,
+    page: number = 1,
+    limit: number = 100
+  ): Promise<{ items: Produto[]; total: number }> {
+    const sql = `
+      SELECT *
+      FROM produtos
+      WHERE id_empresa = ?
+        AND site = 'S'
+        AND habilitado = 'S'
+        AND codigo LIKE ?
+    `;
+    const values: any[] = [empresaId, `%${codigo}%`];
+
+    const countResult = await query(
+      sql.replace('SELECT *', 'SELECT COUNT(*) as total'),
+      values
+    );
+    const total = (countResult as any[])[0].total;
+
+    const offset = (page - 1) * limit;
+    const items = await query(
+      `${sql}
+        ORDER BY
+          CASE
+            WHEN codigo LIKE ? THEN 0
+            ELSE 1
+          END,
+          produto ASC,
+          id_produto ASC
+        LIMIT ? OFFSET ?
+      `,
+      [...values, `${codigo}%`, limit, offset]
+    );
+
+    return { items: items as Produto[], total };
+  }
+
   static async update(
     empresaId: number,
     produtoId: number,

@@ -160,12 +160,25 @@ export class ProdutoService {
       };
     }
 
-    const { items, total } = await ProdutoModel.searchForSite(
+    let { items, total } = await ProdutoModel.searchForSite(
       empresaId,
       normalizedTerm,
       page,
       limit
     );
+
+    if (total === 0) {
+      const codeSearchResult = await ProdutoModel.searchByCodigoLikeForSite(
+        empresaId,
+        normalizedTerm,
+        page,
+        limit
+      );
+
+      items = codeSearchResult.items;
+      total = codeSearchResult.total;
+    }
+
     const itemsWithImages = await this.attachImages(items);
 
     return {

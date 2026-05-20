@@ -154,7 +154,7 @@ export const getConnection = async () => {
     }
   }
 
-  throw mapDbError(new Error('Falha ao obter conexao com o banco de dados'));
+  throw mapDbError(new Error('Falha ao obter conexão com o banco de dados'));
 };
 
 export const query = async (sql: string, values?: any[]): Promise<any> => {

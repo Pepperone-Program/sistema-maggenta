@@ -43,6 +43,7 @@ export interface Orcamento {
 }
 
 export interface CreateOrcamentoDTO {
+  [key: string]: unknown;
   id_cliente?: string;
   data_orcamento: string;
   fantasia: string;
@@ -71,6 +72,15 @@ export interface CreateOrcamentoDTO {
   logotipo?: string;
   layout?: string;
   layout_aprovado?: string;
+  itens?: Array<Record<string, unknown>>;
+  items?: Array<Record<string, unknown>>;
+  produtos?: Array<Record<string, unknown>>;
+  products?: Array<Record<string, unknown>>;
+  orcamento_itens?: Array<Record<string, unknown>>;
+  carrinho?: Array<Record<string, unknown>>;
+  cnpj_cpf?: string;
+  documento?: string;
+  empresa?: string;
 }
 
 export type UpdateOrcamentoDTO = Partial<CreateOrcamentoDTO>;

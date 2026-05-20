@@ -131,13 +131,48 @@ export class OrcamentoModel {
     orcamentoId: number,
     data: UpdateOrcamentoDTO
   ): Promise<boolean> {
+    const allowedFields = new Set([
+      'id_cliente',
+      'data_orcamento',
+      'fantasia',
+      'endereco',
+      'endereco_n',
+      'endereco_compl',
+      'bairro',
+      'cep',
+      'cidade',
+      'uf',
+      'pais',
+      'tel',
+      'tel2',
+      'site',
+      'email',
+      'obs',
+      'contato',
+      'id_condicao',
+      'id_vendedor',
+      'frete',
+      'frete_valor',
+      'diluir_frete',
+      'nivel',
+      'entrega',
+      'id_captacao',
+      'logotipo',
+      'layout',
+      'layout_aprovado',
+    ]);
     const updates: string[] = [];
     const values: any[] = [];
 
     Object.entries(data).forEach(([key, value]) => {
+      if (!allowedFields.has(key)) return;
       updates.push(`${key} = ?`);
       values.push(value ?? null);
     });
+
+    if (!updates.length) {
+      return false;
+    }
 
     values.push(empresaId, orcamentoId);
 

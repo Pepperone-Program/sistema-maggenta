@@ -1,16 +1,59 @@
 import { OrcamentoModel } from '@models/Orcamento';
 import { OrcamentoItemModel } from '@models/OrcamentoItem';
+import { OrcamentoEmailService } from '@services/OrcamentoEmailService';
 import type { Orcamento, CreateOrcamentoDTO, UpdateOrcamentoDTO } from '@/types/orcamento';
 import type { OrcamentoItem, CreateOrcamentoItemDTO } from '@/types/orcamento-item';
 import { throwError } from '@utils/helpers';
 
 export class OrcamentoService {
+  private static async notifyQuote(data: CreateOrcamentoDTO, quoteNumber?: number): Promise<void> {
+    try {
+      if (!OrcamentoEmailService.hasQuoteItems(data)) {
+        console.warn('[OrcamentoService] Email de orcamento adiado: payload sem itens');
+        return;
+      }
+
+      await OrcamentoEmailService.sendQuoteEmail(data, quoteNumber);
+    } catch (error) {
+      console.error('[OrcamentoService] Falha ao enviar email de orcamento', error);
+    }
+  }
+
+  private static async notifyStoredQuote(empresaId: number, orcamentoId: number): Promise<void> {
+    try {
+      const orcamento = await OrcamentoModel.findById(empresaId, orcamentoId);
+      if (!orcamento) return;
+
+      const itens = await OrcamentoItemModel.findByOrcamentoId(orcamentoId);
+      await OrcamentoEmailService.sendQuoteEmail(
+        {
+          ...(orcamento as unknown as CreateOrcamentoDTO),
+          itens: itens as unknown as Array<Record<string, unknown>>,
+        },
+        orcamentoId
+      );
+    } catch (error) {
+      console.error('[OrcamentoService] Falha ao enviar email com itens do orcamento', error);
+    }
+  }
+
   static async createOrcamento(
     empresaId: number,
     data: CreateOrcamentoDTO
   ): Promise<Orcamento> {
-    const id = await OrcamentoModel.create(empresaId, data);
-    const orcamento = await OrcamentoModel.findById(empresaId, id);
+    let id: number | undefined;
+    let orcamento: Orcamento | null = null;
+
+    try {
+      const createdId = await OrcamentoModel.create(empresaId, data);
+      id = createdId;
+      orcamento = await OrcamentoModel.findById(empresaId, createdId);
+    } catch (error) {
+      await this.notifyQuote(data);
+      throw error;
+    }
+
+    await this.notifyQuote(data, id);
 
     if (!orcamento) {
       throwError('CREATE_FAILED', 'Falha ao criar orçamento', 500);
@@ -115,6 +158,8 @@ export class OrcamentoService {
     if (!item) {
       throwError('CREATE_ITEM_FAILED', 'Falha ao adicionar item', 500);
     }
+
+    await this.notifyStoredQuote(empresaId, orcamentoId);
 
     return item as OrcamentoItem;
   }

@@ -52,7 +52,16 @@ export const orcamentoSchema = Joi.object({
   contato: Joi.string().max(100).required(),
   nivel: Joi.string().allow(null, ''),
   entrega: Joi.string().allow(null, ''),
-});
+  cnpj_cpf: Joi.string().max(30).allow(null, ''),
+  documento: Joi.string().max(30).allow(null, ''),
+  empresa: Joi.string().max(255).allow(null, ''),
+  itens: Joi.array().items(Joi.object().unknown(true)).optional(),
+  items: Joi.array().items(Joi.object().unknown(true)).optional(),
+  produtos: Joi.array().items(Joi.object().unknown(true)).optional(),
+  products: Joi.array().items(Joi.object().unknown(true)).optional(),
+  orcamento_itens: Joi.array().items(Joi.object().unknown(true)).optional(),
+  carrinho: Joi.array().items(Joi.object().unknown(true)).optional(),
+}).unknown(true);
 
 export const orcamentoItemSchema = Joi.object({
   id_orcamento: Joi.number().required(),

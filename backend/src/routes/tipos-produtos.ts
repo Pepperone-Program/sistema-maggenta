@@ -9,6 +9,11 @@ router.get(
 );
 
 router.get(
+  '/habilitados',
+  TipoProdutoController.listHabilitados
+);
+
+router.get(
   '/:id/catalogo',
   TipoProdutoController.catalogo
 );

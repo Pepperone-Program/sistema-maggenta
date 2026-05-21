@@ -23,15 +23,15 @@ export function UserInfo() {
   }
 
   const USER = {
-    name: "John Smith",
-    email: "johnson@nextadmin.com",
-    img: "/images/user/user-03.png",
+    name: "",
+    email: "",
+    img: "/images/user/user.jpg",
   };
 
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
       <DropdownTrigger className="rounded align-middle outline-none ring-primary ring-offset-2 focus-visible:ring-1 dark:ring-offset-gray-dark">
-        <span className="sr-only">My Account</span>
+        <span className="sr-only">Minha conta</span>
 
         <figure className="flex items-center gap-3">
           <Image

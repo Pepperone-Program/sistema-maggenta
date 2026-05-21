@@ -30,7 +30,6 @@ type ProductField = {
 };
 
 const productFields: ProductField[] = [
-  { name: "id_tipo_produto", label: "Tipo", type: "number", required: true },
   { name: "produto", label: "Produto", required: true },
   { name: "codigo", label: "Codigo", required: true },
   { name: "cod_forn", label: "Cod. fornecedor" },
@@ -121,6 +120,62 @@ function normalizeFormValue(type: string | undefined, value: FormDataEntryValue 
   return raw;
 }
 
+async function fetchAllRows(endpoint: string, search?: string) {
+  const first = await apiRequest<PaginatedData<Row>>(endpoint, { query: { page: 1, limit: 500, search } });
+  const items = [...first.items];
+
+  for (let page = 2; page <= first.totalPages; page += 1) {
+    const response = await apiRequest<PaginatedData<Row>>(endpoint, { query: { page, limit: 500, search } });
+    items.push(...response.items);
+  }
+
+  return items;
+}
+
+function ProductTypeSelect({ value }: { value?: unknown }) {
+  const [items, setItems] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(false);
+  const selected = String(value || "");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    fetchAllRows("/api/v1/tipos-produtos/habilitados")
+      .then((rows) => {
+        if (active) setItems(rows);
+      })
+      .catch(() => {
+        if (active) setItems([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <select
+      className="w-full rounded-md border border-stroke bg-white px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+      defaultValue={selected}
+      name="id_tipo_produto"
+      required
+    >
+      <option value="">{loading ? "Carregando..." : "Selecione um tipo"}</option>
+      {items.map((item) => (
+        <option key={String(item.id_tipo_produto)} value={String(item.id_tipo_produto)}>
+          {text(item.tipo_produto)} #{text(item.id_tipo_produto)}
+        </option>
+      ))}
+      {selected && !items.some((item) => String(item.id_tipo_produto) === selected) && (
+        <option value={selected}>Tipo atual #{selected}</option>
+      )}
+    </select>
+  );
+}
+
 function Field({ field, value }: { field: ProductField; value?: unknown }) {
   const defaultValue =
     value === null || value === undefined
@@ -160,8 +215,8 @@ function ProductLinksPanel({ produtoId }: { produtoId: number }) {
   useEffect(() => {
     loadLinks().catch((err) => setError(err instanceof Error ? err.message : "Falha ao carregar vinculos"));
     linkTargets.forEach((target) => {
-      apiRequest<{ items: Row[] }>(target.endpoint, { query: { limit: 100 } })
-        .then((response) => setOptions((current) => ({ ...current, [target.key]: response.items })))
+      fetchAllRows(target.endpoint)
+        .then((items) => setOptions((current) => ({ ...current, [target.key]: items })))
         .catch(() => undefined);
     });
   }, [loadLinks]);
@@ -276,6 +331,8 @@ function ProductModal({
 
     const formData = new FormData(event.currentTarget);
     const payload: Record<string, unknown> = {};
+    const tipoProduto = normalizeFormValue("number", formData.get("id_tipo_produto"));
+    if (tipoProduto !== undefined) payload.id_tipo_produto = tipoProduto;
 
     productFields.forEach((field) => {
       const value = normalizeFormValue(field.type, formData.get(field.name));
@@ -339,6 +396,12 @@ function ProductModal({
           {tab === "dados" && (
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">
+                    Tipo <span className="text-red-500">*</span>
+                  </span>
+                  <ProductTypeSelect value={values.id_tipo_produto} />
+                </label>
                 {productFields.map((field) => (
                   <label className={field.type === "textarea" ? "block md:col-span-2" : "block"} key={field.name}>
                     <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">

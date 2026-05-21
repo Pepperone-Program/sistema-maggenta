@@ -1,6 +1,6 @@
 "use client";
 
-import { apiRequest, createResource, deleteResource, updateResource, type PaginatedData } from "@/lib/api";
+import { apiFormRequest, apiRequest, createResource, deleteResource, updateResource, type PaginatedData } from "@/lib/api";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -17,6 +17,7 @@ type Banner = {
   habilitado?: string | null;
   cliques?: number | null;
   url_banner?: string | null;
+  tamanho_tela?: string | null;
 };
 
 const bannerTipos = [
@@ -37,6 +38,7 @@ const defaultBanner: Banner = {
   habilitado: "S",
   cliques: null,
   url_banner: "",
+  tamanho_tela: "",
 };
 
 function text(value: unknown) {
@@ -46,6 +48,61 @@ function text(value: unknown) {
 
 function dateValue(value: unknown) {
   return value ? String(value).slice(0, 10) : "";
+}
+
+function DropZone({
+  label,
+  file,
+  onFile,
+}: {
+  label: string;
+  file: File | null;
+  onFile: (file: File | null) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const preview = useMemo(() => (file ? URL.createObjectURL(file) : ""), [file]);
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  function acceptFiles(files: FileList | null) {
+    const nextFile = Array.from(files || []).find((item) => item.type.startsWith("image/"));
+    if (nextFile) onFile(nextFile);
+  }
+
+  return (
+    <label
+      className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed p-4 text-center transition ${
+        dragging ? "border-primary bg-primary/5" : "border-stroke bg-gray-2 dark:border-dark-3 dark:bg-dark-2"
+      }`}
+      onDragEnter={(event) => {
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        setDragging(false);
+      }}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        acceptFiles(event.dataTransfer.files);
+      }}
+    >
+      <input className="hidden" onChange={(event) => acceptFiles(event.target.files)} type="file" accept="image/*" />
+      {preview ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img alt={label} className="max-h-32 w-full rounded-md object-contain" src={preview} />
+      ) : (
+        <span className="text-sm font-semibold text-dark dark:text-white">{label}</span>
+      )}
+      <span className="mt-2 text-xs text-dark-4 dark:text-dark-6">{file ? file.name : "Arraste ou selecione uma imagem"}</span>
+    </label>
+  );
 }
 
 function BannerModal({
@@ -60,6 +117,8 @@ function BannerModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState(String(banner?.url_banner || ""));
+  const [desktopFile, setDesktopFile] = useState<File | null>(null);
+  const [mobileFile, setMobileFile] = useState<File | null>(null);
   const values = useMemo(() => ({ ...defaultBanner, ...(banner || {}) }), [banner]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -79,11 +138,23 @@ function BannerModal({
       habilitado: String(form.get("habilitado") || "N"),
       cliques: form.get("cliques") ? Number(form.get("cliques")) : null,
       url_banner: String(form.get("url_banner") || ""),
+      tamanho_tela: String(form.get("tamanho_tela") || ""),
     };
 
     try {
       if (banner?.id_banner) {
         await updateResource("/api/v1/banners", banner.id_banner, payload);
+      } else if (desktopFile || mobileFile) {
+        if (!desktopFile || !mobileFile) {
+          throw new Error("Envie as imagens desktop e mobile");
+        }
+        const uploadData = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) uploadData.set(key, String(value));
+        });
+        uploadData.append("desktop", desktopFile);
+        uploadData.append("mobile", mobileFile);
+        await apiFormRequest<Banner[]>("/api/v1/banners/responsive", uploadData);
       } else {
         await createResource("/api/v1/banners", payload);
       }
@@ -122,6 +193,13 @@ function BannerModal({
               </div>
             )}
           </div>
+
+          {!banner?.id_banner && (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <DropZone file={desktopFile} label="Banner desktop" onFile={setDesktopFile} />
+              <DropZone file={mobileFile} label="Banner mobile" onFile={setMobileFile} />
+            </div>
+          )}
         </section>
 
         <form className="overflow-y-auto p-5" onSubmit={handleSubmit}>
@@ -166,6 +244,17 @@ function BannerModal({
                 onChange={(event) => setPreviewUrl(event.target.value)}
               />
             </label>
+
+            {banner?.id_banner && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Versao</span>
+                <select className="w-full rounded-md border border-stroke bg-white px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.tamanho_tela || "")} name="tamanho_tela">
+                  <option value="">Nao definida</option>
+                  <option value="desktop">Desktop</option>
+                  <option value="mobile">Mobile</option>
+                </select>
+              </label>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
@@ -333,14 +422,14 @@ export function BannersPage() {
           <table className="w-full min-w-[1180px] text-left text-sm">
             <thead>
               <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
-                {["", "Imagem", "ID", "Tipo", "Titulo", "Periodo", "Ordem", "Status", "Cliques", "Destino", "Acoes"].map((header) => (
+                {["", "Imagem", "ID", "Tipo", "Versao", "Titulo", "Periodo", "Ordem", "Status", "Cliques", "Destino", "Acoes"].map((header) => (
                   <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={11}>Carregando banners...</td></tr>
+                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={12}>Carregando banners...</td></tr>
               ) : data?.items.length ? (
                 data.items.map((banner, index) => (
                   <tr
@@ -368,6 +457,7 @@ export function BannersPage() {
                     </td>
                     <td className="px-4 py-3 font-bold">#{banner.id_banner}</td>
                     <td className="px-4 py-3">{text(banner.tipo)}</td>
+                    <td className="px-4 py-3">{text(banner.tamanho_tela)}</td>
                     <td className="max-w-[240px] px-4 py-3">
                       <p className="truncate font-semibold">{text(banner.titulo)}</p>
                       <p className="truncate text-xs text-dark-4">{text(banner.url_banner)}</p>
@@ -387,7 +477,7 @@ export function BannersPage() {
                   </tr>
                 ))
               ) : (
-                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={11}>Nenhum banner encontrado.</td></tr>
+                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={12}>Nenhum banner encontrado.</td></tr>
               )}
             </tbody>
           </table>

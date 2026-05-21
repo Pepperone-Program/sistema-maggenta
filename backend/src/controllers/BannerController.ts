@@ -20,6 +20,31 @@ export class BannerController {
     }
   }
 
+  static async createResponsive(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const banners = await BannerService.createResponsiveBanners(
+        getEmpresaId(req),
+        {
+          tipo: req.body.tipo,
+          titulo: req.body.titulo,
+          url: req.body.url,
+          id_tipo_produto: req.body.id_tipo_produto ? Number(req.body.id_tipo_produto) : 0,
+          data_inicial: req.body.data_inicial || null,
+          data_final: req.body.data_final || null,
+          ordem: req.body.ordem ? Number(req.body.ordem) : 0,
+          habilitado: req.body.habilitado || 'S',
+          cliques: req.body.cliques ? Number(req.body.cliques) : null,
+        },
+        req.files as { desktop?: Express.Multer.File[]; mobile?: Express.Multer.File[] }
+      );
+      await CacheService.invalidateNamespace('banners');
+      successResponse(res, banners, 'Banners desktop e mobile criados com sucesso', 201);
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const banner = await CacheService.getOrSet(

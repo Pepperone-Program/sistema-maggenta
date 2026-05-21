@@ -36,9 +36,9 @@ export function Header() {
 
       <div className="max-xl:hidden">
         <h1 className="mb-0.5 text-heading-5 font-bold text-dark dark:text-white">
-          Pepperone Admin
+          Sistema Pepperone
         </h1>
-        <p className="font-medium">Gestao integrada ao backend</p>
+        <p className="font-medium">Gestão do site da Pepperone Brindes</p>
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4">

@@ -161,6 +161,7 @@ export const bannerSchema = Joi.object({
   habilitado: Joi.string().valid('S', 'N').allow(null, '').default('S'),
   cliques: Joi.number().integer().min(0).allow(null),
   url_banner: Joi.string().max(500).allow(null, ''),
+  tamanho_tela: Joi.string().valid('desktop', 'mobile').allow(null, ''),
 });
 
 export const clienteSchema = Joi.object({

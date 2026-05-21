@@ -1,6 +1,9 @@
 import { BannerModel } from '@models/Banner';
 import type { Banner, BannersByTipo, CreateBannerDTO, UpdateBannerDTO } from '@/types/banner';
 import { throwError } from '@utils/helpers';
+import { uploadToSupabaseStorage } from '@services/SupabaseStorageService';
+import crypto from 'crypto';
+import path from 'path';
 
 const knownTipos = ['home_mega', 'home_grande', 'banner_medio', 'mega_banner'];
 
@@ -40,6 +43,56 @@ export class BannerService {
     }
 
     return banner as Banner;
+  }
+
+  static async createResponsiveBanners(
+    empresaId: number,
+    data: CreateBannerDTO,
+    files: { desktop?: Express.Multer.File[]; mobile?: Express.Multer.File[] }
+  ): Promise<Banner[]> {
+    const desktopFile = files.desktop?.[0];
+    const mobileFile = files.mobile?.[0];
+
+    if (!desktopFile || !mobileFile) {
+      throwError('BANNER_IMAGES_REQUIRED', 'Envie as imagens desktop e mobile', 400);
+    }
+
+    const bucket = process.env.BANNER_IMAGES_SUPABASE_BUCKET || 'banners-site-pepperone';
+    const upload = async (file: Express.Multer.File, tamanhoTela: 'desktop' | 'mobile') => {
+      const extension = path.extname(file.originalname || '').toLowerCase() || '.jpg';
+      const key = `admin/${new Date().getFullYear()}/${Date.now()}-${crypto.randomUUID()}-${tamanhoTela}${extension}`;
+      return uploadToSupabaseStorage({
+        bucket,
+        key,
+        body: file.buffer,
+        contentType: file.mimetype || 'application/octet-stream',
+      });
+    };
+
+    const [desktopUrl, mobileUrl] = await Promise.all([
+      upload(desktopFile as Express.Multer.File, 'desktop'),
+      upload(mobileFile as Express.Multer.File, 'mobile'),
+    ]);
+
+    const [desktopId, mobileId] = await Promise.all([
+      BannerModel.create(empresaId, {
+        ...data,
+        url_banner: desktopUrl,
+        tamanho_tela: 'desktop',
+      }),
+      BannerModel.create(empresaId, {
+        ...data,
+        url_banner: mobileUrl,
+        tamanho_tela: 'mobile',
+      }),
+    ]);
+
+    const banners = await Promise.all([
+      BannerModel.findById(empresaId, desktopId),
+      BannerModel.findById(empresaId, mobileId),
+    ]);
+
+    return banners.filter(Boolean) as Banner[];
   }
 
   static async getBannerById(empresaId: number, bannerId: number): Promise<Banner> {

@@ -31,6 +31,29 @@ export class TipoProdutoController {
     }
   }
 
+  static async listHabilitados(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await CacheService.getOrSet(
+        CacheService.buildKey('tipos-produtos', `${getEmpresaId(req)}:${req.originalUrl}`),
+        () =>
+          TipoProdutoService.listTiposProdutos(
+            getEmpresaId(req),
+            parseInt((req.query.page as string) || '1', 10),
+            parseInt((req.query.limit as string) || '100', 10),
+            {
+              search: req.query.search as string | undefined,
+              habilitado: 'S',
+            }
+          )
+      );
+
+      successResponse(res, result, 'Tipos de produtos habilitados listados com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async catalogo(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const result = await CacheService.getOrSet(

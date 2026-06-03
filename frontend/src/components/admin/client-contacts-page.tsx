@@ -195,15 +195,15 @@ export function ClientContactsPage() {
             <ClientSearch value={selectedCliente} onChange={setSelectedCliente} />
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Email</span>
-              <input className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2" name="contato_email" required type="email" />
+              <input className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2" name="contato_email" placeholder="email@cliente.com" required type="email" />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Nome</span>
-              <input className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2" name="contato_nome" />
+              <input className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2" name="contato_nome" placeholder="Nome do contato" />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Cargo</span>
-              <input className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2" name="contato_cargo" />
+              <input className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2" name="contato_cargo" placeholder="Cargo do contato" />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <input className="rounded-md border border-stroke bg-gray-2 px-4 py-3 dark:border-dark-3 dark:bg-dark-2" name="contato_tel" placeholder="Telefone" />

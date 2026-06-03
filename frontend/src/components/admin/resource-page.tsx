@@ -82,6 +82,7 @@ function FieldControl({
       className={baseClass}
       defaultValue={defaultValue}
       name={field.name}
+      placeholder={field.label}
       required={field.required}
       type={field.type || "text"}
     />

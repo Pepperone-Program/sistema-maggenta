@@ -224,14 +224,14 @@ span.flatpickr-weekday,
 .flatpickr-day.selected.nextMonthDay,
 .flatpickr-day.startRange.nextMonthDay,
 .flatpickr-day.endRange.nextMonthDay {
-  background: #3c50e0;
+  background: #b91c1c;
   @apply !border-primary !bg-primary hover:!border-primary hover:!bg-primary;
 }
 
 .flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n + 1)),
 .flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n + 1)),
 .flatpickr-day.endRange.startRange + .endRange:not(:nth-child(7n + 1)) {
-  box-shadow: -10px 0 0 #3c50e0;
+  box-shadow: -10px 0 0 #b91c1c;
 }
 
 .map-btn .jvm-zoom-btn {

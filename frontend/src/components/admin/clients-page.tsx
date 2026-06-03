@@ -88,6 +88,17 @@ function dateValue(value: unknown) {
   return value ? String(value).slice(0, 10) : "";
 }
 
+function formatDate(value: unknown) {
+  if (!value) return "-";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return dateValue(value) || "-";
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
 function normalizeValue(type: string | undefined, value: FormDataEntryValue | null) {
   const raw = String(value ?? "").trim();
   if (!raw) return undefined;
@@ -127,6 +138,7 @@ function Field({
       className={inputClass}
       defaultValue={defaultValue}
       name={field.name}
+      placeholder={field.label}
       required={field.required}
       type={field.type || "text"}
     />
@@ -253,7 +265,7 @@ function ClientModal({
 
   useEffect(() => {
     if (tab === "contatos") loadContacts().catch((err) => setError(err instanceof Error ? err.message : "Falha ao carregar contatos"));
-    if (tab === "orcamentos") loadBudgets().catch((err) => setError(err instanceof Error ? err.message : "Falha ao carregar orcamentos"));
+    if (tab === "orcamentos") loadBudgets().catch((err) => setError(err instanceof Error ? err.message : "Falha ao carregar orçamentos"));
   }, [loadBudgets, loadContacts, tab]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -318,7 +330,7 @@ function ClientModal({
                 onClick={() => setTab(item)}
                 type="button"
               >
-                {item === "dados" ? "Informacoes" : item === "contatos" ? "Contatos" : "Orcamentos"}
+                {item === "dados" ? "Informações" : item === "contatos" ? "Contatos" : "Orçamentos"}
               </button>
             ))}
           </div>
@@ -427,7 +439,7 @@ function ClientModal({
                   {budgets.length ? budgets.map((budget) => (
                     <tr className="border-b border-stroke dark:border-dark-3" key={String(budget.id_orcamento)}>
                       <td className="px-4 py-3 font-bold text-dark dark:text-white">#{text(budget.id_orcamento)}</td>
-                      <td className="px-4 py-3">{dateValue(budget.data_orcamento)}</td>
+                      <td className="px-4 py-3">{formatDate(budget.data_orcamento)}</td>
                       <td className="px-4 py-3">{text(budget.fantasia)}</td>
                       <td className="px-4 py-3">{text(budget.contato)}</td>
                       <td className="px-4 py-3">{text(budget.email)}</td>
@@ -439,7 +451,7 @@ function ClientModal({
                       <td className="px-4 py-3">{text(budget.cancelamento || budget.data_finalizado || "Em aberto")}</td>
                     </tr>
                   )) : (
-                    <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={11}>Nenhum orcamento encontrado para este cliente.</td></tr>
+                    <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={11}>Nenhum orçamento encontrado para este cliente.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -495,7 +507,7 @@ export function ClientsPage() {
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">CRM</p>
             <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">Clientes</h1>
             <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
-              Cadastro completo, contatos e historico de orcamentos em um unico modal.
+              Cadastro completo, contatos e histórico de orçamentos em um único modal.
             </p>
           </div>
           <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalClient(null)} type="button">

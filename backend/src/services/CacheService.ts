@@ -61,6 +61,25 @@ export class CacheService {
     }
   }
 
+  static async invalidateNamespaces(namespaces: string[]): Promise<void> {
+    if (!isEnabled()) return;
+
+    const expandedNamespaces = new Set<string>();
+
+    for (const namespace of namespaces) {
+      expandedNamespaces.add(namespace);
+      if (productRelatedNamespaces.has(namespace)) {
+        expandedNamespaces.add('produtos');
+      }
+    }
+
+    await Promise.all(
+      Array.from(expandedNamespaces).map((namespace) =>
+        this.invalidateNamespaceOnly(namespace)
+      )
+    );
+  }
+
   private static async invalidateNamespaceOnly(namespace: string): Promise<void> {
     if (!isEnabled()) return;
 

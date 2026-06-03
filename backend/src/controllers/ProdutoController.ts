@@ -5,6 +5,18 @@ import { ProdutoService } from '@services/ProdutoService';
 import { ProdutoImageService } from '@services/ProdutoImageService';
 import { successResponse, paginatedResponse, errorResponse } from '@utils/response';
 
+const productCacheNamespaces = [
+  'categorias',
+  'tipos-produtos',
+  'publicos-alvos',
+  'datas-promocionais',
+  'produtos',
+];
+
+async function invalidateProductCaches(): Promise<void> {
+  await CacheService.invalidateNamespaces(productCacheNamespaces);
+}
+
 export class ProdutoController {
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -13,11 +25,7 @@ export class ProdutoController {
         empresaId,
         req.body
       );
-      await CacheService.invalidateNamespace('categorias');
-      await CacheService.invalidateNamespace('tipos-produtos');
-      await CacheService.invalidateNamespace('publicos-alvos');
-      await CacheService.invalidateNamespace('datas-promocionais');
-      await CacheService.invalidateNamespace('produtos');
+      await invalidateProductCaches();
 
       successResponse(res, produto, 'Produto criado com sucesso', 201);
     } catch (error) {
@@ -168,11 +176,7 @@ export class ProdutoController {
         parseInt(id, 10),
         req.body
       );
-      await CacheService.invalidateNamespace('categorias');
-      await CacheService.invalidateNamespace('tipos-produtos');
-      await CacheService.invalidateNamespace('publicos-alvos');
-      await CacheService.invalidateNamespace('datas-promocionais');
-      await CacheService.invalidateNamespace('produtos');
+      await invalidateProductCaches();
 
       successResponse(res, produto, 'Produto atualizado com sucesso');
     } catch (error) {
@@ -189,11 +193,7 @@ export class ProdutoController {
         empresaId,
         parseInt(id, 10)
       );
-      await CacheService.invalidateNamespace('categorias');
-      await CacheService.invalidateNamespace('tipos-produtos');
-      await CacheService.invalidateNamespace('publicos-alvos');
-      await CacheService.invalidateNamespace('datas-promocionais');
-      await CacheService.invalidateNamespace('produtos');
+      await invalidateProductCaches();
 
       successResponse(res, null, 'Produto deletado com sucesso');
     } catch (error) {
@@ -266,11 +266,7 @@ export class ProdutoController {
       const { id } = req.params;
       const files = (req.files || []) as Express.Multer.File[];
       const imagens = await ProdutoImageService.upload(empresaId, parseInt(id, 10), files);
-      await CacheService.invalidateNamespace('categorias');
-      await CacheService.invalidateNamespace('tipos-produtos');
-      await CacheService.invalidateNamespace('publicos-alvos');
-      await CacheService.invalidateNamespace('datas-promocionais');
-      await CacheService.invalidateNamespace('produtos');
+      await invalidateProductCaches();
 
       console.log('[ProdutoController] uploadImages:success', {
         produtoId: id,
@@ -318,11 +314,7 @@ export class ProdutoController {
         parseInt(id, 10),
         orderedImages
       );
-      await CacheService.invalidateNamespace('categorias');
-      await CacheService.invalidateNamespace('tipos-produtos');
-      await CacheService.invalidateNamespace('publicos-alvos');
-      await CacheService.invalidateNamespace('datas-promocionais');
-      await CacheService.invalidateNamespace('produtos');
+      await invalidateProductCaches();
 
       console.log('[ProdutoController] reorderImages:success', {
         produtoId: id,
@@ -361,11 +353,7 @@ export class ProdutoController {
         parseInt(id, 10),
         filename
       );
-      await CacheService.invalidateNamespace('categorias');
-      await CacheService.invalidateNamespace('tipos-produtos');
-      await CacheService.invalidateNamespace('publicos-alvos');
-      await CacheService.invalidateNamespace('datas-promocionais');
-      await CacheService.invalidateNamespace('produtos');
+      await invalidateProductCaches();
 
       console.log('[ProdutoController] removeImage:success', {
         produtoId: id,

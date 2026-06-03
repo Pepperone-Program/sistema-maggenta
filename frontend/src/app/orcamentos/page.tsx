@@ -1,6 +1,5 @@
-import { ResourcePage } from "@/components/admin/resource-page";
-import { resources } from "@/config/resources";
+import { QuotesPage } from "@/components/admin/quotes-page";
 
 export default function OrcamentosPage() {
-  return <ResourcePage config={resources.orcamentos} />;
+  return <QuotesPage />;
 }

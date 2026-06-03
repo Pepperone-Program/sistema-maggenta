@@ -132,10 +132,15 @@ async function fetchAllRows(endpoint: string, search?: string) {
   return items;
 }
 
-function ProductTypeSelect({ value }: { value?: unknown }) {
+function ProductTypeSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
-  const selected = String(value || "");
 
   useEffect(() => {
     let active = true;
@@ -159,9 +164,10 @@ function ProductTypeSelect({ value }: { value?: unknown }) {
   return (
     <select
       className="w-full rounded-md border border-stroke bg-white px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
-      defaultValue={selected}
       name="id_tipo_produto"
+      onChange={(event) => onChange(event.target.value)}
       required
+      value={value}
     >
       <option value="">{loading ? "Carregando..." : "Selecione um tipo"}</option>
       {items.map((item) => (
@@ -169,8 +175,8 @@ function ProductTypeSelect({ value }: { value?: unknown }) {
           {text(item.tipo_produto)} #{text(item.id_tipo_produto)}
         </option>
       ))}
-      {selected && !items.some((item) => String(item.id_tipo_produto) === selected) && (
-        <option value={selected}>Tipo atual #{selected}</option>
+      {value && !items.some((item) => String(item.id_tipo_produto) === value) && (
+        <option value={value}>Tipo atual #{value}</option>
       )}
     </select>
   );
@@ -187,7 +193,7 @@ function Field({ field, value }: { field: ProductField; value?: unknown }) {
     "w-full rounded-md border border-stroke bg-white px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white";
 
   if (field.type === "textarea") {
-    return <textarea className={`${inputClass} min-h-24 resize-y`} defaultValue={defaultValue} name={field.name} />;
+    return <textarea className={`${inputClass} min-h-24 resize-y`} defaultValue={defaultValue} name={field.name} placeholder={field.label} />;
   }
 
   return (
@@ -195,6 +201,7 @@ function Field({ field, value }: { field: ProductField; value?: unknown }) {
       className={inputClass}
       defaultValue={defaultValue}
       name={field.name}
+      placeholder={field.label}
       required={field.required}
       type={field.type || "text"}
     />
@@ -319,10 +326,15 @@ function ProductModal({
   const [mounted, setMounted] = useState(false);
   const values = useMemo<Row>(() => ({ ...defaultProduct, ...(product || {}) }), [product]);
   const productId = product?.id_produto ? Number(product.id_produto) : null;
+  const [selectedTypeId, setSelectedTypeId] = useState(String(values.id_tipo_produto || ""));
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setSelectedTypeId(String(values.id_tipo_produto || ""));
+  }, [values.id_tipo_produto]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -331,8 +343,13 @@ function ProductModal({
 
     const formData = new FormData(event.currentTarget);
     const payload: Record<string, unknown> = {};
-    const tipoProduto = normalizeFormValue("number", formData.get("id_tipo_produto"));
-    if (tipoProduto !== undefined) payload.id_tipo_produto = tipoProduto;
+    const tipoProduto =
+      normalizeFormValue("number", formData.get("id_tipo_produto")) ||
+      normalizeFormValue("number", selectedTypeId) ||
+      normalizeFormValue("number", values.id_tipo_produto as string);
+    if (tipoProduto !== undefined) {
+      payload.id_tipo_produto = tipoProduto;
+    }
 
     productFields.forEach((field) => {
       const value = normalizeFormValue(field.type, formData.get(field.name));
@@ -348,8 +365,8 @@ function ProductModal({
       } else {
         await createResource("/api/v1/produtos", payload);
       }
-      await onSaved();
       onClose();
+      await onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao salvar produto");
     } finally {
@@ -400,7 +417,7 @@ function ProductModal({
                   <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">
                     Tipo <span className="text-red-500">*</span>
                   </span>
-                  <ProductTypeSelect value={values.id_tipo_produto} />
+                  <ProductTypeSelect value={selectedTypeId} onChange={setSelectedTypeId} />
                 </label>
                 {productFields.map((field) => (
                   <label className={field.type === "textarea" ? "block md:col-span-2" : "block"} key={field.name}>

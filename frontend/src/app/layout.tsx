@@ -12,10 +12,13 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Pepperone Admin",
-    default: "Pepperone Admin",
+    template: "%s | Sistema Pepperone ",
+    default: "Sistema Pepperone",
   },
   description: "Painel administrativo Pepperone conectado as APIs do sistema.",
+  icons: {
+    icon: "/images/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
@@ -23,7 +26,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
     <html lang="pt-BR" suppressHydrationWarning>
       <body>
         <Providers>
-          <NextTopLoader color="#5750F1" showSpinner={false} />
+          <NextTopLoader color="#b91c1c" showSpinner={false} />
           <AppShell>{children}</AppShell>
         </Providers>
       </body>

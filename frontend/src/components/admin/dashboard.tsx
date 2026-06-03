@@ -138,7 +138,7 @@ export function AdminDashboard() {
   const chartOptions = useMemo<ApexOptions>(
     () => ({
       chart: { toolbar: { show: false }, fontFamily: "inherit" },
-      colors: ["#5750F1"],
+      colors: ["#b91c1c"],
       dataLabels: { enabled: false },
       grid: { strokeDashArray: 5 },
       plotOptions: { bar: { borderRadius: 6, columnWidth: "45%" } },
@@ -171,7 +171,7 @@ export function AdminDashboard() {
         />
         <StatCard
           detail="Propostas registradas"
-          label="Orcamentos"
+          label="Orçamentos"
           value={loading ? "..." : state.orcamentos?.total || 0}
         />
         <StatCard

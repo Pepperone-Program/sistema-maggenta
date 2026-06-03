@@ -1,6 +1,5 @@
-import { ResourcePage } from "@/components/admin/resource-page";
-import { resources } from "@/config/resources";
+import { SubcategoriesPage } from "@/components/admin/subcategories-page";
 
 export default function SubcategoriasPage() {
-  return <ResourcePage config={resources.subcategorias} />;
+  return <SubcategoriesPage />;
 }

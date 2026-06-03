@@ -41,7 +41,7 @@ export const NAV_DATA: NavSection[] = [
         items: [],
       },
       {
-        title: "Orcamentos",
+        title: "Orçamentos",
         url: "/orcamentos",
         icon: Icons.Calendar,
         items: [],

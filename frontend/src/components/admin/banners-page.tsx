@@ -227,12 +227,12 @@ function BannerModal({
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Titulo</span>
-              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.titulo || "")} name="titulo" />
+              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.titulo || "")} name="titulo" placeholder="Título do banner" />
             </label>
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">URL destino</span>
-              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.url || "")} name="url" />
+              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.url || "")} name="url" placeholder="URL de destino" />
             </label>
 
             <label className="block">
@@ -242,6 +242,7 @@ function BannerModal({
                 defaultValue={String(values.url_banner || "")}
                 name="url_banner"
                 onChange={(event) => setPreviewUrl(event.target.value)}
+                placeholder="URL da imagem do banner"
               />
             </label>
 
@@ -259,26 +260,26 @@ function BannerModal({
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Inicio</span>
-                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={dateValue(values.data_inicial)} name="data_inicial" type="date" />
+                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={dateValue(values.data_inicial)} name="data_inicial" placeholder="Data inicial" type="date" />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Fim</span>
-                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={dateValue(values.data_final)} name="data_final" type="date" />
+                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={dateValue(values.data_final)} name="data_final" placeholder="Data final" type="date" />
               </label>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Produto</span>
-                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.id_tipo_produto ?? 0)} name="id_tipo_produto" type="number" />
+                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.id_tipo_produto ?? 0)} name="id_tipo_produto" placeholder="ID do produto" type="number" />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Ordem</span>
-                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.ordem ?? 0)} name="ordem" type="number" />
+                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.ordem ?? 0)} name="ordem" placeholder="Ordem de exibição" type="number" />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Cliques</span>
-                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={values.cliques === null || values.cliques === undefined ? "" : String(values.cliques)} name="cliques" type="number" />
+                <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={values.cliques === null || values.cliques === undefined ? "" : String(values.cliques)} name="cliques" placeholder="Quantidade de cliques" type="number" />
               </label>
             </div>
 

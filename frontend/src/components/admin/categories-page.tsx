@@ -45,10 +45,20 @@ function CategoryModal({
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState(String(category?.url_capa || ""));
+  const [selectedCover, setSelectedCover] = useState<File | null>(null);
   const values = useMemo(() => ({ ...defaultCategory, ...(category || {}) }), [category]);
   const categoryId = category?.id_categoria ? Number(category.id_categoria) : null;
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!selectedCover) return;
+
+    const objectUrl = URL.createObjectURL(selectedCover);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedCover]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,11 +75,20 @@ function CategoryModal({
     };
 
     try {
+      let savedCategory: Category;
+
       if (categoryId) {
-        await updateResource("/api/v1/categorias", categoryId, payload);
+        savedCategory = await updateResource<Category>("/api/v1/categorias", categoryId, payload);
       } else {
-        await createResource("/api/v1/categorias", payload);
+        savedCategory = await createResource<Category>("/api/v1/categorias", payload);
       }
+
+      const savedCategoryId = categoryId || Number(savedCategory.id_categoria);
+
+      if (selectedCover && savedCategoryId) {
+        await uploadCover(selectedCover, savedCategoryId, false, true);
+      }
+
       await onSaved();
       onClose();
     } catch (err) {
@@ -79,9 +98,15 @@ function CategoryModal({
     }
   }
 
-  async function uploadCover(file: File) {
-    if (!categoryId) {
-      setError("Salve a categoria antes de enviar a capa.");
+  async function uploadCover(
+    file: File,
+    targetCategoryId = categoryId,
+    refreshAfterUpload = true,
+    rethrowError = false,
+  ) {
+    if (!targetCategoryId) {
+      setSelectedCover(file);
+      setError("");
       return;
     }
 
@@ -91,11 +116,17 @@ function CategoryModal({
     formData.append("image", file);
 
     try {
-      const response = await apiFormRequest<Category>(`/api/v1/categorias/${categoryId}/capa`, formData);
+      const response = await apiFormRequest<Category>(`/api/v1/categorias/${targetCategoryId}/capa`, formData);
       setPreviewUrl(String(response.url_capa || ""));
-      await onSaved();
+      setSelectedCover(null);
+      if (refreshAfterUpload) {
+        await onSaved();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao enviar capa");
+      if (rethrowError) {
+        throw err;
+      }
     } finally {
       setUploading(false);
     }
@@ -143,13 +174,14 @@ function CategoryModal({
             </div>
             <p className="mt-3 text-xs text-dark-4 dark:text-dark-6">
               Arraste uma imagem aqui para atualizar a capa.
+              {!categoryId && selectedCover ? " Ela sera enviada ao salvar." : ""}
             </p>
             <label className="mt-3 inline-flex cursor-pointer rounded-md bg-primary px-3 py-2 text-xs font-bold text-white">
-              {uploading ? "Enviando..." : "Selecionar imagem"}
+              {uploading ? "Enviando..." : selectedCover ? "Imagem selecionada" : "Selecionar imagem"}
               <input
                 accept="image/*"
                 className="hidden"
-                disabled={uploading || !categoryId}
+                disabled={uploading || saving}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (file) uploadCover(file);
@@ -176,7 +208,7 @@ function CategoryModal({
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Categoria *</span>
-              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.categoria || "")} name="categoria" required />
+              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.categoria || "")} name="categoria" placeholder="Nome da categoria" required />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Status</span>
@@ -187,7 +219,7 @@ function CategoryModal({
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">Icone</span>
-              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.icon || "")} name="icon" />
+              <input className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" defaultValue={String(values.icon || "")} name="icon" placeholder="Ícone da categoria" />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">URL da capa</span>
@@ -196,6 +228,7 @@ function CategoryModal({
                 defaultValue={String(values.url_capa || "")}
                 name="url_capa"
                 onChange={(event) => setPreviewUrl(event.target.value)}
+                placeholder="URL da capa"
               />
             </label>
             <label className="block md:col-span-2">
@@ -209,7 +242,7 @@ function CategoryModal({
               Cancelar
             </button>
             <button className="rounded-md bg-primary px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
-              {saving ? "Salvando..." : "Salvar categoria"}
+              {saving ? "Salvando..." : selectedCover ? "Salvar e enviar capa" : "Salvar categoria"}
             </button>
           </div>
         </form>
@@ -336,6 +369,35 @@ export function CategoriesPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-stroke p-4 text-sm dark:border-dark-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-dark-4 dark:text-dark-6">
+            {data
+              ? `${data.total} categorias - pagina ${data.page} de ${data.totalPages || 1}`
+              : "Sem dados"}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              className="rounded-md border border-stroke px-3 py-2 font-semibold disabled:opacity-40 dark:border-dark-3"
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              type="button"
+            >
+              Anterior
+            </button>
+            <span className="min-w-16 text-center font-semibold text-dark dark:text-white">
+              {page} / {data?.totalPages || 1}
+            </span>
+            <button
+              className="rounded-md border border-stroke px-3 py-2 font-semibold disabled:opacity-40 dark:border-dark-3"
+              disabled={!data || page >= data.totalPages || loading}
+              onClick={() => setPage((value) => value + 1)}
+              type="button"
+            >
+              Proxima
+            </button>
+          </div>
         </div>
       </section>
 

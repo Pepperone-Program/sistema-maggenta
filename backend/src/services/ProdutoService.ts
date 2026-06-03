@@ -66,9 +66,7 @@ export class ProdutoService {
       throwError('CREATE_FAILED', 'Falha ao criar produto', 500);
     }
 
-    const [produtoComImagens] = await this.attachImages([produto as Produto]);
-    const [produtoComCategorias] = await this.attachCategories(empresaId, [produtoComImagens]);
-    return produtoComCategorias;
+    return produto as Produto;
   }
 
   static async getProdutoById(
@@ -218,9 +216,7 @@ export class ProdutoService {
       throwError('UPDATE_FAILED', 'Falha ao atualizar produto', 500);
     }
 
-    const [produtoComImagens] = await this.attachImages([updated as Produto]);
-    const [produtoComCategorias] = await this.attachCategories(empresaId, [produtoComImagens]);
-    return produtoComCategorias;
+    return updated as Produto;
   }
 
   static async deleteProduto(

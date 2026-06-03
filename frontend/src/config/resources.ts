@@ -218,11 +218,11 @@ export const resources: Record<string, ResourceConfig> = {
     defaultValues: { habilitado: "S" },
   },
   orcamentos: {
-    title: "Orcamentos",
-    description: "Acompanhe propostas, contatos e historico comercial.",
+    title: "Orçamentos",
+    description: "Acompanhe propostas, contatos e histórico comercial.",
     endpoint: "/api/v1/orcamentos",
     idField: "id_orcamento",
-    searchPlaceholder: "Buscar orcamentos",
+    searchPlaceholder: "Buscar orçamentos",
     columns: [
       { name: "id_orcamento", label: "ID" },
       { name: "data_orcamento", label: "Data" },

@@ -73,7 +73,7 @@ export class ProdutoService {
     empresaId: number,
     produtoId: number
   ): Promise<Produto> {
-    const produto = await ProdutoModel.findById(empresaId, produtoId);
+    const produto = await ProdutoModel.findByIdForSite(empresaId, produtoId);
 
     if (!produto) {
       throwError('PRODUTO_NOT_FOUND', 'Produto não encontrado', 404);

@@ -72,6 +72,22 @@ export class ProdutoModel {
     return (result as any[])[0] || null;
   }
 
+  static async findByIdForSite(
+    empresaId: number,
+    produtoId: number
+  ): Promise<Produto | null> {
+    const sql = `
+      SELECT *
+      FROM produtos
+      WHERE id_empresa = ?
+        AND id_produto = ?
+        AND habilitado = 'S'
+        AND site = 'S'
+    `;
+    const result = await query(sql, [empresaId, produtoId]);
+    return (result as any[])[0] || null;
+  }
+
   static async findImagesByProductIds(produtoIds: number[]): Promise<Map<number, ProdutoImagem[]>> {
     const imagesByProduct = new Map<number, ProdutoImagem[]>();
     const uniqueIds = Array.from(new Set(produtoIds.filter((id) => Number.isInteger(id) && id > 0)));

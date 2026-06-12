@@ -20,7 +20,6 @@ export default function LoginPage() {
               <Signin />
             </div>
           </section>
-
       </div>
     </div>
   );

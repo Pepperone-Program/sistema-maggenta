@@ -7,7 +7,7 @@ import { usuarioSchema, loginSchema } from '@utils/validation';
 const router = Router();
 
 router.post(
-  '/register',
+  '/',
   optionalAuthMiddleware,
   validationMiddleware(usuarioSchema),
   UsuarioController.register

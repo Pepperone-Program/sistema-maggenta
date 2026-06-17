@@ -20,7 +20,7 @@ export type PaginatedData<T> = {
 };
 
 const API_BASE_PATH = "/api";
-const TOKEN_STORAGE_KEY = "pepperone_api_token";
+const TOKEN_STORAGE_KEY = "maggenta_api_token";
 
 export function getStoredToken() {
   if (typeof window === "undefined") {

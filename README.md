@@ -1,2 +1,2 @@
-# sistema-pepperone
-Sistema para gerenciar o site da pepperone
+# sistema-maggenta
+Sistema para gerenciar o site da maggenta

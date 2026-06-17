@@ -53,7 +53,7 @@ export class CacheController {
 
       successResponse(res, {
         invalidated: namespaces,
-        prefix: 'site-pep',
+        prefix: 'site-mag',
       }, 'Cache invalidado com sucesso');
     } catch (error) {
       const err = error as any;
@@ -68,7 +68,7 @@ export class CacheController {
 
       successResponse(res, {
         invalidated: namespaces,
-        prefix: 'site-pep',
+        prefix: 'site-mag',
       }, 'Todos os caches conhecidos foram invalidados com sucesso');
     } catch (error) {
       const err = error as any;

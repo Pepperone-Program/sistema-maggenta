@@ -28,7 +28,7 @@ export class SiteTokenController {
         id_usuario: 0,
         id_empresa: Number.isNaN(empresaId) ? 1 : empresaId,
         usuario: 'site',
-        email: 'site@pepperone.com.br',
+        email: 'vendas@maggenta.com.br',
       };
 
       const token = generateNonExpiringToken(payload);

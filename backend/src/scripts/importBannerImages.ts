@@ -136,7 +136,7 @@ function getConfig(): Config {
     supabaseS3AccessKeyId: requiredEnv('SUPABASE_S3_ACCESS_KEY_ID'),
     supabaseS3SecretAccessKey: requiredEnv('SUPABASE_S3_SECRET_ACCESS_KEY'),
     supabaseS3Region: requiredEnv('SUPABASE_S3_REGION', 'us-east-1'),
-    supabaseBucket: requiredEnv('BANNER_IMAGES_SUPABASE_BUCKET', 'banners-site-pepperone'),
+    supabaseBucket: requiredEnv('BANNER_IMAGES_SUPABASE_BUCKET', 'banners-site-maggenta'),
     batchSize: numberEnv('BANNER_IMAGES_BATCH_SIZE', 200),
     batchPauseMs: numberEnv('BANNER_IMAGES_BATCH_PAUSE_MS', 10000),
     concurrency: numberEnv('BANNER_IMAGES_CONCURRENCY', 4),

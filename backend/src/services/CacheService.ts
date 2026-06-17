@@ -3,7 +3,7 @@ type RedisCommandResponse<T = unknown> = {
   error?: string;
 };
 
-const CACHE_PREFIX = 'site-pep';
+const CACHE_PREFIX = 'site-mag';
 const productRelatedNamespaces = new Set([
   'categorias',
   'tipos-produtos',

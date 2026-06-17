@@ -57,7 +57,7 @@ export class BannerService {
       throwError('BANNER_IMAGES_REQUIRED', 'Envie as imagens desktop e mobile', 400);
     }
 
-    const bucket = process.env.BANNER_IMAGES_SUPABASE_BUCKET || 'banners-site-pepperone';
+    const bucket = process.env.BANNER_IMAGES_SUPABASE_BUCKET || 'banners-site-maggenta';
     const upload = async (file: Express.Multer.File, tamanhoTela: 'desktop' | 'mobile') => {
       const extension = path.extname(file.originalname || '').toLowerCase() || '.jpg';
       const key = `admin/${new Date().getFullYear()}/${Date.now()}-${crypto.randomUUID()}-${tamanhoTela}${extension}`;

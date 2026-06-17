@@ -1,4 +1,4 @@
-# Pepperone Site Admin - Backend
+# Maggenta Site Admin - Backend
 
 Backend administrativo para gerenciamento de produtos, orçamentos e usuários.
 

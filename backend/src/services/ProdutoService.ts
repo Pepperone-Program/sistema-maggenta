@@ -147,8 +147,8 @@ export class ProdutoService {
 
     const exactCodeMatch =
       (await ProdutoModel.searchByCodigoForSite(empresaId, normalizedTerm)) ||
-      (!normalizedTerm.toUpperCase().startsWith('PEP')
-        ? await ProdutoModel.searchByCodigoForSite(empresaId, `PEP${normalizedTerm}`)
+      (!normalizedTerm.toUpperCase().startsWith('')
+        ? await ProdutoModel.searchByCodigoForSite(empresaId, `${normalizedTerm}`)
         : null);
     if (exactCodeMatch) {
       return {

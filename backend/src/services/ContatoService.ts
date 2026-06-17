@@ -38,7 +38,7 @@ export class ContatoService {
 
     const html = `
       <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
-        <h2>Nova mensagem pelo site Pepperone</h2>
+        <h2>Nova mensagem pelo site Maggenta</h2>
         <p><strong>Nome:</strong> ${escapeHtml(nome)}</p>
         <p><strong>Empresa:</strong> ${escapeHtml(empresa || '-')}</p>
         <p><strong>E-mail:</strong> ${escapeHtml(email)}</p>
@@ -56,10 +56,10 @@ export class ContatoService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'Pepperone <onboarding@resend.dev>',
-        to: ['vendas@pepperone.com.br'],
+        from: process.env.RESEND_FROM_EMAIL || 'Maggenta <onboarding@resend.dev>',
+        to: ['vendas@maggenta.com.br'],
         reply_to: email,
-        subject: `Contato Pepperone: ${assunto}`,
+        subject: `Contato Maggenta: ${assunto}`,
         html,
       }),
     });

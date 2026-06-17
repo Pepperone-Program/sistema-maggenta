@@ -266,7 +266,7 @@ export class OrcamentoEmailService {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Novo Orcamento Pepperone</title>
+    <title>Novo Orcamento Maggenta</title>
   </head>
   <body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f7;padding:32px 16px;">
@@ -274,15 +274,15 @@ export class OrcamentoEmailService {
         <td align="center">
           <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;width:100%;">
             <tr>
-              <td style="background:#E45025;border-radius:14px 14px 0 0;padding:26px 30px;">
+              <td style="background:#d725e4;border-radius:14px 14px 0 0;padding:26px 30px;">
                 <p style="margin:0;color:#ffffff;opacity:0.88;font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:700;">
                   Novo orcamento recebido pelo site
                 </p>
                 <h1 style="margin:8px 0 0;color:#ffffff;font-size:28px;font-weight:800;line-height:1.2;">
-                  Pepperone Brindes ${quoteNumber ? `#${quoteNumber}` : ''}
+                  Maggenta Brindes ${quoteNumber ? `#${quoteNumber}` : ''}
                 </h1>
                 <p style="margin:8px 0 0;color:#ffffff;font-size:14px;opacity:0.9;">
-                  <a href="https://www.pepperone.com.br" style="color:#ffffff !important;text-decoration:none;">https://www.pepperone.com.br</a>
+                  <a href="https://www.maggenta.com.br" style="color:#ffffff !important;text-decoration:none;">https://www.maggenta.com.br</a>
                 </p>
               </td>
             </tr>
@@ -341,7 +341,7 @@ export class OrcamentoEmailService {
             <tr>
               <td style="background:#fafafa;border-radius:0 0 14px 14px;padding:22px 30px;text-align:center;">
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
-                  <strong style="color:#6b7280;">Pepperone Brindes</strong> · Brindes Corporativos Personalizados<br />
+                  <strong style="color:#6b7280;">Maggenta Brindes</strong> · Brindes Corporativos Personalizados<br />
                   Notificacao automatica · Acesse o painel admin para responder ao cliente
                 </p>
               </td>
@@ -373,7 +373,7 @@ export class OrcamentoEmailService {
         from: fromEmail,
         to: [fromEmail],
         reply_to: data.email || undefined,
-        subject: `Novo orcamento Pepperone${quoteNumber ? ` #${quoteNumber}` : ''} - ${data.fantasia || data.contato || 'Site'}`,
+        subject: `Novo orçamento Maggenta ${quoteNumber ? ` #${quoteNumber}` : ''} - ${data.fantasia || data.contato || 'Site'}`,
         html: this.renderTemplate(data, quoteNumber),
       }),
     });

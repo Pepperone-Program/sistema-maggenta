@@ -73,7 +73,7 @@ const LOGO_FULL =
   'https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/imagem_empresa/logoNovoCompleta.png';
 const LOGO_SMALL =
   'https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/imagem_empresa/logoNovoPepperone.png';
-const PRODUCT_URL_BASE = 'https://www.pepperone.com.br/brindes-personalizados';
+const PRODUCT_URL_BASE = 'https://www.maggenta.com.br/brindes-personalizados';
 const SOCIAL_LINKS: SocialLink[] = [
   { name: 'LinkedIn', url: 'https://www.linkedin.com/company/pepperone/', icon: 'linkedin' },
   {

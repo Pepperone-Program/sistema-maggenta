@@ -18,7 +18,7 @@ type DbErrorCode =
   | 'UNKNOWN';
 
 declare global {
-  var pepperoneMysqlPool: mysql.Pool | undefined;
+  var maggentaMysqlPool: mysql.Pool | undefined;
 }
 
 const toPositiveInt = (value: string | undefined, fallback: number): number => {
@@ -68,11 +68,11 @@ const validateConfig = (): void => {
 validateConfig();
 
 const createDatabasePool = (): mysql.Pool => {
-  if (!globalThis.pepperoneMysqlPool) {
-    globalThis.pepperoneMysqlPool = mysql.createPool(config);
+  if (!globalThis.maggentaMysqlPool) {
+    globalThis.maggentaMysqlPool = mysql.createPool(config);
   }
 
-  return globalThis.pepperoneMysqlPool;
+  return globalThis.maggentaMysqlPool;
 };
 
 const pool = createDatabasePool();
@@ -186,9 +186,9 @@ export const testDatabaseConnection = async (): Promise<void> => {
 };
 
 export const closeDatabasePool = async (): Promise<void> => {
-  if (!globalThis.pepperoneMysqlPool) return;
-  await globalThis.pepperoneMysqlPool.end();
-  globalThis.pepperoneMysqlPool = undefined;
+  if (!globalThis.maggentaMysqlPool) return;
+  await globalThis.maggentaMysqlPool.end();
+  globalThis.maggentaMysqlPool = undefined;
 };
 
 export default pool;

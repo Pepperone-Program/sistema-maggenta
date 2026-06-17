@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 
 const defaultAllowedOrigins = [
   'http://localhost:3000',
-  'https://site-peppeerone.vercel.app',
-  'https://sistema-pepperone.vercel.app',
-  'https://www.pepperone.com.br',
+  'https://site-maggenta.vercel.app',
+  'https://sistema-maggenta.vercel.app',
+  'https://www.maggenta.com.br',
 ];
 
 export function allowedCorsOrigins() {

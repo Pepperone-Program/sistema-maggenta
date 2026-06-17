@@ -597,7 +597,7 @@ async function main() {
       Title: 'Catalogo de Produtos Maggenta',
       Author: 'Maggenta',
       Subject: 'Catalogo de produtos do site',
-      Creator: 'Pepperone Site Admin',
+      Creator: 'Maggenta Site Admin',
     },
   });
 

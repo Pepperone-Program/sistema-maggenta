@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SESSION_COOKIE = "pepperone_session";
+const SESSION_COOKIE = "maggenta_session";
 
 function isPublicPath(pathname: string) {
   return (

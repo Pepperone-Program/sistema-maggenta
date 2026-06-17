@@ -67,7 +67,7 @@ function getStorageConfig() {
     accessKeyId: requiredEnv('SUPABASE_S3_ACCESS_KEY_ID'),
     secretAccessKey: requiredEnv('SUPABASE_S3_SECRET_ACCESS_KEY'),
     region: requiredEnv('SUPABASE_S3_REGION', 'us-east-1'),
-    bucket: requiredEnv('SUPABASE_STORAGE_BUCKET', 'imagens_produtos_pepperone-site'),
+    bucket: requiredEnv('SUPABASE_STORAGE_BUCKET', 'imagens_produtos_maggenta-site'),
   };
 }
 

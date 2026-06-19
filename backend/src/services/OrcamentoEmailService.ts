@@ -231,11 +231,11 @@ function renderObservation(obs?: string): string {
   if (!obs) return '';
 
   return `
-    <div style="margin-top:26px;padding:16px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;">
-      <p style="margin:0 0 6px;font-size:11px;color:#9a3412;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+    <div style="margin-top:26px;padding:16px;border-radius:10px;background:#f0faf5;border:1px solid #049e53;">
+      <p style="margin:0 0 6px;font-size:11px;color:#049e53;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
         Observacoes
       </p>
-      <p style="margin:0;font-size:14px;color:#7c2d12;line-height:1.6;white-space:pre-line;">${escapeHtml(obs)}</p>
+      <p style="margin:0;font-size:14px;color:#1f2937;line-height:1.6;white-space:pre-line;">${escapeHtml(obs)}</p>
     </div>
   `;
 }
@@ -274,7 +274,7 @@ export class OrcamentoEmailService {
         <td align="center">
           <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;width:100%;">
             <tr>
-              <td style="background:#d725e4;border-radius:14px 14px 0 0;padding:26px 30px;">
+              <td style="background:#ec3694;border-radius:14px 14px 0 0;padding:26px 30px;">
                 <p style="margin:0;color:#ffffff;opacity:0.88;font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:700;">
                   Novo orcamento recebido pelo site
                 </p>
@@ -288,7 +288,7 @@ export class OrcamentoEmailService {
             </tr>
             <tr>
               <td style="background:#ffffff;padding:30px;">
-                <p style="margin:0 0 4px;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Cliente</p>
+                <p style="margin:0 0 4px;font-size:11px;color:#ec4c9c;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Cliente</p>
                 <p style="margin:0 0 22px;font-size:20px;font-weight:800;color:#111827;">${escapeHtml(data.contato || data.fantasia || '-')}</p>
 
                 <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin-bottom:28px;">
@@ -322,7 +322,7 @@ export class OrcamentoEmailService {
                   </tr>
                 </table>
 
-                <p style="margin:0 0 12px;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Produtos solicitados</p>
+                <p style="margin:0 0 12px;font-size:11px;color:#ec4c9c;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Produtos solicitados</p>
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                   <thead>

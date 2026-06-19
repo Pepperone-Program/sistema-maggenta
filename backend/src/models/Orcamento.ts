@@ -1,6 +1,11 @@
 import { query } from '@database/connection';
 import type { Orcamento, CreateOrcamentoDTO, UpdateOrcamentoDTO } from '@/types/orcamento';
 
+export interface PendingOrcamentoEmail {
+  id_empresa: number;
+  id_orcamento: number;
+}
+
 export class OrcamentoModel {
   static async create(
     empresaId: number,
@@ -184,6 +189,29 @@ export class OrcamentoModel {
 
     const result = await query(sql, values);
     return (result as any).affectedRows > 0;
+  }
+
+  static async findPendingEmails(
+    afterId: number,
+    limit: number
+  ): Promise<PendingOrcamentoEmail[]> {
+    const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
+    const sql = `
+      SELECT o.id_empresa, o.id_orcamento
+      FROM orcamentos o
+      WHERE o.id_orcamento > ?
+        AND (o.enviado IS NULL OR o.enviado = 'N')
+        AND EXISTS (
+          SELECT 1
+          FROM orcamentos_itens oi
+          WHERE oi.id_orcamento = o.id_orcamento
+        )
+      ORDER BY o.id_orcamento ASC
+      LIMIT ?
+    `;
+
+    const result = await query(sql, [afterId, safeLimit]);
+    return result as PendingOrcamentoEmail[];
   }
 
   static async delete(empresaId: number, orcamentoId: number): Promise<boolean> {

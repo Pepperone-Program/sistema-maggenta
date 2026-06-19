@@ -40,6 +40,7 @@ export interface Orcamento {
   texto_email: string | null;
   ultimo_contato: string | null;
   motivo_desconto: string | null;
+  enviado: 'S' | 'N' | null;
 }
 
 export interface CreateOrcamentoDTO {

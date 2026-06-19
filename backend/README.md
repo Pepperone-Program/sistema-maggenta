@@ -42,6 +42,27 @@ Copie `.env.example` para `.env` e atualize as variáveis:
 cp .env.example .env
 ```
 
+### Envio automatico de orcamentos
+
+O backend verifica orcamentos pendentes ao iniciar e, depois, a cada 10 minutos.
+Os valores opcionais abaixo permitem ajustar o intervalo e o tamanho do lote:
+
+```env
+ORCAMENTO_EMAIL_CRON_INTERVAL_MS=600000
+ORCAMENTO_EMAIL_CRON_BATCH_SIZE=25
+```
+
+Para manter a consulta eficiente em tabelas grandes, confirme que estes indices
+existem no MySQL:
+
+```sql
+CREATE INDEX idx_orcamentos_enviado_id
+  ON orcamentos (enviado, id_orcamento);
+
+CREATE INDEX idx_orcamentos_itens_orcamento
+  ON orcamentos_itens (id_orcamento);
+```
+
 ## Desenvolvimento
 
 ```bash

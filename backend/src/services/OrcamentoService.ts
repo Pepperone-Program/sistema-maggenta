@@ -1,13 +1,13 @@
 import { OrcamentoModel } from '@models/Orcamento';
 import { OrcamentoItemModel } from '@models/OrcamentoItem';
 import { OrcamentoEmailService } from '@services/OrcamentoEmailService';
+import { OrcamentoNotificationService } from '@services/OrcamentoNotificationService';
 import type { Orcamento, CreateOrcamentoDTO, UpdateOrcamentoDTO } from '@/types/orcamento';
 import type { OrcamentoItem, CreateOrcamentoItemDTO } from '@/types/orcamento-item';
 import { throwError } from '@utils/helpers';
 
 export class OrcamentoService {
   private static readonly quoteNotificationTimers = new Map<number, NodeJS.Timeout>();
-  private static readonly notifiedQuoteIds = new Set<number>();
   private static readonly quoteNotificationDelayMs = Number(
     process.env.ORCAMENTO_EMAIL_DEBOUNCE_MS || 10000
   );
@@ -19,12 +19,7 @@ export class OrcamentoService {
         return false;
       }
 
-      await OrcamentoEmailService.sendQuoteEmail(data, quoteNumber);
-      if (quoteNumber) {
-        this.notifiedQuoteIds.add(quoteNumber);
-      }
-
-      return true;
+      return await OrcamentoEmailService.sendQuoteEmail(data, quoteNumber);
     } catch (error) {
       console.error('[OrcamentoService] Falha ao enviar email de orcamento', error);
       return false;
@@ -33,30 +28,13 @@ export class OrcamentoService {
 
   private static async notifyStoredQuote(empresaId: number, orcamentoId: number): Promise<void> {
     try {
-      if (this.notifiedQuoteIds.has(orcamentoId)) return;
-
-      const orcamento = await OrcamentoModel.findById(empresaId, orcamentoId);
-      if (!orcamento) return;
-
-      const itens = await OrcamentoItemModel.findByOrcamentoId(orcamentoId);
-      if (!itens.length) return;
-
-      await OrcamentoEmailService.sendQuoteEmail(
-        {
-          ...(orcamento as unknown as CreateOrcamentoDTO),
-          itens: itens as unknown as Array<Record<string, unknown>>,
-        },
-        orcamentoId
-      );
-      this.notifiedQuoteIds.add(orcamentoId);
+      await OrcamentoNotificationService.sendStoredQuote(empresaId, orcamentoId);
     } catch (error) {
       console.error('[OrcamentoService] Falha ao enviar email com itens do orcamento', error);
     }
   }
 
   private static scheduleStoredQuoteNotification(empresaId: number, orcamentoId: number): void {
-    if (this.notifiedQuoteIds.has(orcamentoId)) return;
-
     const existingTimer = this.quoteNotificationTimers.get(orcamentoId);
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -77,7 +55,7 @@ export class OrcamentoService {
     empresaId: number,
     data: CreateOrcamentoDTO
   ): Promise<Orcamento> {
-    let id: number | undefined;
+    let id: number;
     let orcamento: Orcamento | null = null;
 
     try {
@@ -89,7 +67,11 @@ export class OrcamentoService {
       throw error;
     }
 
-    await this.notifyQuote(data, id);
+    try {
+      await OrcamentoNotificationService.sendStoredQuote(empresaId, id, data);
+    } catch (error) {
+      console.error('[OrcamentoService] Falha ao enviar email de orcamento', error);
+    }
 
     if (!orcamento) {
       throwError('CREATE_FAILED', 'Falha ao criar orçamento', 500);

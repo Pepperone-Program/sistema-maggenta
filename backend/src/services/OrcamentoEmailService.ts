@@ -354,13 +354,13 @@ export class OrcamentoEmailService {
 </html>`;
   }
 
-  static async sendQuoteEmail(data: QuoteEmailInput, quoteNumber?: number): Promise<void> {
+  static async sendQuoteEmail(data: QuoteEmailInput, quoteNumber?: number): Promise<boolean> {
     const resendApiKey = process.env.RESEND_API_KEY?.trim();
     const fromEmail = process.env.RESEND_FROM_EMAIL?.trim();
 
     if (!resendApiKey || !fromEmail) {
       console.warn('[OrcamentoEmailService] Resend nao configurado para envio de orcamento');
-      return;
+      return false;
     }
 
     const response = await fetch('https://api.resend.com/emails', {
@@ -382,5 +382,7 @@ export class OrcamentoEmailService {
       const result = (await response.json().catch(() => null)) as { message?: string } | null;
       throw new Error(result?.message || `Falha ao enviar email de orcamento: HTTP ${response.status}`);
     }
+
+    return true;
   }
 }

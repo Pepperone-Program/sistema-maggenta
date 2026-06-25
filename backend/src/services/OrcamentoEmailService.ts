@@ -1,5 +1,11 @@
+import { query } from '@database/connection';
 import type { CreateOrcamentoDTO } from '@/types/orcamento';
 import type { CreateOrcamentoItemDTO } from '@/types/orcamento-item';
+
+type ProductImageRow = {
+  id_produto: number;
+  url_imagem: string;
+};
 
 type QuoteItemInput = Partial<CreateOrcamentoItemDTO> & {
   [key: string]: unknown;
@@ -18,6 +24,9 @@ type QuoteItemInput = Partial<CreateOrcamentoItemDTO> & {
   qtd?: string | number;
   quantidadeSolicitada?: string | number;
   total?: string | number;
+  image_url?: string;
+  imagem_url?: string;
+  url_imagem?: string;
 };
 
 type QuoteEmailInput = CreateOrcamentoDTO & {
@@ -189,15 +198,54 @@ function getItemCode(item: QuoteItemInput): unknown {
   );
 }
 
+function getItemProductId(item: QuoteItemInput): number | null {
+  const value =
+    item.id_produto ||
+    item.productId ||
+    item.product_id ||
+    readObjectValue(item.product, ['id_produto', 'productId', 'product_id', 'id']) ||
+    readObjectValue(item.produto_data, ['id_produto', 'productId', 'product_id', 'id']);
+  const productId = Number(value);
+
+  return Number.isInteger(productId) && productId > 0 ? productId : null;
+}
+
+function getItemImageUrl(
+  item: QuoteItemInput,
+  primaryImageUrls: ReadonlyMap<number, string>
+): string | null {
+  const productId = getItemProductId(item);
+  const databaseUrl = productId ? primaryImageUrls.get(productId) : undefined;
+  if (databaseUrl) {
+    return databaseUrl;
+  }
+
+  const explicitUrl =
+    item.url_imagem ||
+    item.imagem_url ||
+    item.image_url ||
+    readObjectValue(item.product, ['url_imagem', 'imagem_url', 'image_url']) ||
+    readObjectValue(item.produto_data, ['url_imagem', 'imagem_url', 'image_url']);
+
+  if (explicitUrl) {
+    return String(explicitUrl);
+  }
+
+  return null;
+}
+
 function getItemQuantity(item: QuoteItemInput): unknown {
   return item.quantidade || item.quantity || item.qtd || item.quantidadeSolicitada || 1;
 }
 
-function renderItems(items: QuoteItemInput[]): string {
+function renderItems(
+  items: QuoteItemInput[],
+  primaryImageUrls: ReadonlyMap<number, string>
+): string {
   if (!items.length) {
     return `
       <tr>
-        <td colspan="3" style="padding:14px 12px;font-size:14px;color:#6b7280;border-bottom:1px solid #e5e7eb;">
+        <td colspan="4" style="padding:14px 12px;font-size:14px;color:#6b7280;border-bottom:1px solid #e5e7eb;">
           Nenhum item detalhado foi enviado no payload.
         </td>
       </tr>
@@ -209,9 +257,17 @@ function renderItems(items: QuoteItemInput[]): string {
       const product = getItemProductName(item);
       const codeValue = getItemCode(item);
       const quantity = getItemQuantity(item);
+      const imageUrl = getItemImageUrl(item, primaryImageUrls);
 
       return `
         <tr>
+          <td width="88" style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#6b7280;vertical-align:middle;">
+            ${
+              imageUrl
+                ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product)}" width="72" height="72" style="display:block;width:72px;height:72px;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px;background:#ffffff;" />`
+                : '&mdash;'
+            }
+          </td>
           <td style="padding:12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;">
             ${escapeHtml(codeValue || '-')}
           </td>
@@ -231,21 +287,64 @@ function renderObservation(obs?: string): string {
   if (!obs) return '';
 
   return `
-    <div style="margin-top:26px;padding:16px;border-radius:10px;background:#fff7ed;border:1px solid #fed7aa;">
-      <p style="margin:0 0 6px;font-size:11px;color:#9a3412;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+    <div style="margin-top:26px;padding:16px;border-radius:10px;background:#f0faf5;border:1px solid #049e53;">
+      <p style="margin:0 0 6px;font-size:11px;color:#049e53;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
         Observacoes
       </p>
-      <p style="margin:0;font-size:14px;color:#7c2d12;line-height:1.6;white-space:pre-line;">${escapeHtml(obs)}</p>
+      <p style="margin:0;font-size:14px;color:#1f2937;line-height:1.6;white-space:pre-line;">${escapeHtml(obs)}</p>
     </div>
   `;
 }
 
 export class OrcamentoEmailService {
+  private static async getPrimaryImageUrls(
+    items: QuoteItemInput[]
+  ): Promise<Map<number, string>> {
+    const productIds = Array.from(
+      new Set(
+        items
+          .map(getItemProductId)
+          .filter((productId): productId is number => productId !== null)
+      )
+    );
+
+    if (!productIds.length) {
+      return new Map();
+    }
+
+    const placeholders = productIds.map(() => '?').join(', ');
+    const rows = (await query(
+      `
+        SELECT id_produto, url_imagem
+        FROM imagens_produtos
+        WHERE id_produto IN (${placeholders})
+          AND url_imagem IS NOT NULL
+          AND url_imagem <> ''
+        ORDER BY id_produto ASC, ordem_imagem ASC, id_imagem ASC
+      `,
+      productIds
+    )) as ProductImageRow[];
+    const primaryImageUrls = new Map<number, string>();
+
+    for (const row of rows) {
+      const productId = Number(row.id_produto);
+      if (!primaryImageUrls.has(productId)) {
+        primaryImageUrls.set(productId, row.url_imagem);
+      }
+    }
+
+    return primaryImageUrls;
+  }
+
   static hasQuoteItems(data: QuoteEmailInput): boolean {
     return getQuoteItems(data).length > 0;
   }
 
-  static renderTemplate(data: QuoteEmailInput, quoteNumber?: number): string {
+  static renderTemplate(
+    data: QuoteEmailInput,
+    quoteNumber?: number,
+    primaryImageUrls: ReadonlyMap<number, string> = new Map()
+  ): string {
     const items = getQuoteItems(data);
     const company = data.empresa || data.fantasia || '-';
     const address = [
@@ -274,7 +373,7 @@ export class OrcamentoEmailService {
         <td align="center">
           <table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;width:100%;">
             <tr>
-              <td style="background:#d725e4;border-radius:14px 14px 0 0;padding:26px 30px;">
+              <td style="background:#ec3694;border-radius:14px 14px 0 0;padding:26px 30px;">
                 <p style="margin:0;color:#ffffff;opacity:0.88;font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:700;">
                   Novo orcamento recebido pelo site
                 </p>
@@ -288,7 +387,7 @@ export class OrcamentoEmailService {
             </tr>
             <tr>
               <td style="background:#ffffff;padding:30px;">
-                <p style="margin:0 0 4px;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Cliente</p>
+                <p style="margin:0 0 4px;font-size:11px;color:#ec4c9c;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Cliente</p>
                 <p style="margin:0 0 22px;font-size:20px;font-weight:800;color:#111827;">${escapeHtml(data.contato || data.fantasia || '-')}</p>
 
                 <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin-bottom:28px;">
@@ -322,17 +421,18 @@ export class OrcamentoEmailService {
                   </tr>
                 </table>
 
-                <p style="margin:0 0 12px;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Produtos solicitados</p>
+                <p style="margin:0 0 12px;font-size:11px;color:#ec4c9c;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Produtos solicitados</p>
 
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
                   <thead>
                     <tr style="background:#f9fafb;">
+                      <th align="left" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Imagem</th>
                       <th align="left" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Codigo</th>
                       <th align="left" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Nome</th>
                       <th align="right" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Qtd</th>
                     </tr>
                   </thead>
-                  <tbody>${renderItems(items)}</tbody>
+                  <tbody>${renderItems(items, primaryImageUrls)}</tbody>
                 </table>
 
                 ${renderObservation(data.obs)}
@@ -341,8 +441,8 @@ export class OrcamentoEmailService {
             <tr>
               <td style="background:#fafafa;border-radius:0 0 14px 14px;padding:22px 30px;text-align:center;">
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
-                  <strong style="color:#6b7280;">Maggenta Brindes</strong> · Brindes Corporativos Personalizados<br />
-                  Notificacao automatica · Acesse o painel admin para responder ao cliente
+                  <strong style="color:#6b7280;">Maggenta Brindes</strong> - Brindes Corporativos Personalizados<br />
+                  Notificacao automatica - Acesse o painel admin para responder ao cliente
                 </p>
               </td>
             </tr>
@@ -354,14 +454,22 @@ export class OrcamentoEmailService {
 </html>`;
   }
 
-  static async sendQuoteEmail(data: QuoteEmailInput, quoteNumber?: number): Promise<void> {
+  static async sendQuoteEmail(data: QuoteEmailInput, quoteNumber?: number): Promise<boolean> {
     const resendApiKey = process.env.RESEND_API_KEY?.trim();
     const fromEmail = process.env.RESEND_FROM_EMAIL?.trim();
 
     if (!resendApiKey || !fromEmail) {
       console.warn('[OrcamentoEmailService] Resend nao configurado para envio de orcamento');
-      return;
+      return false;
     }
+
+    const primaryImageUrls = await this.getPrimaryImageUrls(getQuoteItems(data));
+    const emailBody: Record<string, unknown> = {
+      from: fromEmail,
+      to: [fromEmail],
+      subject: `Novo orcamento Maggenta ${quoteNumber ? ` #${quoteNumber}` : ''} - ${data.fantasia || data.contato || 'Site'}`,
+      html: this.renderTemplate(data, quoteNumber, primaryImageUrls),
+    };
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -369,18 +477,14 @@ export class OrcamentoEmailService {
         Authorization: `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [fromEmail],
-        reply_to: data.email || undefined,
-        subject: `Novo orçamento Maggenta ${quoteNumber ? ` #${quoteNumber}` : ''} - ${data.fantasia || data.contato || 'Site'}`,
-        html: this.renderTemplate(data, quoteNumber),
-      }),
+      body: JSON.stringify(emailBody),
     });
 
     if (!response.ok) {
       const result = (await response.json().catch(() => null)) as { message?: string } | null;
       throw new Error(result?.message || `Falha ao enviar email de orcamento: HTTP ${response.status}`);
     }
+
+    return true;
   }
 }

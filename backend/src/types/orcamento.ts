@@ -40,22 +40,23 @@ export interface Orcamento {
   texto_email: string | null;
   ultimo_contato: string | null;
   motivo_desconto: string | null;
+  enviado: 'S' | 'N' | null;
 }
 
 export interface CreateOrcamentoDTO {
   [key: string]: unknown;
   id_cliente?: string;
-  data_orcamento: string;
-  fantasia: string;
-  endereco: string;
+  data_orcamento?: string;
+  fantasia?: string;
+  endereco?: string;
   endereco_n?: string;
   endereco_compl?: string;
   bairro?: string;
   cep?: string;
-  cidade: string;
-  uf: string;
+  cidade?: string;
+  uf?: string;
   pais?: string;
-  tel: string;
+  tel?: string;
   tel2?: string;
   site?: string;
   email: string;

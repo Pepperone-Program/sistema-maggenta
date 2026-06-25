@@ -21,8 +21,9 @@ function escapeHtml(value: string) {
 export class ContatoService {
   static async enviarMensagem(data: ContactPayload) {
     const resendApiKey = process.env.RESEND_API_KEY?.trim();
-    if (!resendApiKey) {
-      throwError('RESEND_CONFIG_ERROR', 'RESEND_API_KEY nao configurada', 500);
+    const fromEmail = process.env.RESEND_FROM_EMAIL?.trim();
+    if (!resendApiKey || !fromEmail) {
+      throwError('RESEND_CONFIG_ERROR', 'Resend nao configurado para envio de contato', 500);
     }
 
     const nome = String(data.nome || '').trim();
@@ -56,9 +57,8 @@ export class ContatoService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'Maggenta <onboarding@resend.dev>',
-        to: ['vendas@maggenta.com.br'],
-        reply_to: email,
+        from: fromEmail,
+        to: [fromEmail],
         subject: `Contato Maggenta: ${assunto}`,
         html,
       }),

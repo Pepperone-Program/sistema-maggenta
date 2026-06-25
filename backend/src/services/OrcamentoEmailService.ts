@@ -68,14 +68,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function normalizeEmail(value: unknown): string | undefined {
-  const email = String(value ?? '').trim();
-  if (!email) return undefined;
-
-  const validEmailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
-  return validEmailPattern.test(email) ? email : undefined;
-}
-
 function readObjectValue(source: unknown, keys: string[]): unknown {
   if (!isRecord(source)) return undefined;
 
@@ -472,21 +464,12 @@ export class OrcamentoEmailService {
     }
 
     const primaryImageUrls = await this.getPrimaryImageUrls(getQuoteItems(data));
-    const replyTo = normalizeEmail(data.email);
     const emailBody: Record<string, unknown> = {
       from: fromEmail,
       to: [fromEmail],
       subject: `Novo orcamento Maggenta ${quoteNumber ? ` #${quoteNumber}` : ''} - ${data.fantasia || data.contato || 'Site'}`,
       html: this.renderTemplate(data, quoteNumber, primaryImageUrls),
     };
-
-    if (replyTo) {
-      emailBody.reply_to = replyTo;
-    } else {
-      console.warn(
-        `[OrcamentoEmailService] reply_to omitido por email invalido no orcamento${quoteNumber ? ` ${quoteNumber}` : ''}`
-      );
-    }
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',

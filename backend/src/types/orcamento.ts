@@ -46,17 +46,17 @@ export interface Orcamento {
 export interface CreateOrcamentoDTO {
   [key: string]: unknown;
   id_cliente?: string;
-  data_orcamento: string;
-  fantasia: string;
-  endereco: string;
+  data_orcamento?: string;
+  fantasia?: string;
+  endereco?: string;
   endereco_n?: string;
   endereco_compl?: string;
   bairro?: string;
   cep?: string;
-  cidade: string;
-  uf: string;
+  cidade?: string;
+  uf?: string;
   pais?: string;
-  tel: string;
+  tel?: string;
   tel2?: string;
   site?: string;
   email: string;

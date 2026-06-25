@@ -11,6 +11,12 @@ export class OrcamentoModel {
     empresaId: number,
     data: CreateOrcamentoDTO
     ): Promise<any> {
+    const optionalText = (value: unknown): string | null => {
+      const text = String(value ?? '').trim();
+      return text ? text : null;
+    };
+    const requiredText = (value: unknown): string => String(value ?? '').trim();
+
     const sql = `
       INSERT INTO orcamentos (
         id_empresa, data_orcamento, fantasia, endereco, endereco_n,
@@ -27,31 +33,31 @@ export class OrcamentoModel {
     const values = [
       empresaId,
       data.data_orcamento || new Date(),
-      data.fantasia,
-      data.endereco,
-      data.endereco_n || null,
-      data.endereco_compl || null,
-      data.bairro || null,
-      data.cep || null,
-      data.cidade,
-      data.uf,
-      data.pais || null,
-      data.tel,
-      data.tel2 || null,
-      data.site || null,
-      data.email,
-      data.obs || null,
-      data.contato,
-      data.id_condicao || null,
-      data.id_vendedor || null,
+      optionalText(data.fantasia) || requiredText(data.contato),
+      optionalText(data.endereco) || '',
+      optionalText(data.endereco_n),
+      optionalText(data.endereco_compl),
+      optionalText(data.bairro),
+      optionalText(data.cep),
+      optionalText(data.cidade) || '',
+      optionalText(data.uf) || '',
+      optionalText(data.pais),
+      optionalText(data.tel) || '',
+      optionalText(data.tel2),
+      optionalText(data.site),
+      requiredText(data.email),
+      optionalText(data.obs),
+      requiredText(data.contato),
+      optionalText(data.id_condicao),
+      optionalText(data.id_vendedor),
       data.frete || 'E',
-      data.frete_valor || null,
+      optionalText(data.frete_valor),
       data.diluir_frete || 'N',
-      data.nivel || '',
-      data.entrega || '',
-      data.id_captacao || null,
-      data.logotipo || null,
-      data.layout || null,
+      optionalText(data.nivel) || '',
+      optionalText(data.entrega) || '',
+      optionalText(data.id_captacao),
+      optionalText(data.logotipo),
+      optionalText(data.layout),
       data.layout_aprovado || 'N',
     ];
 

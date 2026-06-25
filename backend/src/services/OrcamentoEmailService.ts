@@ -68,6 +68,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function normalizeEmail(value: unknown): string | undefined {
+  const email = String(value ?? '').trim();
+  if (!email) return undefined;
+
+  const validEmailPattern = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+  return validEmailPattern.test(email) ? email : undefined;
+}
+
 function readObjectValue(source: unknown, keys: string[]): unknown {
   if (!isRecord(source)) return undefined;
 
@@ -427,7 +435,7 @@ export class OrcamentoEmailService {
                   <thead>
                     <tr style="background:#f9fafb;">
                       <th align="left" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Imagem</th>
-                      <th align="left" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Código</th>
+                      <th align="left" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Codigo</th>
                       <th align="left" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Nome</th>
                       <th align="right" style="padding:10px 12px;font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e5e7eb;">Qtd</th>
                     </tr>
@@ -441,8 +449,8 @@ export class OrcamentoEmailService {
             <tr>
               <td style="background:#fafafa;border-radius:0 0 14px 14px;padding:22px 30px;text-align:center;">
                 <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
-                  <strong style="color:#6b7280;">Maggenta Brindes</strong> · Brindes Corporativos Personalizados<br />
-                  Notificacao automatica · Acesse o painel admin para responder ao cliente
+                  <strong style="color:#6b7280;">Maggenta Brindes</strong> - Brindes Corporativos Personalizados<br />
+                  Notificacao automatica - Acesse o painel admin para responder ao cliente
                 </p>
               </td>
             </tr>
@@ -464,6 +472,21 @@ export class OrcamentoEmailService {
     }
 
     const primaryImageUrls = await this.getPrimaryImageUrls(getQuoteItems(data));
+    const replyTo = normalizeEmail(data.email);
+    const emailBody: Record<string, unknown> = {
+      from: fromEmail,
+      to: [fromEmail],
+      subject: `Novo orcamento Maggenta ${quoteNumber ? ` #${quoteNumber}` : ''} - ${data.fantasia || data.contato || 'Site'}`,
+      html: this.renderTemplate(data, quoteNumber, primaryImageUrls),
+    };
+
+    if (replyTo) {
+      emailBody.reply_to = replyTo;
+    } else {
+      console.warn(
+        `[OrcamentoEmailService] reply_to omitido por email invalido no orcamento${quoteNumber ? ` ${quoteNumber}` : ''}`
+      );
+    }
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -471,13 +494,7 @@ export class OrcamentoEmailService {
         Authorization: `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [fromEmail],
-        reply_to: data.email || undefined,
-        subject: `Novo orçamento Maggenta ${quoteNumber ? ` #${quoteNumber}` : ''} - ${data.fantasia || data.contato || 'Site'}`,
-        html: this.renderTemplate(data, quoteNumber, primaryImageUrls),
-      }),
+      body: JSON.stringify(emailBody),
     });
 
     if (!response.ok) {

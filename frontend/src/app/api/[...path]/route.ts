@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
 const SESSION_COOKIE = "pepperone_session";
-const SITE_TOKEN = process.env.SITE_TOKEN_SECRET || process.env.SITE_API_TOKEN || "";
+const SITE_TOKEN = process.env.SITE_API_TOKEN || "";
 
 type RouteContext = {
   params: Promise<{
@@ -35,6 +35,11 @@ function getForwardHeaders(request: NextRequest) {
     if (value) headers.set(name, value);
   });
 
+  if (SITE_TOKEN) {
+    headers.set("authorization", `Bearer ${SITE_TOKEN.trim()}`);
+    return headers;
+  }
+
   const authorization = request.headers.get("authorization");
   if (authorization) {
     headers.set("authorization", authorization);
@@ -45,10 +50,6 @@ function getForwardHeaders(request: NextRequest) {
   if (sessionToken) {
     headers.set("authorization", `Bearer ${sessionToken}`);
     return headers;
-  }
-
-  if (SITE_TOKEN) {
-    headers.set("authorization", `Bearer ${SITE_TOKEN.trim()}`);
   }
 
   return headers;

@@ -11,6 +11,21 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+const getSiteTokenUser = (token?: string): AuthenticatedRequest['user'] | null => {
+  const siteApiToken = process.env.SITE_API_TOKEN?.trim();
+  if (!token || !siteApiToken || token !== siteApiToken) {
+    return null;
+  }
+
+  const empresaId = Number(process.env.SITE_API_EMPRESA_ID || 1);
+  return {
+    id_usuario: 0,
+    id_empresa: Number.isInteger(empresaId) && empresaId > 0 ? empresaId : 1,
+    usuario: process.env.SITE_API_USUARIO || 'site',
+    email: process.env.SITE_API_EMAIL || process.env.RESEND_FROM_EMAIL || 'site@maggenta.com.br',
+  };
+};
+
 export const authMiddleware = (
   req: AuthenticatedRequest,
   res: Response,
@@ -24,8 +39,8 @@ export const authMiddleware = (
       return;
     }
 
-    const decoded = verifyToken(token);
-    req.user = decoded;
+    const siteTokenUser = getSiteTokenUser(token);
+    req.user = siteTokenUser || verifyToken(token);
     next();
   } catch (error) {
     errorResponse(res, 'INVALID_TOKEN', 'Invalid or expired token', 401);
@@ -41,8 +56,8 @@ export const optionalAuthMiddleware = (
     const token = req.headers.authorization?.split(' ')[1];
 
     if (token) {
-      const decoded = verifyToken(token);
-      req.user = decoded;
+      const siteTokenUser = getSiteTokenUser(token);
+      req.user = siteTokenUser || verifyToken(token);
     }
     next();
   } catch (error) {

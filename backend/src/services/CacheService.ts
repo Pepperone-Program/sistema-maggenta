@@ -6,10 +6,23 @@ type RedisCommandResponse<T = unknown> = {
 const CACHE_PREFIX = 'site-mag';
 const productRelatedNamespaces = new Set([
   'categorias',
+  'subcategorias',
   'tipos-produtos',
   'datas-promocionais',
   'publicos-alvos',
 ]);
+const productContentNamespaces = [
+  'produtos',
+  'categorias',
+  'subcategorias',
+  'tipos-produtos',
+  'publicos-alvos',
+  'datas-promocionais',
+] as const;
+const knownNamespaces = [
+  ...productContentNamespaces,
+  'banners',
+] as const;
 
 const getRedisConfig = (): { url?: string; token?: string } => ({
   url: process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, ''),
@@ -28,6 +41,10 @@ const normalizePart = (value: string): string =>
     .replace(/[^a-zA-Z0-9:_?&=.,/-]/g, '_');
 
 export class CacheService {
+  static readonly productContentNamespaces = productContentNamespaces;
+
+  static readonly knownNamespaces = knownNamespaces;
+
   static buildKey(namespace: string, rawKey: string): string {
     return `${CACHE_PREFIX}:${normalizePart(namespace)}:${normalizePart(rawKey)}`;
   }
@@ -61,7 +78,7 @@ export class CacheService {
     }
   }
 
-  static async invalidateNamespaces(namespaces: string[]): Promise<void> {
+  static async invalidateNamespaces(namespaces: readonly string[]): Promise<void> {
     if (!isEnabled()) return;
 
     const expandedNamespaces = new Set<string>();

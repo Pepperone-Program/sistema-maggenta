@@ -207,6 +207,58 @@ export class ProdutoController {
     }
   }
 
+  static async listSubcategorias(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const empresaId = req.user?.id_empresa || 1;
+      const { id } = req.params;
+      const subcategorias = await ProdutoService.listSubcategoriasVinculadas(
+        empresaId,
+        parseInt(id, 10)
+      );
+
+      successResponse(res, subcategorias, 'Subcategorias do produto listadas com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async vincularSubcategoria(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const empresaId = req.user?.id_empresa || 1;
+      const vinculo = await ProdutoService.vincularSubcategoria(
+        empresaId,
+        parseInt(req.params.id, 10),
+        parseInt(req.params.subcategoriaId, 10)
+      );
+      await invalidateProductCaches();
+
+      successResponse(res, vinculo, 'Subcategoria vinculada ao produto com sucesso', 201);
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async desvincularSubcategoria(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const empresaId = req.query.empresaId
+        ? parseInt(String(req.query.empresaId), 10)
+        : req.user?.id_empresa || 1;
+      await ProdutoService.desvincularSubcategoriaDireta(
+        empresaId,
+        parseInt(req.params.id, 10),
+        parseInt(req.params.subcategoriaId, 10)
+      );
+      await invalidateProductCaches();
+
+      successResponse(res, null, 'Subcategoria desvinculada do produto com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async listImages(req: AuthenticatedRequest, res: Response): Promise<void> {
     const startedAt = Date.now();
     console.log('[ProdutoController] listImages:start', {

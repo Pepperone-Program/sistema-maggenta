@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
-const SESSION_COOKIE = "pepperone_session";
+const SESSION_COOKIE = "maggenta_session";
 const SITE_TOKEN = process.env.SITE_API_TOKEN || "";
 
 type RouteContext = {

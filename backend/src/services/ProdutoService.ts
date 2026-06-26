@@ -1,4 +1,5 @@
 import { ProdutoModel } from '@models/Produto';
+import { SubcategoriaService } from '@services/CategoriaService';
 import type { Produto, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produto';
 import { throwError } from '@utils/helpers';
 
@@ -244,5 +245,65 @@ export class ProdutoService {
     }
 
     return ProdutoModel.findProductLinks(produtoId);
+  }
+
+  static async listSubcategoriasVinculadas(empresaId: number, produtoId: number) {
+    const produto = await ProdutoModel.findById(empresaId, produtoId);
+
+    if (!produto) {
+      throwError('PRODUTO_NOT_FOUND', 'Produto nao encontrado', 404);
+    }
+
+    return ProdutoModel.findSubcategoryOptionsForProduct(empresaId, produtoId);
+  }
+
+  static async vincularSubcategoria(
+    empresaId: number,
+    produtoId: number,
+    subcategoriaId: number
+  ) {
+    const produto = await ProdutoModel.findById(empresaId, produtoId);
+
+    if (!produto) {
+      throwError('PRODUTO_NOT_FOUND', 'Produto nao encontrado', 404);
+    }
+
+    return SubcategoriaService.vincularProduto(empresaId, subcategoriaId, {
+      id_produto: produtoId,
+    });
+  }
+
+  static async desvincularSubcategoria(
+    empresaId: number,
+    produtoId: number,
+    subcategoriaId: number
+  ): Promise<void> {
+    const produto = await ProdutoModel.findById(empresaId, produtoId);
+
+    if (!produto) {
+      throwError('PRODUTO_NOT_FOUND', 'Produto nao encontrado', 404);
+    }
+
+    await SubcategoriaService.desvincularProduto(empresaId, subcategoriaId, produtoId);
+  }
+
+  static async desvincularSubcategoriaDireta(
+    empresaId: number,
+    produtoId: number,
+    subcategoriaId: number
+  ): Promise<void> {
+    const success = await ProdutoModel.removeSubcategoryLink(
+      empresaId,
+      produtoId,
+      subcategoriaId
+    );
+
+    if (!success) {
+      throwError(
+        'VINCULO_NOT_FOUND',
+        'Vinculo entre subcategoria e produto nao encontrado',
+        404
+      );
+    }
   }
 }

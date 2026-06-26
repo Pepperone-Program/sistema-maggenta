@@ -64,6 +64,12 @@ export const NAV_DATA: NavSection[] = [
         items: [],
       },
       {
+        title: "Subcategorias por produto",
+        url: "/produtos/subcategorias",
+        icon: Icons.FourCircle,
+        items: [],
+      },
+      {
         title: "Publicos-alvo",
         url: "/publicos-alvos",
         icon: Icons.FourCircle,

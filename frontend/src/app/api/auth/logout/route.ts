@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const SESSION_COOKIE = "pepperone_session";
+const SESSION_COOKIE = "maggenta_session";
 
 export async function POST() {
   const response = NextResponse.json({ success: true });

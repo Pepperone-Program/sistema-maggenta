@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createResource,
@@ -177,7 +177,7 @@ export function ResourcePage({ config }: { config: ResourceConfig }) {
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
-              Pepperone Admin
+              Maggenta Admin
             </p>
             <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
               {config.title}
@@ -378,3 +378,4 @@ export function ResourcePage({ config }: { config: ResourceConfig }) {
     </div>
   );
 }
+

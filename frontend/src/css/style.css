@@ -224,14 +224,14 @@ span.flatpickr-weekday,
 .flatpickr-day.selected.nextMonthDay,
 .flatpickr-day.startRange.nextMonthDay,
 .flatpickr-day.endRange.nextMonthDay {
-  background: #b91c1c;
+  background: #be185d;
   @apply !border-primary !bg-primary hover:!border-primary hover:!bg-primary;
 }
 
 .flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n + 1)),
 .flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n + 1)),
 .flatpickr-day.endRange.startRange + .endRange:not(:nth-child(7n + 1)) {
-  box-shadow: -10px 0 0 #b91c1c;
+  box-shadow: -10px 0 0 #be185d;
 }
 
 .map-btn .jvm-zoom-btn {
@@ -477,4 +477,8 @@ input[type="search"]::-webkit-search-cancel-button {
 
 .custom-gradient-1 {
   background-image: linear-gradient(145deg, #eef 0%, #fff8fc 100%);
+}
+
+button[class]:not(.rounded-full) {
+  border-radius: 0.875rem;
 }

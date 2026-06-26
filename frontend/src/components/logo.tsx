@@ -1,5 +1,5 @@
 import darkLogo from "@/assets/logos/dark.svg";
-import logo from "@/assets/logos/Logo-Vertical-Degradê.svg";
+import logo from "@/assets/logos/Logo-Vertical-Flat.svg";
 import Image from "next/image";
 
 export function Logo() {

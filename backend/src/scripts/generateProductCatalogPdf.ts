@@ -70,19 +70,19 @@ type InfoItem = {
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
 const LOGO_FULL =
-  'https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/imagem_empresa/logoNovoCompleta.png';
+  'https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/imagem_empresa/LOGO_MAGGENTA_HORIZONTAL_SEM_FUNDO%20(1).png';
 const LOGO_SMALL =
-  'https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/imagem_empresa/logoNovoPepperone.png';
+  'https://kabftbmncilygvpcyazc.supabase.co/storage/v1/object/public/imagem_empresa/LOGO_MAGGENTA_HORIZONTAL_SEM_FUNDO%20(1).png';
 const PRODUCT_URL_BASE = 'https://www.maggenta.com.br/brindes-personalizados';
 const SOCIAL_LINKS: SocialLink[] = [
-  { name: 'LinkedIn', url: 'https://www.linkedin.com/company/pepperone/', icon: 'linkedin' },
+  { name: 'LinkedIn', url: 'https://www.linkedin.com/company/maggenta-brindes-promocionais/posts/?feedView=all', icon: 'linkedin' },
   {
     name: 'WhatsApp',
     url: 'https://api.whatsapp.com/send/?phone=5511947388467&text=Ol%C3%A1&type=phone_number&app_absent=0',
     icon: 'whatsapp',
   },
-  { name: 'Instagram', url: 'https://www.instagram.com/pepperonebrindes/', icon: 'instagram' },
-  { name: 'Site', url: 'https://www.pepperone.com.br/', icon: 'site' },
+  { name: 'Instagram', url: 'https://www.instagram.com/brindesmaggenta', icon: 'instagram' },
+  { name: 'Site', url: 'https://www.maggenta.com.br/', icon: 'site' },
 ];
 const CODE_COLLATOR = new Intl.Collator('pt-BR', {
   numeric: true,
@@ -116,7 +116,7 @@ function numberEnv(name: string, fallback: number) {
 function getConfig(): Config {
   return {
     apiUrl: (process.env.CATALOG_PRODUCTS_API_URL || 'http://localhost:3001/api/v1/produtos/site').trim(),
-    outputPath: process.env.CATALOG_OUTPUT_PATH?.trim() || 'catalogos/catalogo-produtos-pepperone.pdf',
+    outputPath: process.env.CATALOG_OUTPUT_PATH?.trim() || 'catalogos/catalogo-produtos-maggenta.pdf',
     empresaId: numberEnv('CATALOG_EMPRESA_ID', 1),
     pageLimit: numberEnv('CATALOG_PAGE_LIMIT', 100),
     maxProducts: Number(process.env.CATALOG_MAX_PRODUCTS || 0),
@@ -622,10 +622,10 @@ async function main() {
     autoFirstPage: false,
     bufferPages: false,
     info: {
-      Title: 'Catalogo de Produtos Pepperone',
-      Author: 'Pepperone',
+      Title: 'Catalogo de Produtos Maggenta',
+      Author: 'Maggenta',
       Subject: 'Catalogo de produtos do site',
-      Creator: 'Pepperone Site Admin',
+      Creator: 'Maggenta Site Admin',
     },
   });
 

@@ -16,7 +16,7 @@ const Chart = dynamic(() => import("react-apexcharts"), {
 
 export function WeeksProfitChart({ data }: PropsType) {
   const options: ApexOptions = {
-    colors: ["#b91c1c", "#f87171"],
+    colors: ["#be185d", "#f9a8d4"],
     chart: {
       type: "bar",
       stacked: true,

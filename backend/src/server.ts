@@ -7,6 +7,7 @@ import routes from '@routes/index';
 import { allowedCorsOrigins, corsMiddleware, securityHeaders, requestLogger } from '@middleware/common';
 import { errorHandler, notFoundHandler } from '@middleware/error';
 import { closeDatabasePool, testDatabaseConnection } from '@database/connection';
+import { CacheInvalidationScheduler } from '@services/CacheInvalidationScheduler';
 import { OrcamentoEmailScheduler } from '@services/OrcamentoEmailScheduler';
 
 dotenv.config();
@@ -59,6 +60,7 @@ const bootstrap = async (): Promise<void> => {
   }
 
   const server = app.listen(PORT, () => {
+    CacheInvalidationScheduler.start();
     OrcamentoEmailScheduler.start();
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log(`📚 API Documentation: http://localhost:${PORT}/health`);
@@ -66,6 +68,7 @@ const bootstrap = async (): Promise<void> => {
   });
 
   const shutdown = (signal: string) => {
+    CacheInvalidationScheduler.stop();
     OrcamentoEmailScheduler.stop();
     console.log(`${signal} signal received: closing HTTP server`);
     server.close(async () => {

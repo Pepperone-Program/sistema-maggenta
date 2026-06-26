@@ -5,16 +5,8 @@ import { ProdutoService } from '@services/ProdutoService';
 import { ProdutoImageService } from '@services/ProdutoImageService';
 import { successResponse, paginatedResponse, errorResponse } from '@utils/response';
 
-const productCacheNamespaces = [
-  'categorias',
-  'tipos-produtos',
-  'publicos-alvos',
-  'datas-promocionais',
-  'produtos',
-];
-
 async function invalidateProductCaches(): Promise<void> {
-  await CacheService.invalidateNamespaces(productCacheNamespaces);
+  await CacheService.invalidateNamespaces(CacheService.productContentNamespaces);
 }
 
 export class ProdutoController {

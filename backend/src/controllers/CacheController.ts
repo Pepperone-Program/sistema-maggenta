@@ -3,14 +3,7 @@ import { AuthenticatedRequest } from '@middleware/auth';
 import { CacheService } from '@services/CacheService';
 import { errorResponse, successResponse } from '@utils/response';
 
-const allowedNamespaces = new Set([
-  'categorias',
-  'banners',
-  'tipos-produtos',
-  'datas-promocionais',
-  'publicos-alvos',
-  'produtos',
-]);
+const allowedNamespaces = new Set<string>(CacheService.knownNamespaces);
 
 const normalizeNamespace = (namespace: string): string => namespace.trim().toLowerCase();
 

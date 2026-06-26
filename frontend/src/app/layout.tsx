@@ -12,10 +12,10 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Sistema Pepperone ",
-    default: "Sistema Pepperone",
+    template: "%s | Sistema Maggenta",
+    default: "Sistema Maggenta",
   },
-  description: "Painel administrativo Pepperone conectado as APIs do sistema.",
+  description: "Painel administrativo Maggenta Brindes conectado as APIs do sistema.",
   icons: {
     icon: "/images/favicon.ico",
   },
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
     <html lang="pt-BR" suppressHydrationWarning>
       <body>
         <Providers>
-          <NextTopLoader color="#b91c1c" showSpinner={false} />
+          <NextTopLoader color="#be185d" showSpinner={false} />
           <AppShell>{children}</AppShell>
         </Providers>
       </body>

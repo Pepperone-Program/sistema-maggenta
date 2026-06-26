@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createResource,
@@ -406,7 +406,7 @@ function ProductModal({
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-primary">{productId ? `Produto #${productId}` : "Novo produto"}</p>
               <h2 className="mt-1 text-2xl font-bold text-dark dark:text-white">{text(values.produto) === "-" ? "Cadastro de produto" : text(values.produto)}</h2>
-              <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">{text(values.codigo)} · {text(values.altura)} x {text(values.largura)} x {text(values.profundidade)}</p>
+              <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">{text(values.codigo)} Â· {text(values.altura)} x {text(values.largura)} x {text(values.profundidade)}</p>
             </div>
             <button className="rounded-md border border-stroke px-3 py-2 text-sm font-semibold dark:border-dark-3" onClick={onClose} type="button">
               Fechar
@@ -526,7 +526,7 @@ export function ProductsPage() {
       <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Catalogo Pepperone</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-primary">Catalogo Maggenta</p>
             <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">Produtos</h1>
             <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
               Edite dados, imagens e vinculos comerciais em um unico modal.
@@ -632,3 +632,4 @@ export function ProductsPage() {
     </div>
   );
 }
+

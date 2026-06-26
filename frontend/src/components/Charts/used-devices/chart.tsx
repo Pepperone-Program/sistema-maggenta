@@ -18,7 +18,7 @@ export function DonutChart({ data }: PropsType) {
       type: "donut",
       fontFamily: "inherit",
     },
-    colors: ["#b91c1c", "#dc2626", "#f87171", "#fecaca"],
+    colors: ["#be185d", "#db2777", "#f9a8d4", "#fce7f3"],
     labels: data.map((item) => item.name),
     legend: {
       show: true,

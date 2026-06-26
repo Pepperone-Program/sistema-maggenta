@@ -138,7 +138,7 @@ export function AdminDashboard() {
   const chartOptions = useMemo<ApexOptions>(
     () => ({
       chart: { toolbar: { show: false }, fontFamily: "inherit" },
-      colors: ["#b91c1c"],
+      colors: ["#be185d"],
       dataLabels: { enabled: false },
       grid: { strokeDashArray: 5 },
       plotOptions: { bar: { borderRadius: 6, columnWidth: "45%" } },

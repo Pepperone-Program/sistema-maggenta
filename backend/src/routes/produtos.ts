@@ -37,6 +37,24 @@ router.get(
   ProdutoController.listLinks
 );
 
+router.get(
+  '/:id/subcategorias',
+  authMiddleware,
+  ProdutoController.listSubcategorias
+);
+
+router.post(
+  '/:id/subcategorias/:subcategoriaId',
+  authMiddleware,
+  ProdutoController.vincularSubcategoria
+);
+
+router.delete(
+  '/:id/subcategorias/:subcategoriaId',
+  authMiddleware,
+  ProdutoController.desvincularSubcategoria
+);
+
 router.post(
   '/:id/images',
   authMiddleware,

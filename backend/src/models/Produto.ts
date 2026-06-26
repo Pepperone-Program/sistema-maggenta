@@ -217,12 +217,60 @@ export class ProdutoModel {
       ),
       query(
         `
-          SELECT s.id_subcategoria, s.id_categoria, s.subcategoria, s.habilitado
+          SELECT
+            asp.id_empresa,
+            asp.id_subcategoria,
+            asp.id_produto,
+            COALESCE(
+              s.id_categoria,
+              (
+                SELECT sf.id_categoria
+                FROM subcategorias sf
+                WHERE sf.id_subcategoria = asp.id_subcategoria
+                ORDER BY sf.id_empresa ASC
+                LIMIT 1
+              )
+            ) as id_categoria,
+            COALESCE(
+              s.subcategoria,
+              (
+                SELECT sf.subcategoria
+                FROM subcategorias sf
+                WHERE sf.id_subcategoria = asp.id_subcategoria
+                ORDER BY sf.id_empresa ASC
+                LIMIT 1
+              ),
+              CONCAT('Subcategoria #', asp.id_subcategoria)
+            ) as subcategoria,
+            COALESCE(
+              s.habilitado,
+              (
+                SELECT sf.habilitado
+                FROM subcategorias sf
+                WHERE sf.id_subcategoria = asp.id_subcategoria
+                ORDER BY sf.id_empresa ASC
+                LIMIT 1
+              )
+            ) as habilitado,
+            COALESCE(
+              c.categoria,
+              (
+                SELECT cf.categoria
+                FROM subcategorias sf
+                LEFT JOIN categorias cf
+                  ON cf.id_empresa = sf.id_empresa AND cf.id_categoria = sf.id_categoria
+                WHERE sf.id_subcategoria = asp.id_subcategoria
+                ORDER BY sf.id_empresa ASC
+                LIMIT 1
+              )
+            ) as categoria
           FROM aux_subcategorias_produtos asp
-          INNER JOIN subcategorias s
+          LEFT JOIN subcategorias s
             ON s.id_empresa = asp.id_empresa AND s.id_subcategoria = asp.id_subcategoria
+          LEFT JOIN categorias c
+            ON c.id_empresa = s.id_empresa AND c.id_categoria = s.id_categoria
           WHERE asp.id_produto = ?
-          ORDER BY s.ordem ASC, s.subcategoria ASC
+          ORDER BY asp.id_empresa ASC, c.categoria ASC, s.ordem ASC, s.subcategoria ASC, asp.id_subcategoria ASC
         `,
         [produtoId]
       ),
@@ -256,6 +304,69 @@ export class ProdutoModel {
       publicos_alvos: publicosAlvos,
       datas_promocionais: datasPromocionais,
     };
+  }
+
+  static async findSubcategoryOptionsForProduct(
+    empresaId: number,
+    produtoId: number
+  ) {
+    return query(
+      `
+        SELECT
+          s.id_empresa,
+          s.id_subcategoria,
+          s.id_categoria,
+          s.subcategoria,
+          s.habilitado,
+          c.categoria,
+          (
+            SELECT asp.id_empresa
+            FROM aux_subcategorias_produtos asp
+            WHERE asp.id_subcategoria = s.id_subcategoria
+              AND asp.id_produto = ?
+            ORDER BY asp.id_empresa ASC
+            LIMIT 1
+          ) as id_empresa_vinculo,
+          (
+            SELECT asp.id_produto
+            FROM aux_subcategorias_produtos asp
+            WHERE asp.id_subcategoria = s.id_subcategoria
+              AND asp.id_produto = ?
+            ORDER BY asp.id_empresa ASC
+            LIMIT 1
+          ) as id_produto,
+          CASE
+            WHEN EXISTS (
+              SELECT 1
+              FROM aux_subcategorias_produtos asp
+              WHERE asp.id_subcategoria = s.id_subcategoria
+                AND asp.id_produto = ?
+            ) THEN 1
+            ELSE 0
+          END as vinculado
+        FROM subcategorias s
+        LEFT JOIN categorias c
+          ON c.id_empresa = s.id_empresa AND c.id_categoria = s.id_categoria
+        WHERE s.id_empresa = ?
+        ORDER BY c.categoria ASC, s.ordem ASC, s.subcategoria ASC
+      `,
+      [produtoId, produtoId, produtoId, empresaId]
+    );
+  }
+
+  static async removeSubcategoryLink(
+    empresaId: number,
+    produtoId: number,
+    subcategoriaId: number
+  ): Promise<boolean> {
+    const result = await query(
+      `
+        DELETE FROM aux_subcategorias_produtos
+        WHERE id_empresa = ? AND id_produto = ? AND id_subcategoria = ?
+      `,
+      [empresaId, produtoId, subcategoriaId]
+    );
+    return (result as any).affectedRows > 0;
   }
 
   static async reorderImages(produtoId: number, imageIds: number[]): Promise<void> {

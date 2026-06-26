@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   createResource,
@@ -406,7 +406,7 @@ function ProductModal({
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-primary">{productId ? `Produto #${productId}` : "Novo produto"}</p>
               <h2 className="mt-1 text-2xl font-bold text-dark dark:text-white">{text(values.produto) === "-" ? "Cadastro de produto" : text(values.produto)}</h2>
-              <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">{text(values.codigo)} Â· {text(values.altura)} x {text(values.largura)} x {text(values.profundidade)}</p>
+              <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">{text(values.codigo)} - {text(values.altura)} x {text(values.largura)} x {text(values.profundidade)}</p>
             </div>
             <button className="rounded-md border border-stroke px-3 py-2 text-sm font-semibold dark:border-dark-3" onClick={onClose} type="button">
               Fechar

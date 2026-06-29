@@ -221,15 +221,25 @@ export class CategoriaService {
       return Number.isFinite(parsed) ? parsed : undefined;
     };
 
-    const produtos = await CategoriaModel.findCatalogProducts(empresaId, categoriaId, {
+    const catalogFilters = {
       page: Number(query.page || 1),
       limit: Number(query.limit || 100),
       subcategorias: parseIds(query.subcategorias),
       publicosAlvos: parseIds(query.publicos_alvos),
       quantidadeMinimaMin: toNumber(query.quantidade_minima_min),
       quantidadeMinimaMax: toNumber(query.quantidade_minima_max),
+    };
+
+    const produtos = await CategoriaModel.findCatalogProducts(
+      empresaId,
+      categoriaId,
+      catalogFilters
+    );
+    const filtros = await CategoriaModel.findCatalogFacets(empresaId, categoriaId, {
+      publicosAlvos: catalogFilters.publicosAlvos,
+      quantidadeMinimaMin: catalogFilters.quantidadeMinimaMin,
+      quantidadeMinimaMax: catalogFilters.quantidadeMinimaMax,
     });
-    const filtros = await CategoriaModel.findCatalogFacets(empresaId, categoriaId);
 
     return {
       categoria,

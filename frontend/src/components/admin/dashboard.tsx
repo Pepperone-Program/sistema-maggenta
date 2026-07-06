@@ -4,7 +4,7 @@ import { apiRequest, listResource, type PaginatedData } from "@/lib/api";
 import type { EstatisticasResumo, ProdutoRanking } from "@/types/admin";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -24,6 +24,19 @@ const initialState: DashboardState = {
   clientes: null,
   orcamentos: null,
   categorias: null,
+};
+
+const toDateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const addDaysToDateInput = (date: string, days: number) => {
+  const target = new Date(`${date}T00:00:00.000Z`);
+  target.setUTCDate(target.getUTCDate() + days);
+  return toDateInputValue(target);
 };
 
 function StatCard({
@@ -105,6 +118,11 @@ export function AdminDashboard() {
   const [state, setState] = useState(initialState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [customRanking, setCustomRanking] = useState<ProdutoRanking[]>([]);
+  const [customLoading, setCustomLoading] = useState(false);
+  const [customError, setCustomError] = useState("");
+  const [startDate, setStartDate] = useState(() => toDateInputValue(new Date()));
+  const [endDate, setEndDate] = useState(() => toDateInputValue(new Date()));
 
   async function load() {
     setLoading(true);
@@ -133,6 +151,38 @@ export function AdminDashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  async function loadCustomRanking(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    setCustomError("");
+
+    if (!startDate || !endDate) {
+      setCustomError("Informe a data inicial e final.");
+      return;
+    }
+
+    if (startDate > endDate) {
+      setCustomError("A data inicial deve ser menor ou igual a data final.");
+      return;
+    }
+
+    setCustomLoading(true);
+
+    try {
+      const ranking = await apiRequest<ProdutoRanking[]>("/api/v1/estatisticas-produtos/ranking", {
+        query: {
+          limit: 8,
+          startDate,
+          endDate: addDaysToDateInput(endDate, 1),
+        },
+      });
+      setCustomRanking(ranking);
+    } catch (err) {
+      setCustomError(err instanceof Error ? err.message : "Falha ao carregar ranking personalizado");
+    } finally {
+      setCustomLoading(false);
+    }
+  }
 
   const chartData = state.estatisticas?.mais_orcados || [];
   const chartOptions = useMemo<ApexOptions>(
@@ -227,6 +277,95 @@ export function AdminDashboard() {
           data={state.estatisticas?.melhores_do_ano || []}
           title="Melhores do ano"
         />
+      </div>
+
+      <div className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
+        <div className="border-b border-stroke px-5 py-4 dark:border-dark-3">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-dark dark:text-white">
+                Mais orcados por periodo
+              </h2>
+              <p className="text-sm text-dark-4 dark:text-dark-6">
+                Escolha um intervalo para consultar os produtos mais orcados.
+              </p>
+            </div>
+
+            <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={loadCustomRanking}>
+              <label className="text-sm font-medium text-dark dark:text-white">
+                Inicio
+                <input
+                  className="mt-1 h-10 rounded-md border border-stroke bg-transparent px-3 text-sm outline-none transition focus:border-primary dark:border-dark-3"
+                  onChange={(event) => setStartDate(event.target.value)}
+                  type="date"
+                  value={startDate}
+                />
+              </label>
+
+              <label className="text-sm font-medium text-dark dark:text-white">
+                Fim
+                <input
+                  className="mt-1 h-10 rounded-md border border-stroke bg-transparent px-3 text-sm outline-none transition focus:border-primary dark:border-dark-3"
+                  onChange={(event) => setEndDate(event.target.value)}
+                  type="date"
+                  value={endDate}
+                />
+              </label>
+
+              <button
+                className="h-10 rounded-md bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={customLoading}
+                type="submit"
+              >
+                {customLoading ? "Carregando..." : "Carregar"}
+              </button>
+            </form>
+          </div>
+
+          {customError && (
+            <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-300">{customError}</p>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="text-xs uppercase text-dark-4 dark:text-dark-6">
+                <th className="px-5 py-3">Produto</th>
+                <th className="px-5 py-3">Codigo</th>
+                <th className="px-5 py-3 text-right">Qtde</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customRanking.length ? (
+                customRanking.map((item) => (
+                  <tr
+                    className="border-t border-stroke text-dark dark:border-dark-3 dark:text-white"
+                    key={`${item.id_produto}-periodo`}
+                  >
+                    <td className="max-w-[360px] px-5 py-3">
+                      <span className="font-semibold">
+                        {item.produto || `Produto #${item.id_produto}`}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-dark-4 dark:text-dark-6">
+                      {item.codigo || "-"}
+                    </td>
+                    <td className="px-5 py-3 text-right font-bold text-primary">
+                      {item.total_qtde}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-5 py-8 text-center text-dark-4" colSpan={3}>
+                    {customLoading ? "Carregando dados..." : "Selecione o periodo e carregue os dados."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

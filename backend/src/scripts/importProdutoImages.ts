@@ -232,7 +232,7 @@ async function getProductIdsWithoutImages(productIds: number[]) {
   const uniqueProductIds = uniqueSortedProductIds(productIds);
   if (!uniqueProductIds.length) return [];
 
-  const productIdsWithImages = new Set<number>();
+  const productIdsWithValidImages = new Set<number>();
   const chunkSize = 1000;
 
   for (let start = 0; start < uniqueProductIds.length; start += chunkSize) {
@@ -243,16 +243,18 @@ async function getProductIdsWithoutImages(productIds: number[]) {
         SELECT DISTINCT id_produto
         FROM imagens_produtos
         WHERE id_produto IN (${placeholders})
+          AND url_imagem IS NOT NULL
+          AND TRIM(url_imagem) <> ''
       `,
       chunk
     )) as Array<{ id_produto: number }>;
 
     for (const row of rows) {
-      productIdsWithImages.add(Number(row.id_produto));
+      productIdsWithValidImages.add(Number(row.id_produto));
     }
   }
 
-  return uniqueProductIds.filter((idProduto) => !productIdsWithImages.has(idProduto));
+  return uniqueProductIds.filter((idProduto) => !productIdsWithValidImages.has(idProduto));
 }
 
 function getConfig(): Config {
@@ -523,6 +525,8 @@ async function getExistingOrdersByProduct(productIds: number[]): Promise<Existin
         SELECT id_produto, ordem_imagem
         FROM imagens_produtos
         WHERE id_produto IN (${placeholders})
+          AND url_imagem IS NOT NULL
+          AND TRIM(url_imagem) <> ''
       `,
       chunk
     )) as Array<{ id_produto: number; ordem_imagem: number }>;
@@ -954,13 +958,16 @@ async function withRetry<T>(config: Config, label: string, task: (attempt: numbe
 async function insertImageRow(image: FtpImage, publicUrl: string) {
   const result = (await query(
     `
-      INSERT IGNORE INTO imagens_produtos (id_produto, url_imagem, ordem_imagem)
+      INSERT INTO imagens_produtos (id_produto, url_imagem, ordem_imagem)
       VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        url_imagem = IF(url_imagem IS NULL OR TRIM(url_imagem) = '', VALUES(url_imagem), url_imagem),
+        ordem_imagem = VALUES(ordem_imagem)
     `,
     [image.idProduto, publicUrl, image.ordemImagem]
   )) as { affectedRows: number };
 
-  return result.affectedRows === 1;
+  return result.affectedRows > 0;
 }
 
 function isDuplicateOrderError(error: unknown) {
@@ -1263,6 +1270,7 @@ async function main() {
   let run = 1;
 
   results.push(await runImportOnce(config, run, allProductIds, '1-varredura-todos-produtos'));
+  const reachedMaxRuns = () => config.maxRuns > 0 && results.length >= config.maxRuns;
 
   let productsWithoutImages = await getProductIdsWithoutImages(allProductIds);
   log('Primeira varredura concluida', {
@@ -1271,7 +1279,7 @@ async function main() {
     listaTruncada: productsWithoutImages.length > 100,
   });
 
-  if (productsWithoutImages.length) {
+  if (productsWithoutImages.length && !reachedMaxRuns()) {
     run += 1;
     if (config.autoRepeatDelayMs > 0) {
       log('Intervalo antes da segunda revisao', { aguardarMs: config.autoRepeatDelayMs });
@@ -1288,12 +1296,13 @@ async function main() {
     listaTruncada: productsWithoutImages.length > 100,
   });
 
-  if (productsWithoutImages.length) {
+  if (productsWithoutImages.length && !reachedMaxRuns()) {
     log('Iniciando revisao individual dos produtos ainda sem imagem', {
       produtos: productsWithoutImages.length,
     });
 
     for (const idProduto of productsWithoutImages) {
+      if (reachedMaxRuns()) break;
       run += 1;
       results.push(await runImportOnce(config, run, [idProduto], '3-revisao-individual'));
     }

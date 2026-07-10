@@ -1,0 +1,62 @@
+process.env.PRODUTO_IMAGES_PRODUCT_IDS = [
+  131,
+  1807,
+  1872,
+  2313,
+  2872,
+  3089,
+  5027,
+  5070,
+  5336,
+  5351,
+  5355,
+  5443,
+  5948,
+  6431,
+  6888,
+  7198,
+  7618,
+  8018,
+  8035,
+  8036,
+  8038,
+  8041,
+  8043,
+  8129,
+  8146,
+  8147,
+  8148,
+  8149,
+  8150,
+  8151,
+  8152,
+  8160,
+  8161,
+  8162,
+  8163,
+  8164,
+  8165,
+  8166,
+  8169,
+  8170,
+  8171,
+  8172,
+  8173,
+  8174,
+].join(',');
+
+process.env.PRODUTO_IMAGES_USE_PRODUCT_IDS_JSON = 'false';
+process.env.PRODUTO_IMAGES_DIRECT_PROBE_ONLY = 'true';
+process.env.PRODUTO_IMAGES_REQUIRE_PRODUCT_EXISTS = 'true';
+process.env.PRODUTO_IMAGES_PROBE_CONCURRENCY = '1';
+process.env.PRODUTO_IMAGES_CONCURRENCY = '1';
+process.env.PRODUTO_IMAGES_PROBE_MAX_ORDER = '10';
+process.env.PRODUTO_IMAGES_PROBE_EMPTY_MAX_ORDER = '2';
+process.env.PRODUTO_IMAGES_PROBE_STOP_AFTER_MISSES = '2';
+process.env.PRODUTO_IMAGES_BATCH_SIZE = '50';
+process.env.PRODUTO_IMAGES_BATCH_PAUSE_MS = '1000';
+process.env.PRODUTO_IMAGES_MAX_RUNS = '1';
+process.env.PRODUTO_IMAGES_AUTO_REPEAT = 'false';
+process.env.PRODUTO_IMAGES_AUTO_REPEAT_DELAY_MS = '0';
+
+import './importProdutoImages';

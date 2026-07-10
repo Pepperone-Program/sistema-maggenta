@@ -159,6 +159,8 @@ Todos os inputs são validados com Joi. Erros de validação retornam:
 ## Performance
 
 - Connection pooling do MySQL2
+- Pool padrao: 30 conexoes simultaneas (`DB_CONNECTION_LIMIT=30`)
+- Fila padrao do pool: 300 requisicoes aguardando conexao (`DB_QUEUE_LIMIT=300`)
 - Queries otimizadas com índices
 - Paginação em listas
 - Busca com LIKE eficiente

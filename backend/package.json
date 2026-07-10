@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "import:produto-images": "tsx src/scripts/importProdutoImages.ts",
+    "import:produto-images:sem-imagem": "tsx src/scripts/importProdutoImagesIdsSemImagem.ts",
     "import:banner-images": "tsx src/scripts/importBannerImages.ts",
     "catalog:pdf": "tsx src/scripts/generateProductCatalogPdf.ts",
     "catalog:maggenta:pdf": "tsx src/scripts/generateMaggentaProductCatalogPdf.ts",

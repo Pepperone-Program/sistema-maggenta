@@ -49,7 +49,7 @@ export const orcamentoSchema = Joi.object({
   site: Joi.string().allow(null, ''),
   email: Joi.string().trim().lowercase().email().required(),
   obs: Joi.string().allow(null, ''),
-  contato: Joi.string().trim().max(100).required(),
+  contato: Joi.string().trim().max(100).allow(null, ''),
   nivel: Joi.string().allow(null, ''),
   entrega: Joi.string().allow(null, ''),
   cnpj_cpf: Joi.string().max(30).allow(null, ''),

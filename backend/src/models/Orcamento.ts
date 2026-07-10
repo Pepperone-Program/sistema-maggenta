@@ -16,6 +16,9 @@ export class OrcamentoModel {
       return text ? text : null;
     };
     const requiredText = (value: unknown): string => String(value ?? '').trim();
+    const email = requiredText(data.email);
+    const contato = optionalText(data.contato);
+    const fantasia = optionalText(data.fantasia) || contato || email;
 
     const sql = `
       INSERT INTO orcamentos (
@@ -33,7 +36,7 @@ export class OrcamentoModel {
     const values = [
       empresaId,
       data.data_orcamento || new Date(),
-      optionalText(data.fantasia) || requiredText(data.contato),
+      fantasia,
       optionalText(data.endereco) || '',
       optionalText(data.endereco_n),
       optionalText(data.endereco_compl),
@@ -45,9 +48,9 @@ export class OrcamentoModel {
       optionalText(data.tel) || '',
       optionalText(data.tel2),
       optionalText(data.site),
-      requiredText(data.email),
+      email,
       optionalText(data.obs),
-      requiredText(data.contato),
+      contato || '',
       optionalText(data.id_condicao),
       optionalText(data.id_vendedor),
       data.frete || 'E',

@@ -61,7 +61,7 @@ export interface CreateOrcamentoDTO {
   site?: string;
   email: string;
   obs?: string;
-  contato: string;
+  contato?: string;
   id_condicao?: string;
   id_vendedor?: string;
   frete?: string;

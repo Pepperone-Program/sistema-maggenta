@@ -26,7 +26,10 @@ const toPositiveInt = (value: string | undefined, fallback: number): number => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const connectionLimit = toPositiveInt(process.env.DB_CONNECTION_LIMIT, 5);
+const DEFAULT_DB_CONNECTION_LIMIT = 30;
+const DEFAULT_DB_QUEUE_LIMIT = 300;
+
+const connectionLimit = toPositiveInt(process.env.DB_CONNECTION_LIMIT, DEFAULT_DB_CONNECTION_LIMIT);
 const maxIdle = Math.min(toPositiveInt(process.env.DB_MAX_IDLE, connectionLimit), connectionLimit);
 const readRetryAttempts = toPositiveInt(process.env.DB_READ_RETRY_ATTEMPTS, 2);
 const readRetryDelayMs = toPositiveInt(process.env.DB_READ_RETRY_DELAY_MS, 150);
@@ -41,7 +44,7 @@ const config: mysql.PoolOptions = {
   connectionLimit,
   maxIdle,
   idleTimeout: toPositiveInt(process.env.DB_IDLE_TIMEOUT_MS, 60000),
-  queueLimit: toPositiveInt(process.env.DB_QUEUE_LIMIT, 100),
+  queueLimit: toPositiveInt(process.env.DB_QUEUE_LIMIT, DEFAULT_DB_QUEUE_LIMIT),
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
   connectTimeout: toPositiveInt(process.env.DB_CONNECT_TIMEOUT_MS, 10000),

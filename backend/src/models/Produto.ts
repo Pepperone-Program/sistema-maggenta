@@ -9,6 +9,19 @@ import type {
 } from '@/types/produto';
 
 export class ProdutoModel {
+  static async findAllForXmlFeed(empresaId: number): Promise<Produto[]> {
+    return (await query(
+      `
+        SELECT *
+        FROM produtos
+        WHERE id_empresa = ?
+          AND site = 'S'
+        ORDER BY id_produto ASC
+      `,
+      [empresaId]
+    )) as Produto[];
+  }
+
   static async findAllForSpreadsheet(empresaId: number): Promise<ProdutoExportacao[]> {
     return (await query(
       `

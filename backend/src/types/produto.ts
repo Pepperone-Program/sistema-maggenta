@@ -51,6 +51,14 @@ export interface ProdutoCategoria {
   categoria: string;
 }
 
+export interface ProdutoExportacao {
+  codigo: string;
+  produto: string;
+  descricao: string | null;
+  quantidade_minima: string | null;
+  url_imagem: string | null;
+}
+
 export interface CreateProdutoDTO {
   id_tipo_produto: number;
   produto: string;

@@ -2,6 +2,7 @@ import { OrcamentoModel } from '@models/Orcamento';
 import { OrcamentoItemModel } from '@models/OrcamentoItem';
 import { OrcamentoEmailService } from '@services/OrcamentoEmailService';
 import { OrcamentoNotificationService } from '@services/OrcamentoNotificationService';
+import { BrevoConversionService } from '@services/BrevoConversionService';
 import type { Orcamento, CreateOrcamentoDTO, UpdateOrcamentoDTO } from '@/types/orcamento';
 import type { OrcamentoItem, CreateOrcamentoItemDTO } from '@/types/orcamento-item';
 import { throwError } from '@utils/helpers';
@@ -72,6 +73,14 @@ export class OrcamentoService {
     } catch (error) {
       console.error('[OrcamentoService] Falha ao enviar email de orcamento', error);
     }
+
+    BrevoConversionService.registerQuote(
+      data.email,
+      id,
+      typeof data.data_orcamento === 'string' ? data.data_orcamento : undefined
+    ).catch((error) => {
+      console.error('[OrcamentoService] Falha inesperada ao processar conversao Brevo', error);
+    });
 
     if (!orcamento) {
       throwError('CREATE_FAILED', 'Falha ao criar orçamento', 500);

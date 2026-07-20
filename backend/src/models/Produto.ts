@@ -5,9 +5,35 @@ import type {
   ProdutoImagem,
   CreateProdutoDTO,
   UpdateProdutoDTO,
+  ProdutoExportacao,
 } from '@/types/produto';
 
 export class ProdutoModel {
+  static async findAllForSpreadsheet(empresaId: number): Promise<ProdutoExportacao[]> {
+    return (await query(
+      `
+        SELECT
+          p.codigo,
+          p.produto,
+          p.descricao,
+          p.quantidade_minima,
+          (
+            SELECT ip.url_imagem
+            FROM imagens_produtos ip
+            WHERE ip.id_produto = p.id_produto
+              AND ip.ordem_imagem = 1
+            ORDER BY ip.id_imagem ASC
+            LIMIT 1
+          ) AS url_imagem
+        FROM produtos p
+        WHERE p.id_empresa = ?
+          AND p.site = 'S'
+        ORDER BY p.produto ASC, p.id_produto ASC
+      `,
+      [empresaId]
+    )) as ProdutoExportacao[];
+  }
+
   static async create(
     empresaId: number,
     data: CreateProdutoDTO

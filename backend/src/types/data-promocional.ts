@@ -12,6 +12,10 @@ export interface DataPromocional {
 export interface DataPromocionalProduto {
   id_data_promocional: number;
   id_produto: number;
+  codigo?: string;
+  produto?: string;
+  habilitado?: HabilitadoFlag;
+  vinculado?: boolean;
 }
 
 export interface CreateDataPromocionalDTO {

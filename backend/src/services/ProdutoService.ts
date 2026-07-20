@@ -2,6 +2,7 @@ import { ProdutoModel } from '@models/Produto';
 import { SubcategoriaService } from '@services/CategoriaService';
 import type { Produto, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produto';
 import { throwError } from '@utils/helpers';
+import ExcelJS from 'exceljs';
 
 type SiteSearchResult =
   | {
@@ -18,6 +19,51 @@ type SiteSearchResult =
     };
 
 export class ProdutoService {
+  static async gerarPlanilhaProdutosSite(empresaId: number): Promise<Buffer> {
+    const produtos = await ProdutoModel.findAllForSpreadsheet(empresaId);
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Maggenta Admin';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Produtos do site', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+    worksheet.columns = [
+      { header: 'Código do Produto', key: 'codigo', width: 22 },
+      { header: 'Produto', key: 'produto', width: 45 },
+      { header: 'Descrição do Produto', key: 'descricao', width: 70 },
+      { header: 'Valor Aproximado', key: 'valor_aproximado', width: 20 },
+      { header: 'Cor', key: 'cor', width: 20 },
+      { header: 'Quantidade Mínima', key: 'quantidade_minima', width: 20 },
+      { header: 'URL da Imagem', key: 'url_imagem', width: 85 },
+    ];
+
+    for (const produto of produtos) {
+      worksheet.addRow({
+        codigo: produto.codigo || '',
+        produto: produto.produto || '',
+        descricao: produto.descricao || '',
+        valor_aproximado: '',
+        cor: '',
+        quantidade_minima: produto.quantidade_minima || '',
+        url_imagem: produto.url_imagem || '',
+      });
+    }
+
+    const header = worksheet.getRow(1);
+    header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7C3AED' } };
+    header.alignment = { vertical: 'middle' };
+    header.height = 24;
+    worksheet.autoFilter = { from: 'A1', to: 'G1' };
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) row.alignment = { vertical: 'top', wrapText: true };
+    });
+
+    const data = await workbook.xlsx.writeBuffer();
+    return Buffer.from(data);
+  }
+
   private static async attachImages<T extends Produto>(produtos: T[]): Promise<T[]> {
     const imagesByProduct = await ProdutoModel.findImagesByProductIds(
       produtos.map((produto) => Number(produto.id_produto))

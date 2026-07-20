@@ -21,6 +21,12 @@ const upload = multer({
   },
 });
 
+router.get(
+  '/exportar/planilha',
+  authMiddleware,
+  ProdutoController.exportSpreadsheet
+);
+
 router.post(
   '/',
   validationMiddleware(productSchema),

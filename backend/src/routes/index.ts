@@ -15,8 +15,11 @@ import contatoRoutes from './contato';
 import newsletterRoutes from './newsletter';
 import siteTokenRoutes from './site-token';
 import cacheRoutes from './cache';
+import { FreeshopController } from '@controllers/FreeshopController';
 
 const router = Router();
+
+router.get('/api/freeshop.xml', FreeshopController.xml);
 
 router.use('/api/v1/produtos', produtosRoutes);
 router.use('/api/v1/orcamentos', orcamentosRoutes);

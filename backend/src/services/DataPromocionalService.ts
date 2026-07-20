@@ -175,12 +175,14 @@ export class DataPromocionalService {
   }
 
   static async listProdutos(
+    empresaId: number,
     dataPromocionalId: number,
     page: number = 1,
     limit: number = 100
   ): Promise<{ items: DataPromocionalProduto[]; total: number; page: number; limit: number }> {
     await this.getDataPromocionalById(dataPromocionalId);
     const { items, total } = await DataPromocionalModel.findProdutos(
+      empresaId,
       dataPromocionalId,
       page,
       limit

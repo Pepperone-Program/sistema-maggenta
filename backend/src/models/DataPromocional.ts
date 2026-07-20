@@ -186,6 +186,7 @@ export class DataPromocionalModel {
   }
 
   static async findProdutos(
+    empresaId: number,
     dataPromocionalId: number,
     page: number = 1,
     limit: number = 100
@@ -195,21 +196,30 @@ export class DataPromocionalModel {
     const countResult = await query(
       `
         SELECT COUNT(*) as total
-        FROM aux_datas_promocionais_produtos
-        WHERE id_data_promocional = ?
+        FROM produtos p
+        WHERE p.id_empresa = ?
       `,
-      [dataPromocionalId]
+      [empresaId]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
       `
-        SELECT id_data_promocional, id_produto
-        FROM aux_datas_promocionais_produtos
-        WHERE id_data_promocional = ?
-        ORDER BY id_produto ASC
+        SELECT
+          ? AS id_data_promocional,
+          p.id_produto,
+          p.codigo,
+          p.produto,
+          p.habilitado,
+          CASE WHEN adpp.id_produto IS NULL THEN FALSE ELSE TRUE END AS vinculado
+        FROM produtos p
+        LEFT JOIN aux_datas_promocionais_produtos adpp
+          ON adpp.id_produto = p.id_produto
+         AND adpp.id_data_promocional = ?
+        WHERE p.id_empresa = ?
+        ORDER BY p.produto ASC, p.id_produto ASC
         LIMIT ? OFFSET ?
       `,
-      [dataPromocionalId, safeLimit, (safePage - 1) * safeLimit]
+      [dataPromocionalId, dataPromocionalId, empresaId, safeLimit, (safePage - 1) * safeLimit]
     );
     return { items: items as DataPromocionalProduto[], total };
   }

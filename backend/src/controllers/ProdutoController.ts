@@ -10,6 +10,23 @@ async function invalidateProductCaches(): Promise<void> {
 }
 
 export class ProdutoController {
+  static async exportSpreadsheet(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const empresaId = req.user?.id_empresa || 1;
+      const arquivo = await ProdutoService.gerarPlanilhaProdutosSite(empresaId);
+      const data = new Date().toISOString().slice(0, 10);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="produtos-site-${data}.xlsx"`);
+      res.setHeader('Content-Length', arquivo.length);
+      res.setHeader('Cache-Control', 'no-store');
+      res.status(200).send(arquivo);
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'EXPORT_ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const empresaId = req.user?.id_empresa || 1;

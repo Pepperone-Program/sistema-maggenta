@@ -12,6 +12,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ProductImagesPanel } from "./product-images-panel";
 import { StatusBadge } from "./status-badge";
+import { getStoredToken } from "@/lib/api";
 
 type Row = Record<string, unknown>;
 
@@ -495,6 +496,7 @@ export function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modalProduct, setModalProduct] = useState<Row | null | undefined>(undefined);
+  const [exporting, setExporting] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -521,6 +523,38 @@ export function ProductsPage() {
     await loadData();
   }
 
+  async function handleExport() {
+    setExporting(true);
+    setError("");
+    try {
+      const token = getStoredToken();
+      const response = await fetch("/api/v1/produtos/exportar/planilha", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.message || "Falha ao gerar planilha");
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || "produtos-site.xlsx";
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao gerar planilha");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
@@ -532,9 +566,14 @@ export function ProductsPage() {
               Edite dados, imagens e vinculos comerciais em um unico modal.
             </p>
           </div>
-          <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalProduct(null)} type="button">
-            Novo produto
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button className="rounded-md border border-primary px-4 py-3 text-sm font-bold text-primary disabled:opacity-60" disabled={exporting} onClick={() => handleExport()} type="button">
+              {exporting ? "Gerando planilha..." : "Exportar planilha"}
+            </button>
+            <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalProduct(null)} type="button">
+              Novo produto
+            </button>
+          </div>
         </div>
       </section>
 

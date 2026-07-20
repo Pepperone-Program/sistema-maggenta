@@ -164,3 +164,29 @@ Todos os inputs são validados com Joi. Erros de validação retornam:
 - Queries otimizadas com índices
 - Paginação em listas
 - Busca com LIKE eficiente
+# Conversoes de campanhas Brevo
+
+Ao criar um orcamento, o backend consulta as campanhas do contato na Brevo e registra o evento
+`orcamento_solicitado` associado a campanha mais recente (prioridade: clique, abertura, entrega e envio).
+
+Variaveis de ambiente:
+
+- `BREVO_API_KEY`: chave da API v3. Sem ela, a integracao fica desativada.
+- `BREVO_CONVERSION_EVENT`: nome do evento customizado (padrao: `orcamento_solicitado`).
+
+Na Brevo, use esse evento como meta/gatilho de uma automacao para contabilizar solicitacoes de
+orcamento. O evento inclui `orcamento_id`, `campaign_id`, `attribution_event_time` e
+`conversion_type` nas propriedades.
+
+Antes de contabilizar, crie e ative em `Analytics > Conversions` uma metrica vinculada exatamente
+ao evento configurado em `BREVO_CONVERSION_EVENT`. Isso nao pode ser criado pela API publica.
+A Brevo atribui a conversao somente quando o contato abriu ou clicou uma campanha nos ultimos 7 dias.
+
+Para diagnosticar e registrar manualmente uma conversao considerando as tres campanhas enviadas mais recentes:
+
+```bash
+npm run brevo:convert:last3 -- --email cliente@exemplo.com --dry-run
+npm run brevo:convert:last3 -- --email cliente@exemplo.com
+```
+
+Opcoes: `--event nome_do_evento` e `--conversion-id identificador-unico`.

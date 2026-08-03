@@ -546,32 +546,26 @@ export class ProdutoModel {
     page: number = 1,
     limit: number = 100
   ): Promise<{ items: Produto[]; total: number }> {
-    const words = term
-      .split(/\s+/)
-      .map((word) => word.trim())
-      .filter(Boolean);
-    const productConditions = words.length
-      ? words.map(() => 'produto LIKE ?').join(' AND ')
-      : 'produto LIKE ?';
-    const searchValues = words.length ? words.map((word) => `%${word}%`) : [`%${term}%`];
-    let sql = `
-      SELECT *
+    const fullTextMatch = 'MATCH (produto, descricao, obs) AGAINST (?)';
+    const where = `
       FROM produtos
       WHERE id_empresa = ?
         AND site = 'S'
         AND habilitado = 'S'
-        AND ${productConditions}
+        AND ${fullTextMatch}
     `;
-    const values: any[] = [empresaId, ...searchValues];
+    const filterValues: any[] = [empresaId, term];
 
     const countResult = await query(
-      sql.replace('SELECT *', 'SELECT COUNT(*) as total'),
-      values
+      `SELECT COUNT(*) as total ${where}`,
+      filterValues
     );
     const total = (countResult as any[])[0].total;
 
     const offset = (page - 1) * limit;
-    sql += `
+    const sql = `
+      SELECT *
+      ${where}
       ORDER BY
         CASE
           WHEN codigo = ? THEN 0
@@ -580,10 +574,20 @@ export class ProdutoModel {
           WHEN produto LIKE ? THEN 3
           ELSE 5
         END,
+        ${fullTextMatch} DESC,
         data_modificacao DESC
       LIMIT ? OFFSET ?
     `;
-    values.push(term, term, term, `${term}%`, limit, offset);
+    const values = [
+      ...filterValues,
+      term,
+      term,
+      term,
+      `${term}%`,
+      term,
+      limit,
+      offset,
+    ];
 
     const items = await query(sql, values);
     return { items: items as Produto[], total };

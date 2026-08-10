@@ -192,6 +192,18 @@ export class ProdutoService {
       throwError('INVALID_SEARCH', 'Informe o termo de busca em q', 400);
     }
 
+    const exactCodeMatch = await ProdutoModel.findByExactCodeForSite(
+      empresaId,
+      normalizedTerm
+    );
+    if (exactCodeMatch) {
+      return {
+        match_exato_codigo: true,
+        id_produto: exactCodeMatch.id_produto,
+        codigo: exactCodeMatch.codigo,
+      };
+    }
+
     const { items, total } = await ProdutoModel.searchForSite(
       empresaId,
       normalizedTerm,

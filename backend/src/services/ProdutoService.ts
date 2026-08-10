@@ -192,37 +192,12 @@ export class ProdutoService {
       throwError('INVALID_SEARCH', 'Informe o termo de busca em q', 400);
     }
 
-    const exactCodeMatch =
-      (await ProdutoModel.searchByCodigoForSite(empresaId, normalizedTerm)) ||
-      (!normalizedTerm.toUpperCase().startsWith('')
-        ? await ProdutoModel.searchByCodigoForSite(empresaId, `${normalizedTerm}`)
-        : null);
-    if (exactCodeMatch) {
-      return {
-        match_exato_codigo: true,
-        id_produto: exactCodeMatch.id_produto,
-        codigo: exactCodeMatch.codigo,
-      };
-    }
-
-    let { items, total } = await ProdutoModel.searchForSite(
+    const { items, total } = await ProdutoModel.searchForSite(
       empresaId,
       normalizedTerm,
       page,
       limit
     );
-
-    if (total === 0) {
-      const codeSearchResult = await ProdutoModel.searchByCodigoLikeForSite(
-        empresaId,
-        normalizedTerm,
-        page,
-        limit
-      );
-
-      items = codeSearchResult.items;
-      total = codeSearchResult.total;
-    }
 
     const itemsWithImages = await this.attachImages(items);
 

@@ -135,7 +135,8 @@ export class ProdutoController {
     try {
       const empresaId = parseInt((req.query.empresaId as string) || '1', 10);
       const page = parseInt((req.query.page as string) || '1', 10);
-      const limit = parseInt((req.query.limit as string) || '100', 10);
+      const requestedLimit = parseInt((req.query.limit as string) || '4', 10);
+      const limit = Math.min(Math.max(requestedLimit || 4, 1), 4);
       const term = String(req.query.q || '');
 
       const result = await CacheService.getOrSet(

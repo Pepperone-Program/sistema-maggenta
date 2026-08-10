@@ -186,30 +186,37 @@ export class PublicoAlvoModel {
   }
 
   static async findProdutos(
+    empresaId: number,
     publicoAlvoId: number,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    search?: string
   ): Promise<{ items: PublicoAlvoProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
     const countResult = await query(
       `
         SELECT COUNT(*) as total
-        FROM aux_publicos_alvos_produtos
-        WHERE id_publico_alvo = ?
+        FROM produtos p
+        WHERE p.id_empresa = ?
+          ${search ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)' : ''}
       `,
-      [publicoAlvoId]
+      search ? [empresaId, `%${search}%`, `%${search}%`, search] : [empresaId]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
       `
-        SELECT id_publico_alvo, id_produto
-        FROM aux_publicos_alvos_produtos
-        WHERE id_publico_alvo = ?
-        ORDER BY id_produto ASC
+        SELECT ? AS id_publico_alvo, p.id_produto, p.codigo, p.produto, p.habilitado,
+          CASE WHEN app.id_produto IS NULL THEN FALSE ELSE TRUE END AS vinculado
+        FROM produtos p
+        LEFT JOIN aux_publicos_alvos_produtos app
+          ON app.id_produto = p.id_produto AND app.id_publico_alvo = ?
+        WHERE p.id_empresa = ?
+          ${search ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)' : ''}
+        ORDER BY vinculado DESC, p.produto ASC, p.id_produto ASC
         LIMIT ? OFFSET ?
       `,
-      [publicoAlvoId, safeLimit, (safePage - 1) * safeLimit]
+      [publicoAlvoId, publicoAlvoId, empresaId, ...(search ? [`%${search}%`, `%${search}%`, search] : []), safeLimit, (safePage - 1) * safeLimit]
     );
     return { items: items as PublicoAlvoProduto[], total };
   }

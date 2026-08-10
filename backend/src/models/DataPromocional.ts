@@ -189,7 +189,8 @@ export class DataPromocionalModel {
     empresaId: number,
     dataPromocionalId: number,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    search?: string
   ): Promise<{ items: DataPromocionalProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
@@ -198,8 +199,9 @@ export class DataPromocionalModel {
         SELECT COUNT(*) as total
         FROM produtos p
         WHERE p.id_empresa = ?
+          ${search ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)' : ''}
       `,
-      [empresaId]
+      search ? [empresaId, `%${search}%`, `%${search}%`, search] : [empresaId]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
@@ -216,10 +218,11 @@ export class DataPromocionalModel {
           ON adpp.id_produto = p.id_produto
          AND adpp.id_data_promocional = ?
         WHERE p.id_empresa = ?
-        ORDER BY p.produto ASC, p.id_produto ASC
+          ${search ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)' : ''}
+        ORDER BY vinculado DESC, p.produto ASC, p.id_produto ASC
         LIMIT ? OFFSET ?
       `,
-      [dataPromocionalId, dataPromocionalId, empresaId, safeLimit, (safePage - 1) * safeLimit]
+      [dataPromocionalId, dataPromocionalId, empresaId, ...(search ? [`%${search}%`, `%${search}%`, search] : []), safeLimit, (safePage - 1) * safeLimit]
     );
     return { items: items as DataPromocionalProduto[], total };
   }

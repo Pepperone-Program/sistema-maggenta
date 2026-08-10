@@ -457,7 +457,7 @@ export function QuotesPage() {
               setSearch(event.target.value);
               setPage(1);
             }}
-            placeholder="Buscar orçamentos por cliente, email ou contato"
+            placeholder="Buscar por ID, cliente, email ou contato"
             value={search}
           />
           <input aria-label="Filtrar orçamentos por data" className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => { setDate(event.target.value); setPage(1); }} type="date" value={date} />

@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/images/favicon.ico",
   },
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false, noimageindex: true },
+  },
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {

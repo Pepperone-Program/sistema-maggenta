@@ -43,12 +43,14 @@ export class OrcamentoController {
       const page = parseInt((req.query.page as string) || '1', 10);
       const limit = parseInt((req.query.limit as string) || '100', 10);
       const search = req.query.search as string | undefined;
+      const date = req.query.date as string | undefined;
 
       const result = await OrcamentoService.listOrcamentos(
         empresaId,
         page,
         limit,
-        search
+        search,
+        date
       );
 
       paginatedResponse(

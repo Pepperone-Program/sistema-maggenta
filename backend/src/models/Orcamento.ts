@@ -81,7 +81,8 @@ export class OrcamentoModel {
     empresaId: number,
     page: number = 1,
     limit: number = 100,
-    search?: string
+    search?: string,
+    date?: string
   ): Promise<{ items: Orcamento[]; total: number }> {
     let sql = 'SELECT * FROM orcamentos WHERE id_empresa = ?';
     const values: any[] = [empresaId];
@@ -90,6 +91,10 @@ export class OrcamentoModel {
       sql += ` AND (fantasia LIKE ? OR email LIKE ? OR contato LIKE ?)`;
       const searchPattern = `%${search}%`;
       values.push(searchPattern, searchPattern, searchPattern);
+    }
+    if (date) {
+      sql += ' AND DATE(data_orcamento) = ?';
+      values.push(date);
     }
 
     const countResult = await query(

@@ -10,7 +10,7 @@ import { useClickOutside } from "@/hooks/use-click-outside";
 import { NAV_DATA } from "../sidebar/data";
 import { useSidebarContext } from "../sidebar/sidebar-context";
 import { MenuIcon } from "./icons";
-import { Notification } from "./notification";
+import { apiRequest } from "@/lib/api";
 import { ThemeToggleSwitch } from "./theme-toggle";
 import { UserInfo } from "./user-info";
 
@@ -56,6 +56,7 @@ export function Header() {
   );
   const [search, setSearch] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const results = useMemo(() => {
     const term = normalizeSearch(search.trim());
 
@@ -166,7 +167,17 @@ export function Header() {
 
         <ThemeToggleSwitch />
 
-        <Notification />
+        <button
+          className="hidden rounded-md border border-stroke px-3 py-2 text-xs font-bold text-dark hover:border-primary hover:text-primary disabled:opacity-50 dark:border-dark-3 dark:text-white sm:block"
+          disabled={clearingCache}
+          onClick={async () => {
+            setClearingCache(true);
+            try { await apiRequest("/api/v1/cache/invalidate/all", { method: "POST" }); window.alert("Cache do site limpo com sucesso."); }
+            catch (error) { window.alert(error instanceof Error ? error.message : "Falha ao limpar o cache."); }
+            finally { setClearingCache(false); }
+          }}
+          type="button"
+        >{clearingCache ? "Limpando..." : "Limpar cache"}</button>
 
         <div className="shrink-0">
           <UserInfo />

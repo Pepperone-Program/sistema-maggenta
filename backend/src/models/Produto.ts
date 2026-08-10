@@ -474,7 +474,10 @@ export class ProdutoModel {
     limit: number = 100,
     search?: string,
     habilitado?: string,
-    site?: string
+    site?: string,
+    categoriaId?: number,
+    tipoProdutoId?: number,
+    subcategoriaId?: number
   ): Promise<{ items: Produto[]; total: number }> {
     let sql = 'SELECT * FROM produtos WHERE id_empresa = ?';
     const values: any[] = [empresaId];
@@ -495,6 +498,19 @@ export class ProdutoModel {
     if (site === 'S' || site === 'N') {
       sql += ' AND site = ?';
       values.push(site);
+    }
+
+    if (categoriaId) {
+      sql += ' AND EXISTS (SELECT 1 FROM aux_categorias_produtos acp WHERE acp.id_empresa = produtos.id_empresa AND acp.id_produto = produtos.id_produto AND acp.id_categoria = ?)';
+      values.push(categoriaId);
+    }
+    if (tipoProdutoId) {
+      sql += ' AND id_tipo_produto = ?';
+      values.push(tipoProdutoId);
+    }
+    if (subcategoriaId) {
+      sql += ' AND EXISTS (SELECT 1 FROM aux_subcategorias_produtos asp WHERE asp.id_empresa = produtos.id_empresa AND asp.id_produto = produtos.id_produto AND asp.id_subcategoria = ?)';
+      values.push(subcategoriaId);
     }
 
     const countResult = await query(

@@ -387,6 +387,8 @@ function QuoteViewModal({
 export function QuotesPage() {
   const [data, setData] = useState<PaginatedData<Quote> | null>(null);
   const [search, setSearch] = useState("");
+  const [date, setDate] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -402,6 +404,7 @@ export function QuotesPage() {
         page,
         limit: 12,
         search,
+        date,
       });
       setData(response);
     } catch (err) {
@@ -409,7 +412,16 @@ export function QuotesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, date]);
+
+  async function refreshWithoutCache() {
+    setRefreshing(true); setError("");
+    try {
+      await apiRequest("/api/v1/cache/invalidate/all", { method: "POST" });
+      await loadData();
+    } catch (err) { setError(err instanceof Error ? err.message : "Falha ao atualizar orçamentos"); }
+    finally { setRefreshing(false); }
+  }
 
   useEffect(() => {
     loadData();
@@ -425,17 +437,20 @@ export function QuotesPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
-        <div>
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+          <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">Comercial</p>
           <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">Orçamentos</h1>
           <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">Acompanhe propostas, contatos e produtos solicitados.</p>
+          </div>
+          <button className="rounded-md border border-primary px-4 py-2.5 text-sm font-bold text-primary disabled:opacity-50" disabled={refreshing || loading} onClick={refreshWithoutCache} type="button">{refreshing ? "Atualizando..." : "Atualizar e limpar cache"}</button>
         </div>
       </section>
 
       {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="border-b border-stroke p-4 dark:border-dark-3">
+        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 md:grid-cols-[1fr_220px]">
           <input
             className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white lg:max-w-xl"
             onChange={(event) => {
@@ -445,6 +460,7 @@ export function QuotesPage() {
             placeholder="Buscar orçamentos por cliente, email ou contato"
             value={search}
           />
+          <input aria-label="Filtrar orçamentos por data" className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => { setDate(event.target.value); setPage(1); }} type="date" value={date} />
         </div>
 
         <div className="overflow-x-auto">

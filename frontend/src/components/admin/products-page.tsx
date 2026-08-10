@@ -492,25 +492,36 @@ export function ProductsPage() {
   const [data, setData] = useState<PaginatedData<Row> | null>(null);
   const [search, setSearch] = useState("");
   const [site, setSite] = useState("");
+  const [filters, setFilters] = useState({ id_categoria: "", id_tipo_produto: "", id_subcategoria: "" });
+  const [filterOptions, setFilterOptions] = useState<{ categorias: Row[]; tipos: Row[]; subcategorias: Row[] }>({ categorias: [], tipos: [], subcategorias: [] });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modalProduct, setModalProduct] = useState<Row | null | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
 
+  useEffect(() => {
+    Promise.all([
+      fetchAllRows("/api/v1/categorias"),
+      fetchAllRows("/api/v1/tipos-produtos/habilitados"),
+      fetchAllRows("/api/v1/subcategorias"),
+    ]).then(([categorias, tipos, subcategorias]) => setFilterOptions({ categorias, tipos, subcategorias }))
+      .catch(() => setFilterOptions({ categorias: [], tipos: [], subcategorias: [] }));
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await listResource<Row>("/api/v1/produtos", { page, limit: 12, search, site });
+      const response = await listResource<Row>("/api/v1/produtos", { page, limit: 12, search, site, ...filters });
       setData(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao carregar produtos");
     } finally {
       setLoading(false);
     }
-  }, [page, search, site]);
+  }, [page, search, site, filters]);
 
   useEffect(() => {
     loadData();
@@ -580,7 +591,7 @@ export function ProductsPage() {
       {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-[1fr_180px]">
+        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-5">
           <input
             className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
@@ -602,6 +613,16 @@ export function ProductsPage() {
             <option value="S">Site: S</option>
             <option value="N">Site: N</option>
           </select>
+          {[
+            ["id_categoria", "Categoria", filterOptions.categorias, "id_categoria", "categoria"],
+            ["id_tipo_produto", "Tipo de produto", filterOptions.tipos, "id_tipo_produto", "tipo_produto"],
+            ["id_subcategoria", "Subcategoria", filterOptions.subcategorias, "id_subcategoria", "subcategoria"],
+          ].map(([key, label, options, idField, nameField]) => (
+            <select key={key as string} className="rounded-md border border-stroke bg-gray-2 px-3 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" value={filters[key as keyof typeof filters]} onChange={(event) => { setFilters((current) => ({ ...current, [key as string]: event.target.value })); setPage(1); }}>
+              <option value="">{String(label)}: todos</option>
+              {(options as Row[]).map((option) => <option key={String(option[idField as string])} value={String(option[idField as string])}>{String(option[nameField as string] || `#${option[idField as string]}`)}</option>)}
+            </select>
+          ))}
         </div>
 
         <div className="overflow-x-auto">

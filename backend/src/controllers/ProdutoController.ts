@@ -71,6 +71,9 @@ export class ProdutoController {
       const search = req.query.search as string | undefined;
       const habilitado = req.query.habilitado as string | undefined;
       const site = req.query.site as string | undefined;
+      const categoriaId = Number(req.query.id_categoria) || undefined;
+      const tipoProdutoId = Number(req.query.id_tipo_produto) || undefined;
+      const subcategoriaId = Number(req.query.id_subcategoria) || undefined;
 
       const result = await CacheService.getOrSet(
         CacheService.buildKey('produtos', `${empresaId}:${req.originalUrl}`),
@@ -81,7 +84,10 @@ export class ProdutoController {
             limit,
             search,
             habilitado,
-            site
+            site,
+            categoriaId,
+            tipoProdutoId,
+            subcategoriaId
           )
       );
 

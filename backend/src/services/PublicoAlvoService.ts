@@ -170,15 +170,19 @@ export class PublicoAlvoService {
   }
 
   static async listProdutos(
+    empresaId: number,
     publicoAlvoId: number,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    search?: string
   ): Promise<{ items: PublicoAlvoProduto[]; total: number; page: number; limit: number }> {
     await this.getPublicoAlvoById(publicoAlvoId);
     const { items, total } = await PublicoAlvoModel.findProdutos(
+      empresaId,
       publicoAlvoId,
       page,
-      limit
+      limit,
+      search
     );
 
     return { items, total, page, limit };

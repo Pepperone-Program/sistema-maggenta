@@ -11,6 +11,10 @@ export interface PublicoAlvo {
 export interface PublicoAlvoProduto {
   id_publico_alvo: number;
   id_produto: number;
+  codigo?: string;
+  produto?: string;
+  habilitado?: HabilitadoFlag;
+  vinculado?: boolean;
 }
 
 export interface CreatePublicoAlvoDTO {

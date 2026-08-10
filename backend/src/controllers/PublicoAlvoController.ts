@@ -101,9 +101,11 @@ export class PublicoAlvoController {
   static async listProdutos(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const result = await PublicoAlvoService.listProdutos(
+        getEmpresaId(req),
         parseInt(req.params.id, 10),
         getPage(req),
-        getLimit(req)
+        getLimit(req),
+        req.query.search as string | undefined
       );
 
       paginatedResponse(

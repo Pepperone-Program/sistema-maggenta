@@ -1,4 +1,4 @@
-export type FieldType = "text" | "number" | "email" | "date" | "select" | "textarea";
+export type FieldType = "text" | "number" | "email" | "url" | "date" | "select" | "textarea";
 
 export type ResourceField = {
   name: string;
@@ -6,6 +6,8 @@ export type ResourceField = {
   type?: FieldType;
   required?: boolean;
   readonly?: boolean;
+  maxLength?: number;
+  emptyAsNull?: boolean;
   options?: { label: string; value: string }[];
 };
 
@@ -19,6 +21,7 @@ export type ResourceConfig = {
   formFields: ResourceField[];
   defaultValues?: Record<string, string | number>;
   imageManager?: boolean;
+  showStatusFilter?: boolean;
 };
 
 export type ProdutoRanking = {

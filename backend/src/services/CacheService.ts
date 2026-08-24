@@ -22,6 +22,7 @@ const productContentNamespaces = [
 const knownNamespaces = [
   ...productContentNamespaces,
   'banners',
+  'landing-pages',
 ] as const;
 
 const getRedisConfig = (): { url?: string; token?: string } => ({

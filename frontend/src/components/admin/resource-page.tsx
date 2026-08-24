@@ -17,7 +17,7 @@ type Row = Record<string, unknown>;
 function normalizeValue(field: ResourceField, value: FormDataEntryValue | null) {
   const raw = String(value ?? "").trim();
 
-  if (raw === "") return undefined;
+  if (raw === "") return field.emptyAsNull ? null : undefined;
   if (field.type === "number") return Number(raw);
   return raw;
 }
@@ -54,6 +54,7 @@ function FieldControl({
       <textarea
         className={`${baseClass} min-h-24 resize-y`}
         defaultValue={defaultValue}
+        maxLength={field.maxLength}
         name={field.name}
         required={field.required}
       />
@@ -81,6 +82,7 @@ function FieldControl({
     <input
       className={baseClass}
       defaultValue={defaultValue}
+      maxLength={field.maxLength}
       name={field.name}
       placeholder={field.label}
       required={field.required}
@@ -221,18 +223,20 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
               placeholder={config.searchPlaceholder}
               value={search}
             />
-            <select
-              className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
-              onChange={(event) => {
-                setHabilitado(event.target.value);
-                setPage(1);
-              }}
-              value={habilitado}
-            >
-              <option value="">Todos</option>
-              <option value="S">Ativos</option>
-              <option value="N">Inativos</option>
-            </select>
+            {config.showStatusFilter !== false && (
+              <select
+                className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                onChange={(event) => {
+                  setHabilitado(event.target.value);
+                  setPage(1);
+                }}
+                value={habilitado}
+              >
+                <option value="">Todos</option>
+                <option value="S">Ativos</option>
+                <option value="N">Inativos</option>
+              </select>
+            )}
           </div>
 
           <div className="overflow-x-auto">

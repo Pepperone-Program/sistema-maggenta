@@ -13,6 +13,28 @@ const bannerTipoOptions = [
 ];
 
 export const resources: Record<string, ResourceConfig> = {
+  "landing-pages": {
+    title: "Landing pages",
+    description: "Gerencie os metadados e enderecos das landing pages publicados pelo site.",
+    endpoint: "/api/v1/landing-pages",
+    idField: "id",
+    searchPlaceholder: "Buscar por titulo, descricao, palavras-chave ou URL",
+    showStatusFilter: false,
+    columns: [
+      { name: "id", label: "ID" },
+      { name: "title", label: "Titulo" },
+      { name: "keywords", label: "Palavras-chave" },
+      { name: "url", label: "URL" },
+      { name: "data_lp", label: "Data" },
+    ],
+    formFields: [
+      { name: "title", label: "Titulo", maxLength: 150, required: true },
+      { name: "description", label: "Descricao", type: "textarea", maxLength: 300, emptyAsNull: true },
+      { name: "keywords", label: "Palavras-chave", maxLength: 250, required: true },
+      { name: "url", label: "URL", type: "url", maxLength: 1000, required: true },
+      { name: "data_lp", label: "Data da landing page", type: "date", emptyAsNull: true },
+    ],
+  },
   produtos: {
     title: "Produtos",
     description: "Gerencie catalogo, codigos, status comerciais e metadados dos produtos.",

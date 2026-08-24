@@ -87,6 +87,12 @@ export const NAV_DATA: NavSection[] = [
         icon: Icons.Table,
         items: [],
       },
+      {
+        title: "Landing pages",
+        url: "/landing-pages",
+        icon: Icons.Table,
+        items: [],
+      },
     ],
   },
   {

@@ -164,6 +164,14 @@ export const bannerSchema = Joi.object({
   tamanho_tela: Joi.string().valid('desktop', 'mobile').allow(null, ''),
 });
 
+export const landingPageSchema = Joi.object({
+  title: Joi.string().trim().max(150).required(),
+  description: Joi.string().trim().max(300).allow(null, ''),
+  keywords: Joi.string().trim().max(250).required(),
+  url: Joi.string().trim().max(1000).uri({ scheme: ['http', 'https'] }).required(),
+  data_lp: Joi.date().iso().allow(null, ''),
+});
+
 export const clienteSchema = Joi.object({
   id_cliente: Joi.number().integer().positive().optional(),
   pessoa: Joi.string().valid('F', 'J').allow(null, '').default('J'),

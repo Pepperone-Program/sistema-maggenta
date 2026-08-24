@@ -8,6 +8,7 @@ import type {
 const columns = `
   ID AS id,
   TITLE AS title,
+  SLUG AS slug,
   DESCRIPTION AS description,
   KEYWORDS AS keywords,
   URL AS url,
@@ -17,9 +18,9 @@ const columns = `
 export class LandingPageModel {
   static async create(data: CreateLandingPageDTO): Promise<number> {
     const result = await query(
-      `INSERT INTO landing_pages (TITLE, DESCRIPTION, KEYWORDS, URL, DATA_LP)
-       VALUES (?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
-      [data.title, data.description || null, data.keywords, data.url, data.data_lp || null]
+      `INSERT INTO landing_pages (TITLE, SLUG, DESCRIPTION, KEYWORDS, URL, DATA_LP)
+       VALUES (?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
+      [data.title, data.slug, data.description || null, data.keywords, data.url, data.data_lp || null]
     );
 
     return (result as { insertId: number }).insertId;
@@ -39,10 +40,10 @@ export class LandingPageModel {
     search?: string
   ): Promise<{ items: LandingPage[]; total: number }> {
     const where = search
-      ? 'WHERE TITLE LIKE ? OR DESCRIPTION LIKE ? OR KEYWORDS LIKE ? OR URL LIKE ?'
+      ? 'WHERE TITLE LIKE ? OR SLUG LIKE ? OR DESCRIPTION LIKE ? OR KEYWORDS LIKE ? OR URL LIKE ?'
       : '';
     const pattern = search ? `%${search}%` : undefined;
-    const values = pattern ? [pattern, pattern, pattern, pattern] : [];
+    const values = pattern ? [pattern, pattern, pattern, pattern, pattern] : [];
     const countRows = await query(
       `SELECT COUNT(*) AS total FROM landing_pages ${where}`,
       values
@@ -66,6 +67,7 @@ export class LandingPageModel {
     const allowed = new Map<keyof UpdateLandingPageDTO, string>([
       ['title', 'TITLE'],
       ['description', 'DESCRIPTION'],
+      ['slug', 'SLUG'],
       ['keywords', 'KEYWORDS'],
       ['url', 'URL'],
       ['data_lp', 'DATA_LP'],

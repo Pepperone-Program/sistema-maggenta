@@ -166,6 +166,14 @@ export const bannerSchema = Joi.object({
 
 export const landingPageSchema = Joi.object({
   title: Joi.string().trim().max(150).required(),
+  slug: Joi.string()
+    .trim()
+    .max(200)
+    .pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'slug deve conter apenas letras minusculas, numeros e hifens',
+    }),
   description: Joi.string().trim().max(300).allow(null, ''),
   keywords: Joi.string().trim().max(250).required(),
   url: Joi.string().trim().max(1000).uri({ scheme: ['http', 'https'] }).required(),

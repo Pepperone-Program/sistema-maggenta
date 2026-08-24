@@ -2,6 +2,7 @@ export interface LandingPage {
   id: number;
   title: string;
   description: string | null;
+  slug: string;
   keywords: string;
   url: string;
   data_lp: string | Date | null;
@@ -10,6 +11,7 @@ export interface LandingPage {
 export interface CreateLandingPageDTO {
   title: string;
   description?: string | null;
+  slug: string;
   keywords: string;
   url: string;
   data_lp?: string | null;

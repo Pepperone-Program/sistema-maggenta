@@ -9,7 +9,8 @@ export class OrcamentoController {
       const empresaId = req.user?.id_empresa || 1;
       const orcamento = await OrcamentoService.createOrcamento(
         empresaId,
-        req.body
+        req.body,
+        req.header('Idempotency-Key')
       );
 
       successResponse(res, orcamento, 'Orçamento criado com sucesso', 201);
@@ -107,7 +108,7 @@ export class OrcamentoController {
       const item = await OrcamentoService.addItemToOrcamento(
         empresaId,
         parseInt(id, 10),
-        req.body
+        { ...req.body, id_orcamento: parseInt(id, 10) }
       );
 
       successResponse(res, item, 'Item adicionado ao orçamento com sucesso', 201);

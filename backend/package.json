@@ -15,10 +15,12 @@
     "catalog:pdf": "tsx src/scripts/generateProductCatalogPdf.ts",
     "catalog:maggenta:pdf": "tsx src/scripts/generateMaggentaProductCatalogPdf.ts",
     "brevo:convert:last3": "tsx src/scripts/registerBrevoConversions.ts",
+    "db:ensure-orcamento-idempotency": "tsx src/scripts/ensureOrcamentoIdempotency.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:orcamento-idempotency": "tsx src/tests/orcamentoIdempotency.test.ts"
   },
   "dependencies": {
     "axios": "^1.6.2",

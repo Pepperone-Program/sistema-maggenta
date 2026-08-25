@@ -82,6 +82,7 @@ export interface CreateOrcamentoDTO {
   cnpj_cpf?: string;
   documento?: string;
   empresa?: string;
+  idempotency_key?: string;
 }
 
 export type UpdateOrcamentoDTO = Partial<CreateOrcamentoDTO>;

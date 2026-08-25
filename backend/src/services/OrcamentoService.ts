@@ -6,12 +6,18 @@ import { BrevoConversionService } from '@services/BrevoConversionService';
 import type { Orcamento, CreateOrcamentoDTO, UpdateOrcamentoDTO } from '@/types/orcamento';
 import type { OrcamentoItem, CreateOrcamentoItemDTO } from '@/types/orcamento-item';
 import { throwError } from '@utils/helpers';
+import { quoteIdempotencyFingerprint, quoteItemFingerprint } from '@utils/orcamentoIdempotency';
 
 export class OrcamentoService {
   private static readonly quoteNotificationTimers = new Map<number, NodeJS.Timeout>();
   private static readonly quoteNotificationDelayMs = Number(
     process.env.ORCAMENTO_EMAIL_DEBOUNCE_MS || 10000
   );
+
+  private static positiveSeconds(value: string | undefined, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : fallback;
+  }
 
   private static async notifyQuote(data: CreateOrcamentoDTO, quoteNumber?: number): Promise<boolean> {
     try {
@@ -54,15 +60,41 @@ export class OrcamentoService {
 
   static async createOrcamento(
     empresaId: number,
-    data: CreateOrcamentoDTO
+    data: CreateOrcamentoDTO,
+    idempotencyKey?: string
   ): Promise<Orcamento> {
     let id: number;
     let orcamento: Orcamento | null = null;
 
     try {
-      const createdId = await OrcamentoModel.create(empresaId, data);
-      id = createdId;
-      orcamento = await OrcamentoModel.findById(empresaId, createdId);
+      const identity = quoteIdempotencyFingerprint(empresaId, data, idempotencyKey);
+      const fallbackTtl = this.positiveSeconds(process.env.ORCAMENTO_DEDUP_WINDOW_SECONDS, 120);
+      const explicitTtl = Math.max(
+        this.positiveSeconds(process.env.ORCAMENTO_IDEMPOTENCY_TTL_SECONDS, 86400),
+        fallbackTtl
+      );
+      let result: { id: number; created: boolean };
+      try {
+        result = await OrcamentoModel.createIdempotent(
+          empresaId,
+          data,
+          identity.fingerprint,
+          identity.explicit ? explicitTtl : fallbackTtl
+        );
+      } catch (idempotencyError) {
+        console.error(
+          '[OrcamentoService] Infraestrutura idempotente indisponivel; usando protecao local sem bloquear o orcamento',
+          idempotencyError
+        );
+        result = await OrcamentoModel.createWithLocalFallback(
+          empresaId,
+          data,
+          identity.fingerprint
+        );
+      }
+      id = result.id;
+      orcamento = await OrcamentoModel.findById(empresaId, id);
+      if (!result.created) return orcamento as Orcamento;
     } catch (error) {
       await this.notifyQuote(data);
       throw error;
@@ -181,14 +213,17 @@ export class OrcamentoService {
       throwError('ORCAMENTO_NOT_FOUND', 'Orçamento não encontrado', 404);
     }
 
-    const itemId = await OrcamentoItemModel.create(data);
+    const normalizedData = { ...data, id_orcamento: orcamentoId };
+    const fingerprint = quoteItemFingerprint(empresaId, orcamentoId, normalizedData);
+    const result = await OrcamentoItemModel.createIdempotent(normalizedData, fingerprint);
+    const itemId = result.id;
     const item = await OrcamentoItemModel.findById(itemId);
 
     if (!item) {
       throwError('CREATE_ITEM_FAILED', 'Falha ao adicionar item', 500);
     }
 
-    this.scheduleStoredQuoteNotification(empresaId, orcamentoId);
+    if (result.created) this.scheduleStoredQuoteNotification(empresaId, orcamentoId);
 
     return item as OrcamentoItem;
   }

@@ -98,6 +98,18 @@ npm start
 
 ### Orçamentos
 
+O `POST /api/v1/orcamentos` aceita o header `Idempotency-Key` (ou o campo
+`idempotency_key`). Reenvios com a mesma chave retornam o orçamento original e
+não repetem notificações. Para integrações antigas sem chave, payloads iguais
+são deduplicados por 120 segundos. Os tempos podem ser configurados por
+`ORCAMENTO_IDEMPOTENCY_TTL_SECONDS` e `ORCAMENTO_DEDUP_WINDOW_SECONDS`.
+
+A tabela `orcamentos_idempotencia` deve ser preparada antes do deploy com
+`npm run db:ensure-orcamento-idempotency` e também é validada durante a
+inicialização. Se essa infraestrutura estiver temporariamente indisponível, o
+orçamento continua sendo gravado com proteção concorrente local e o erro é
+registrado para correção, sem impedir o cliente de enviar a solicitação.
+
 - `POST /api/v1/orcamentos` - Criar orçamento
 - `GET /api/v1/orcamentos` - Listar orçamentos
 - `GET /api/v1/orcamentos/:id` - Obter orçamento por ID

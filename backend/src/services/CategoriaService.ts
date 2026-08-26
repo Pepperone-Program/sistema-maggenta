@@ -158,14 +158,16 @@ export class CategoriaService {
     empresaId: number,
     categoriaId: number,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    search?: string
   ): Promise<{ items: CategoriaProduto[]; total: number; page: number; limit: number }> {
     await this.getCategoriaById(empresaId, categoriaId);
     const { items, total } = await CategoriaModel.findProdutos(
       empresaId,
       categoriaId,
       page,
-      limit
+      limit,
+      search
     );
 
     return { items, total, page, limit };
@@ -426,14 +428,16 @@ export class SubcategoriaService {
     empresaId: number,
     subcategoriaId: number,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    search?: string
   ): Promise<{ items: SubcategoriaProduto[]; total: number; page: number; limit: number }> {
     await this.getSubcategoriaById(empresaId, subcategoriaId);
     const { items, total } = await SubcategoriaModel.findProdutos(
       empresaId,
       subcategoriaId,
       page,
-      limit
+      limit,
+      search
     );
 
     return { items, total, page, limit };

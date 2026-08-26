@@ -8,7 +8,7 @@ import {
   type PaginatedData,
 } from "@/lib/api";
 import { apiRequest } from "@/lib/api";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ProductImagesPanel } from "./product-images-panel";
 import { StatusBadge } from "./status-badge";
@@ -490,6 +490,7 @@ function ProductModal({
 
 export function ProductsPage() {
   const [data, setData] = useState<PaginatedData<Row> | null>(null);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [site, setSite] = useState("");
   const [filters, setFilters] = useState({ id_categoria: "", id_tipo_produto: "", id_subcategoria: "" });
@@ -499,6 +500,15 @@ export function ProductsPage() {
   const [error, setError] = useState("");
   const [modalProduct, setModalProduct] = useState<Row | null | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     Promise.all([
@@ -510,16 +520,19 @@ export function ProductsPage() {
   }, []);
 
   const loadData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError("");
 
     try {
       const response = await listResource<Row>("/api/v1/produtos", { page, limit: 12, search, site, ...filters });
-      setData(response);
+      if (requestId === requestIdRef.current) setData(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar produtos");
+      if (requestId === requestIdRef.current) {
+        setError(err instanceof Error ? err.message : "Falha ao carregar produtos");
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, [page, search, site, filters]);
 
@@ -595,11 +608,10 @@ export function ProductsPage() {
           <input
             className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
+              setSearchInput(event.target.value);
             }}
             placeholder="Buscar por ID, codigo ou produto"
-            value={search}
+            value={searchInput}
           />
           <select
             className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"

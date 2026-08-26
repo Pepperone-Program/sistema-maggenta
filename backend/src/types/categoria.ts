@@ -25,12 +25,20 @@ export interface CategoriaProduto {
   id_empresa: number;
   id_categoria: number;
   id_produto: number;
+  codigo?: string;
+  produto?: string;
+  habilitado?: HabilitadoFlag;
+  vinculado?: boolean | number;
 }
 
 export interface SubcategoriaProduto {
   id_empresa: number;
   id_subcategoria: number;
   id_produto: number;
+  codigo?: string;
+  produto?: string;
+  habilitado?: HabilitadoFlag;
+  vinculado?: boolean | number;
 }
 
 export interface CreateCategoriaDTO {

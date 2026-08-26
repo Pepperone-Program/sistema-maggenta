@@ -10,6 +10,7 @@ import {
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { StatusBadge } from "./status-badge";
+import { AssociationProductsModal } from "./association-products-modal";
 
 type Category = Record<string, unknown> & {
   id_categoria?: number;
@@ -247,6 +248,7 @@ export function SubcategoriesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modalSubcategory, setModalSubcategory] = useState<Subcategory | null | undefined>(undefined);
+  const [productsSubcategory, setProductsSubcategory] = useState<Subcategory | null>(null);
 
   const categoryById = useMemo(() => {
     const map = new Map<number, Category>();
@@ -362,7 +364,11 @@ export function SubcategoriesPage() {
                   const category = categoryById.get(Number(subcategory.id_categoria));
 
                   return (
-                    <tr className="border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2" key={String(subcategory.id_subcategoria)}>
+                    <tr
+                      className="cursor-pointer border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
+                      key={String(subcategory.id_subcategoria)}
+                      onClick={() => setProductsSubcategory(subcategory)}
+                    >
                       <td className="px-4 py-3 font-bold">#{subcategory.id_subcategoria}</td>
                       <td className="max-w-[260px] px-4 py-3">
                         <span className="block truncate font-semibold">{text(category?.categoria)}</span>
@@ -375,8 +381,9 @@ export function SubcategoriesPage() {
                       <td className="px-4 py-3"><StatusBadge value={subcategory.habilitado} /></td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
-                          <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={() => setModalSubcategory(subcategory)} type="button">Editar</button>
-                          <button className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50" onClick={() => removeSubcategory(subcategory).catch((err) => setError(err instanceof Error ? err.message : "Falha ao excluir"))} type="button">Excluir</button>
+                          <button className="rounded-md border border-primary px-3 py-1.5 text-xs font-bold text-primary" onClick={(event) => { event.stopPropagation(); setProductsSubcategory(subcategory); }} type="button">Produtos</button>
+                          <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={(event) => { event.stopPropagation(); setModalSubcategory(subcategory); }} type="button">Editar</button>
+                          <button className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50" onClick={(event) => { event.stopPropagation(); removeSubcategory(subcategory).catch((err) => setError(err instanceof Error ? err.message : "Falha ao excluir")); }} type="button">Excluir</button>
                         </div>
                       </td>
                     </tr>
@@ -425,6 +432,14 @@ export function SubcategoriesPage() {
           onClose={() => setModalSubcategory(undefined)}
           onSaved={loadData}
           subcategory={modalSubcategory}
+        />
+      )}
+      {productsSubcategory?.id_subcategoria && (
+        <AssociationProductsModal
+          associationLabel="Na subcategoria"
+          endpoint={`/api/v1/subcategorias/${productsSubcategory.id_subcategoria}/produtos`}
+          onClose={() => setProductsSubcategory(null)}
+          title={String(productsSubcategory.subcategoria || `Subcategoria #${productsSubcategory.id_subcategoria}`)}
         />
       )}
     </div>

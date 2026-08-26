@@ -248,29 +248,44 @@ export class CategoriaModel {
     empresaId: number,
     categoriaId: number,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    search?: string
   ): Promise<{ items: CategoriaProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
-    const values = [empresaId, categoriaId];
+    const searchClause = search
+      ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)'
+      : '';
+    const searchValues = search ? [`%${search}%`, `%${search}%`, search] : [];
     const countResult = await query(
       `
         SELECT COUNT(*) as total
-        FROM aux_categorias_produtos
-        WHERE id_empresa = ? AND id_categoria = ?
+        FROM produtos p
+        WHERE p.id_empresa = ? ${searchClause}
       `,
-      values
+      [empresaId, ...searchValues]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
       `
-        SELECT id_empresa, id_categoria, id_produto
-        FROM aux_categorias_produtos
-        WHERE id_empresa = ? AND id_categoria = ?
-        ORDER BY id_produto ASC
+        SELECT
+          p.id_empresa,
+          ? AS id_categoria,
+          p.id_produto,
+          p.codigo,
+          p.produto,
+          p.habilitado,
+          CASE WHEN acp.id_produto IS NULL THEN FALSE ELSE TRUE END AS vinculado
+        FROM produtos p
+        LEFT JOIN aux_categorias_produtos acp
+          ON acp.id_empresa = p.id_empresa
+         AND acp.id_produto = p.id_produto
+         AND acp.id_categoria = ?
+        WHERE p.id_empresa = ? ${searchClause}
+        ORDER BY vinculado DESC, p.produto ASC, p.id_produto ASC
         LIMIT ? OFFSET ?
       `,
-      [...values, safeLimit, (safePage - 1) * safeLimit]
+      [categoriaId, categoriaId, empresaId, ...searchValues, safeLimit, (safePage - 1) * safeLimit]
     );
     return { items: items as CategoriaProduto[], total };
   }
@@ -831,29 +846,44 @@ export class SubcategoriaModel {
     empresaId: number,
     subcategoriaId: number,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    search?: string
   ): Promise<{ items: SubcategoriaProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
-    const values = [empresaId, subcategoriaId];
+    const searchClause = search
+      ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)'
+      : '';
+    const searchValues = search ? [`%${search}%`, `%${search}%`, search] : [];
     const countResult = await query(
       `
         SELECT COUNT(*) as total
-        FROM aux_subcategorias_produtos
-        WHERE id_empresa = ? AND id_subcategoria = ?
+        FROM produtos p
+        WHERE p.id_empresa = ? ${searchClause}
       `,
-      values
+      [empresaId, ...searchValues]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
       `
-        SELECT id_empresa, id_subcategoria, id_produto
-        FROM aux_subcategorias_produtos
-        WHERE id_empresa = ? AND id_subcategoria = ?
-        ORDER BY id_produto ASC
+        SELECT
+          p.id_empresa,
+          ? AS id_subcategoria,
+          p.id_produto,
+          p.codigo,
+          p.produto,
+          p.habilitado,
+          CASE WHEN asp.id_produto IS NULL THEN FALSE ELSE TRUE END AS vinculado
+        FROM produtos p
+        LEFT JOIN aux_subcategorias_produtos asp
+          ON asp.id_empresa = p.id_empresa
+         AND asp.id_produto = p.id_produto
+         AND asp.id_subcategoria = ?
+        WHERE p.id_empresa = ? ${searchClause}
+        ORDER BY vinculado DESC, p.produto ASC, p.id_produto ASC
         LIMIT ? OFFSET ?
       `,
-      [...values, safeLimit, (safePage - 1) * safeLimit]
+      [subcategoriaId, subcategoriaId, empresaId, ...searchValues, safeLimit, (safePage - 1) * safeLimit]
     );
     return { items: items as SubcategoriaProduto[], total };
   }

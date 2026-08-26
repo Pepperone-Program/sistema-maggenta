@@ -126,7 +126,8 @@ export class CategoriaController {
         getEmpresaId(req),
         parseInt(req.params.id, 10),
         getPage(req),
-        getLimit(req)
+        getLimit(req),
+        req.query.search as string | undefined
       );
       paginatedResponse(
         res,
@@ -317,7 +318,8 @@ export class SubcategoriaController {
         getEmpresaId(req),
         parseInt(req.params.id, 10),
         getPage(req),
-        getLimit(req)
+        getLimit(req),
+        req.query.search as string | undefined
       );
       paginatedResponse(
         res,

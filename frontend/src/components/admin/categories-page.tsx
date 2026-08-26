@@ -11,6 +11,7 @@ import {
 import { DragEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { StatusBadge } from "./status-badge";
+import { AssociationProductsModal } from "./association-products-modal";
 
 type Category = Record<string, unknown> & {
   id_categoria?: number;
@@ -261,6 +262,7 @@ export function CategoriesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modalCategory, setModalCategory] = useState<Category | null | undefined>(undefined);
+  const [productsCategory, setProductsCategory] = useState<Category | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -342,7 +344,11 @@ export function CategoriesPage() {
                 <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={7}>Carregando categorias...</td></tr>
               ) : data?.items.length ? (
                 data.items.map((category) => (
-                  <tr className="border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2" key={String(category.id_categoria)}>
+                  <tr
+                    className="cursor-pointer border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
+                    key={String(category.id_categoria)}
+                    onClick={() => setProductsCategory(category)}
+                  >
                     <td className="px-4 py-3">
                       <div className="h-20 w-32 overflow-hidden rounded-md border border-stroke bg-gray-2 dark:border-dark-3">
                         {category.url_capa ? (
@@ -358,8 +364,9 @@ export function CategoriesPage() {
                     <td className="px-4 py-3"><StatusBadge value={category.habilitado} /></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={() => setModalCategory(category)} type="button">Editar</button>
-                        <button className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50" onClick={() => removeCategory(category).catch((err) => setError(err instanceof Error ? err.message : "Falha ao excluir"))} type="button">Excluir</button>
+                        <button className="rounded-md border border-primary px-3 py-1.5 text-xs font-bold text-primary" onClick={(event) => { event.stopPropagation(); setProductsCategory(category); }} type="button">Produtos</button>
+                        <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={(event) => { event.stopPropagation(); setModalCategory(category); }} type="button">Editar</button>
+                        <button className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50" onClick={(event) => { event.stopPropagation(); removeCategory(category).catch((err) => setError(err instanceof Error ? err.message : "Falha ao excluir")); }} type="button">Excluir</button>
                       </div>
                     </td>
                   </tr>
@@ -402,6 +409,14 @@ export function CategoriesPage() {
       </section>
 
       {modalCategory !== undefined && <CategoryModal category={modalCategory} onClose={() => setModalCategory(undefined)} onSaved={loadData} />}
+      {productsCategory?.id_categoria && (
+        <AssociationProductsModal
+          associationLabel="Na categoria"
+          endpoint={`/api/v1/categorias/${productsCategory.id_categoria}/produtos`}
+          onClose={() => setProductsCategory(null)}
+          title={String(productsCategory.categoria || `Categoria #${productsCategory.id_categoria}`)}
+        />
+      )}
     </div>
   );
 }

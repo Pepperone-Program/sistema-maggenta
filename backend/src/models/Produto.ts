@@ -477,7 +477,8 @@ export class ProdutoModel {
     site?: string,
     categoriaId?: number,
     tipoProdutoId?: number,
-    subcategoriaId?: number
+    subcategoriaId?: number,
+    order: 'ASC' | 'DESC' = 'DESC'
   ): Promise<{ items: Produto[]; total: number }> {
     let sql = 'SELECT * FROM produtos WHERE id_empresa = ?';
     const values: any[] = [empresaId];
@@ -520,7 +521,7 @@ export class ProdutoModel {
     const total = (countResult as any[])[0].total;
 
     const offset = (page - 1) * limit;
-    sql += ` ORDER BY data_modificacao DESC LIMIT ? OFFSET ?`;
+    sql += ` ORDER BY data_inclusao ${order}, id_produto ${order} LIMIT ? OFFSET ?`;
     values.push(limit, offset);
 
     const items = await query(sql, values);

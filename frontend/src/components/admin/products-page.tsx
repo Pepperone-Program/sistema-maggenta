@@ -8,11 +8,10 @@ import {
   type PaginatedData,
 } from "@/lib/api";
 import { apiRequest } from "@/lib/api";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ProductImagesPanel } from "./product-images-panel";
 import { StatusBadge } from "./status-badge";
-import { getStoredToken } from "@/lib/api";
 
 type Row = Record<string, unknown>;
 
@@ -34,7 +33,6 @@ const productFields: ProductField[] = [
   { name: "produto", label: "Produto", required: true },
   { name: "codigo", label: "Codigo", required: true },
   { name: "cod_forn", label: "Cod. fornecedor" },
-  { name: "descricao", label: "Descricao", type: "textarea" },
   { name: "id_tipo_gravacao_padrao", label: "Gravacao padrao", type: "number" },
   { name: "altura", label: "Altura" },
   { name: "largura", label: "Largura" },
@@ -52,6 +50,7 @@ const productFields: ProductField[] = [
   { name: "data_final", label: "Data final", type: "date" },
   { name: "video", label: "Video" },
   { name: "obs", label: "Observacoes", type: "textarea" },
+  { name: "descricao", label: "Descricao", type: "textarea" },
 ];
 
 const flagFields = [
@@ -194,7 +193,7 @@ function Field({ field, value }: { field: ProductField; value?: unknown }) {
     "w-full rounded-md border border-stroke bg-white px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white";
 
   if (field.type === "textarea") {
-    return <textarea className={`${inputClass} min-h-24 resize-y`} defaultValue={defaultValue} name={field.name} placeholder={field.label} />;
+    return <textarea className={`${inputClass} min-h-24 w-50% resize-y`} defaultValue={defaultValue} name={field.name} placeholder={field.label} />;
   }
 
   return (
@@ -207,6 +206,14 @@ function Field({ field, value }: { field: ProductField; value?: unknown }) {
       type={field.type || "text"}
     />
   );
+}
+
+function productFieldLayout(field: ProductField) {
+  if (field.type === "textarea") return "md:col-span-6";
+  if (["produto", "imagem"].includes(field.name)) return "md:col-span-5";
+  if (["video"].includes(field.name)) return "md:col-span-3";
+  if (["codigo", "cod_forn", "ncm", "quantidade_minima", "data_inicial", "data_final"].includes(field.name)) return "md:col-span-2";
+  return "md:col-span-2";
 }
 
 function ProductLinksPanel({ produtoId }: { produtoId: number }) {
@@ -243,20 +250,6 @@ function ProductLinksPanel({ produtoId }: { produtoId: number }) {
   async function removeLink(target: (typeof linkTargets)[number], id: unknown) {
     await apiRequest(`${target.endpoint}/${String(id)}/produtos/${produtoId}`, { method: "DELETE" });
     await loadLinks();
-  }
-
-  async function removeLinkedItem(target: (typeof linkTargets)[number], item: Row) {
-    if (target.key === "subcategorias") {
-      const empresaId = item.id_empresa ? `?empresaId=${encodeURIComponent(String(item.id_empresa))}` : "";
-      await apiRequest(
-        `/api/v1/produtos/${produtoId}/subcategorias/${String(item[target.idField])}${empresaId}`,
-        { method: "DELETE" },
-      );
-      await loadLinks();
-      return;
-    }
-
-    await removeLink(target, item[target.idField]);
   }
 
   return (
@@ -303,18 +296,11 @@ function ProductLinksPanel({ produtoId }: { produtoId: number }) {
               <div className="space-y-2">
                 {linked.length ? (
                   linked.map((item) => (
-                    <div className="flex items-center justify-between gap-2 rounded-md bg-gray-2 px-3 py-2 dark:bg-dark-2" key={`${String(item.id_empresa || "")}:${String(item[target.idField])}`}>
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-dark dark:text-white">
-                        {text(item[target.nameField])}
-                        {Boolean(item.id_empresa) && (
-                          <span className="ml-2 text-xs font-normal text-dark-4">
-                            empresa #{String(item.id_empresa)}
-                          </span>
-                        )}
-                      </span>
+                    <div className="flex items-center justify-between gap-2 rounded-md bg-gray-2 px-3 py-2 dark:bg-dark-2" key={String(item[target.idField])}>
+                      <span className="truncate text-sm font-medium text-dark dark:text-white">{text(item[target.nameField])}</span>
                       <button
                         className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600"
-                        onClick={() => removeLinkedItem(target, item).catch((err) => setError(err instanceof Error ? err.message : "Falha ao remover"))}
+                        onClick={() => removeLink(target, item[target.idField]).catch((err) => setError(err instanceof Error ? err.message : "Falha ao remover"))}
                         type="button"
                       >
                         Remover
@@ -342,12 +328,13 @@ function ProductModal({
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const [tab, setTab] = useState<"dados" | "vinculos" | "imagens">("dados");
+  const [savedProduct, setSavedProduct] = useState<Row | null>(product);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [mounted, setMounted] = useState(false);
-  const values = useMemo<Row>(() => ({ ...defaultProduct, ...(product || {}) }), [product]);
-  const productId = product?.id_produto ? Number(product.id_produto) : null;
+  const values = useMemo<Row>(() => ({ ...defaultProduct, ...(savedProduct || {}) }), [savedProduct]);
+  const productId = savedProduct?.id_produto ? Number(savedProduct.id_produto) : null;
   const [selectedTypeId, setSelectedTypeId] = useState(String(values.id_tipo_produto || ""));
 
   useEffect(() => {
@@ -362,6 +349,7 @@ function ProductModal({
     event.preventDefault();
     setSaving(true);
     setError("");
+    setSuccess("");
 
     const formData = new FormData(event.currentTarget);
     const payload: Record<string, unknown> = {};
@@ -382,12 +370,14 @@ function ProductModal({
     });
 
     try {
+      let persisted: Row;
       if (productId) {
-        await updateResource("/api/v1/produtos", productId, payload);
+        persisted = await updateResource<Row>("/api/v1/produtos", productId, payload);
       } else {
-        await createResource("/api/v1/produtos", payload);
+        persisted = await createResource<Row>("/api/v1/produtos", payload);
       }
-      onClose();
+      setSavedProduct(persisted);
+      setSuccess(productId ? "Alterações salvas." : "Produto criado. Agora você pode adicionar vínculos e imagens.");
       await onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao salvar produto");
@@ -397,52 +387,45 @@ function ProductModal({
   }
 
   const modal = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/55 p-2 backdrop-blur-[2px] sm:p-4" onMouseDown={onClose}>
       <div
-        className="flex h-[86vh] w-full max-w-[1500px] flex-col overflow-hidden rounded-lg bg-white shadow-2 dark:bg-gray-dark"
+        className="flex h-[95vh] w-full max-w-[1780px] flex-col overflow-hidden rounded-xl bg-white shadow-2 dark:bg-gray-dark"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="border-b border-stroke px-6 py-5 dark:border-dark-3">
+        <header className="shrink-0 border-b border-stroke px-5 py-4 dark:border-dark-3 sm:px-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-primary">{productId ? `Produto #${productId}` : "Novo produto"}</p>
               <h2 className="mt-1 text-2xl font-bold text-dark dark:text-white">{text(values.produto) === "-" ? "Cadastro de produto" : text(values.produto)}</h2>
-              <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">{text(values.codigo)} - {text(values.altura)} x {text(values.largura)} x {text(values.profundidade)}</p>
+              <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">{text(values.codigo)} · {text(values.altura)} x {text(values.largura)} x {text(values.profundidade)}</p>
             </div>
             <button className="rounded-md border border-stroke px-3 py-2 text-sm font-semibold dark:border-dark-3" onClick={onClose} type="button">
               Fechar
             </button>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            {(["dados", "vinculos", "imagens"] as const).map((item) => (
-              <button
-                className={`rounded-md px-4 py-2 text-sm font-bold ${tab === item ? "bg-primary text-white" : "bg-gray-2 text-dark dark:bg-dark-2 dark:text-white"}`}
-                disabled={item !== "dados" && !productId}
-                key={item}
-                onClick={() => setTab(item)}
-                type="button"
-              >
-                {item === "dados" ? "Informacoes" : item === "vinculos" ? "Vinculos" : "Imagens"}
-              </button>
-            ))}
-          </div>
         </header>
 
-        <main className="overflow-y-auto p-6">
+        <main className="overflow-y-auto bg-gray-2/50 p-4 dark:bg-dark/20 sm:p-6">
           {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
+          {success && <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-200">{success}</div>}
 
-          {tab === "dados" && (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="block">
+          <div className="space-y-5">
+            <section className="rounded-lg border border-stroke bg-white p-4 dark:border-dark-3 dark:bg-gray-dark sm:p-5">
+              <div className="mb-5 border-b border-stroke pb-4 dark:border-dark-3">
+                <h3 className="text-base font-bold text-dark dark:text-white">Dados do produto</h3>
+                <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">Identificação, dimensões, disponibilidade e conteúdo comercial.</p>
+              </div>
+              <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-12">
+                <label className="md:col-span-3">
                   <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">
                     Tipo <span className="text-red-500">*</span>
                   </span>
                   <ProductTypeSelect value={selectedTypeId} onChange={setSelectedTypeId} />
                 </label>
                 {productFields.map((field) => (
-                  <label className={field.type === "textarea" ? "block md:col-span-2" : "block"} key={field.name}>
+                  <label className={productFieldLayout(field)} key={field.name}>
                     <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">
                       {field.label}
                       {field.required && <span className="text-red-500"> *</span>}
@@ -452,34 +435,53 @@ function ProductModal({
                 ))}
               </div>
 
-              <div className="grid gap-3 rounded-md border border-stroke p-4 dark:border-dark-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-2 border-t border-stroke pt-4 dark:border-dark-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
                 {flagFields.map(([name, label]) => (
                   <label className="flex items-center justify-between rounded-md bg-gray-2 px-3 py-2 dark:bg-dark-2" key={name}>
                     <span className="text-sm font-semibold text-dark dark:text-white">{label}</span>
                     <select className="rounded-md border border-stroke bg-white px-2 py-1 text-sm dark:border-dark-3 dark:bg-gray-dark dark:text-white" defaultValue={String(values[name] || "N")} name={name}>
-                      <option value="S">S</option>
-                      <option value="N">N</option>
+                      <option value="S">Sim</option>
+                      <option value="N">Não</option>
                     </select>
                   </label>
                 ))}
               </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 border-t border-stroke pt-4 dark:border-dark-3">
                 <button className="rounded-md border border-stroke px-4 py-2.5 text-sm font-bold dark:border-dark-3" onClick={onClose} type="button">
-                  Cancelar
+                  Fechar
                 </button>
                 <button className="rounded-md bg-primary px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
-                  {saving ? "Salvando..." : "Salvar produto"}
+                  {saving ? "Salvando..." : productId ? "Salvar alterações" : "Criar produto"}
                 </button>
               </div>
-            </form>
-          )}
+              </form>
+            </section>
 
-          {tab === "vinculos" && productId && <ProductLinksPanel produtoId={productId} />}
-
-          {tab === "imagens" && productId && (
-            <ProductImagesPanel endpoint="/api/v1/produtos" onChanged={onSaved} produtoId={productId} produtoNome={values.produto} />
-          )}
+            {productId ? (
+              <div className="grid items-start gap-5 2xl:grid-cols-2">
+                <section className="rounded-lg border border-stroke bg-white p-4 dark:border-dark-3 dark:bg-gray-dark sm:p-5">
+                  <div className="mb-5 border-b border-stroke pb-4 dark:border-dark-3">
+                    <h3 className="text-base font-bold text-dark dark:text-white">Vínculos comerciais</h3>
+                    <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">Defina onde este produto será encontrado.</p>
+                  </div>
+                  <ProductLinksPanel produtoId={productId} />
+                </section>
+                <section className="rounded-lg border border-stroke bg-white p-4 dark:border-dark-3 dark:bg-gray-dark sm:p-5">
+                  <div className="mb-5 border-b border-stroke pb-4 dark:border-dark-3">
+                    <h3 className="text-base font-bold text-dark dark:text-white">Imagens do produto</h3>
+                    <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">Envie, ordene e escolha a imagem principal.</p>
+                  </div>
+                  <ProductImagesPanel endpoint="/api/v1/produtos" onChanged={onSaved} produtoId={productId} produtoNome={values.produto} />
+                </section>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-stroke bg-white px-5 py-8 text-center dark:border-dark-3 dark:bg-gray-dark">
+                <p className="font-semibold text-dark dark:text-white">Salve os dados básicos para liberar vínculos e imagens.</p>
+                <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">O modal continuará aberto após a criação.</p>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>
@@ -490,93 +492,47 @@ function ProductModal({
 
 export function ProductsPage() {
   const [data, setData] = useState<PaginatedData<Row> | null>(null);
-  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [site, setSite] = useState("");
-  const [filters, setFilters] = useState({ id_categoria: "", id_tipo_produto: "", id_subcategoria: "" });
-  const [filterOptions, setFilterOptions] = useState<{ categorias: Row[]; tipos: Row[]; subcategorias: Row[] }>({ categorias: [], tipos: [], subcategorias: [] });
+  const [order, setOrder] = useState<"ASC" | "DESC">("DESC");
+  const [filters, setFilters] = useState({ id_categoria: "", id_subcategoria: "", id_tipo_produto: "" });
+  const [filterOptions, setFilterOptions] = useState<Record<string, Row[]>>({});
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [modalProduct, setModalProduct] = useState<Row | null | undefined>(undefined);
-  const [exporting, setExporting] = useState(false);
-  const requestIdRef = useRef(0);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
-
-  useEffect(() => {
-    Promise.all([
-      fetchAllRows("/api/v1/categorias"),
-      fetchAllRows("/api/v1/tipos-produtos/habilitados"),
-      fetchAllRows("/api/v1/subcategorias"),
-    ]).then(([categorias, tipos, subcategorias]) => setFilterOptions({ categorias, tipos, subcategorias }))
-      .catch(() => setFilterOptions({ categorias: [], tipos: [], subcategorias: [] }));
-  }, []);
 
   const loadData = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError("");
 
     try {
-      const response = await listResource<Row>("/api/v1/produtos", { page, limit: 12, search, site, ...filters });
-      if (requestId === requestIdRef.current) setData(response);
+      const response = await listResource<Row>("/api/v1/produtos", { page, limit: 12, search, site, order, ...filters });
+      setData(response);
     } catch (err) {
-      if (requestId === requestIdRef.current) {
-        setError(err instanceof Error ? err.message : "Falha ao carregar produtos");
-      }
+      setError(err instanceof Error ? err.message : "Falha ao carregar produtos");
     } finally {
-      if (requestId === requestIdRef.current) setLoading(false);
+      setLoading(false);
     }
-  }, [page, search, site, filters]);
+  }, [filters, order, page, search, site]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    Promise.all([
+      fetchAllRows("/api/v1/categorias"),
+      fetchAllRows("/api/v1/subcategorias"),
+      fetchAllRows("/api/v1/tipos-produtos/habilitados"),
+    ]).then(([categorias, subcategorias, tipos]) => setFilterOptions({ categorias, subcategorias, tipos })).catch(() => undefined);
+  }, []);
 
   async function handleDelete(row: Row) {
     const confirmed = window.confirm(`Excluir produto #${String(row.id_produto)}?`);
     if (!confirmed) return;
     await deleteResource("/api/v1/produtos", String(row.id_produto));
     await loadData();
-  }
-
-  async function handleExport() {
-    setExporting(true);
-    setError("");
-    try {
-      const token = getStoredToken();
-      const response = await fetch("/api/v1/produtos/exportar/planilha", {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.message || "Falha ao gerar planilha");
-      }
-
-      const blob = await response.blob();
-      const disposition = response.headers.get("content-disposition") || "";
-      const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || "produtos-site.xlsx";
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao gerar planilha");
-    } finally {
-      setExporting(false);
-    }
   }
 
   return (
@@ -590,28 +546,25 @@ export function ProductsPage() {
               Edite dados, imagens e vinculos comerciais em um unico modal.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button className="rounded-md border border-primary px-4 py-3 text-sm font-bold text-primary disabled:opacity-60" disabled={exporting} onClick={() => handleExport()} type="button">
-              {exporting ? "Gerando planilha..." : "Exportar planilha"}
-            </button>
-            <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalProduct(null)} type="button">
-              Novo produto
-            </button>
-          </div>
+          <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalProduct(null)} type="button">
+            Novo produto
+          </button>
         </div>
       </section>
 
       {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-5">
+        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-2 xl:grid-cols-6">
           <input
             className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
-              setSearchInput(event.target.value);
+              setSearch(event.target.value);
+              setPage(1);
             }}
-            placeholder="Buscar por ID, codigo ou produto"
-            value={searchInput}
+            aria-label="Buscar produto por ID, código ou nome"
+            placeholder="Buscar por ID, código ou nome"
+            value={search}
           />
           <select
             className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
@@ -625,15 +578,30 @@ export function ProductsPage() {
             <option value="S">Site: S</option>
             <option value="N">Site: N</option>
           </select>
+          <select
+            aria-label="Ordenar produtos por data de cadastro"
+            className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            onChange={(event) => {
+              setOrder(event.target.value as "ASC" | "DESC");
+              setPage(1);
+            }}
+            value={order}
+          >
+            <option value="DESC">Mais recentes primeiro</option>
+            <option value="ASC">Mais antigos primeiro</option>
+          </select>
           {[
-            ["id_categoria", "Categoria", filterOptions.categorias, "id_categoria", "categoria"],
-            ["id_tipo_produto", "Tipo de produto", filterOptions.tipos, "id_tipo_produto", "tipo_produto"],
-            ["id_subcategoria", "Subcategoria", filterOptions.subcategorias, "id_subcategoria", "subcategoria"],
-          ].map(([key, label, options, idField, nameField]) => (
-            <select key={key as string} className="rounded-md border border-stroke bg-gray-2 px-3 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" value={filters[key as keyof typeof filters]} onChange={(event) => { setFilters((current) => ({ ...current, [key as string]: event.target.value })); setPage(1); }}>
-              <option value="">{String(label)}: todos</option>
-              {(options as Row[]).map((option) => <option key={String(option[idField as string])} value={String(option[idField as string])}>{String(option[nameField as string] || `#${option[idField as string]}`)}</option>)}
-            </select>
+            ["id_categoria", "Categoria", "categorias", "id_categoria", "categoria"],
+            ["id_subcategoria", "Subcategoria", "subcategorias", "id_subcategoria", "subcategoria"],
+            ["id_tipo_produto", "Tipo de produto", "tipos", "id_tipo_produto", "tipo_produto"],
+          ].map(([key, label, optionsKey, idField, nameField]) => (
+            <label className="relative" key={key}>
+              <span className="sr-only">{label}</span>
+              <select className="h-full w-full rounded-md border border-stroke bg-gray-2 px-3 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => { setFilters((current) => ({ ...current, [key]: event.target.value })); setPage(1); }} value={filters[key as keyof typeof filters]}>
+                <option value="">{label}: todos</option>
+                {(filterOptions[optionsKey] || []).map((item) => <option key={String(item[idField])} value={String(item[idField])}>{text(item[nameField])}</option>)}
+              </select>
+            </label>
           ))}
         </div>
 
@@ -704,4 +672,3 @@ export function ProductsPage() {
     </div>
   );
 }
-

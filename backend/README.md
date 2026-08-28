@@ -172,6 +172,10 @@ Todos os inputs são validados com Joi. Erros de validação retornam:
 
 - Connection pooling do MySQL2
 - Pool padrao: 30 conexoes simultaneas (`DB_CONNECTION_LIMIT=30`)
+
+## Busca publica com relevancia
+
+O backend inclui busca avancada opt-in, catalogacao exclusivamente manual, migrations, rebuild, golden dataset, benchmark e rollout gradual. O procedimento operacional completo esta em [docs/search-rollout.md](docs/search-rollout.md). Mantenha `SEARCH_RANKING_PERCENTAGE=0` ate concluir todos os gates e corrigir a reordenacao no consumidor publico.
 - Fila padrao do pool: 300 requisicoes aguardando conexao (`DB_QUEUE_LIMIT=300`)
 - Queries otimizadas com índices
 - Paginação em listas

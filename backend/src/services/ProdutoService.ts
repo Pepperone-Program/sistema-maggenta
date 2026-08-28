@@ -3,20 +3,9 @@ import { SubcategoriaService } from '@services/CategoriaService';
 import type { Produto, CreateProdutoDTO, UpdateProdutoDTO } from '@/types/produto';
 import { throwError } from '@utils/helpers';
 import ExcelJS from 'exceljs';
-
-type SiteSearchResult =
-  | {
-      match_exato_codigo: true;
-      id_produto: number;
-      codigo: string;
-    }
-  | {
-      match_exato_codigo: false;
-      items: Produto[];
-      total: number;
-      page: number;
-      limit: number;
-    };
+import { getConnection } from '@database/connection';
+import { SearchDocumentService } from '@search/SearchDocumentService';
+import { SEARCH_FLAGS } from '@search/config';
 
 export class ProdutoService {
   static async gerarPlanilhaProdutosSite(empresaId: number): Promise<Buffer> {
@@ -106,8 +95,26 @@ export class ProdutoService {
       throwError('DUPLICATE_CODIGO', 'Produto com esse código já existe', 409);
     }
 
-    const id = await ProdutoModel.create(empresaId, data);
-    const produto = await ProdutoModel.findById(empresaId, id);
+    let id: number;
+    let produto: Produto | null;
+    if (SEARCH_FLAGS.writeSyncEnabled) {
+      const connection = await getConnection();
+      try {
+        await connection.beginTransaction();
+        id = await ProdutoModel.create(empresaId, data, connection);
+        await SearchDocumentService.refreshProduct(empresaId, id, connection);
+        produto = await ProdutoModel.findById(empresaId, id, connection);
+        await connection.commit();
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } else {
+      id = await ProdutoModel.create(empresaId, data);
+      produto = await ProdutoModel.findById(empresaId, id);
+    }
 
     if (!produto) {
       throwError('CREATE_FAILED', 'Falha ao criar produto', 500);
@@ -189,49 +196,6 @@ export class ProdutoService {
     };
   }
 
-  static async searchProdutosSite(
-    empresaId: number,
-    term: string,
-    page: number = 1,
-    limit: number = 100
-  ): Promise<SiteSearchResult> {
-    const normalizedTerm = term.trim();
-    if (!normalizedTerm) {
-      throwError('INVALID_SEARCH', 'Informe o termo de busca em q', 400);
-    }
-
-    const codeWithCSuffixMatch = await ProdutoModel.findByExactCodeForSite(
-      empresaId,
-      `${normalizedTerm}C`
-    );
-    const exactCodeMatch = codeWithCSuffixMatch
-      || await ProdutoModel.findByExactCodeForSite(empresaId, normalizedTerm);
-    if (exactCodeMatch) {
-      return {
-        match_exato_codigo: true,
-        id_produto: exactCodeMatch.id_produto,
-        codigo: exactCodeMatch.codigo,
-      };
-    }
-
-    const { items, total } = await ProdutoModel.searchForSite(
-      empresaId,
-      normalizedTerm,
-      page,
-      limit
-    );
-
-    const itemsWithImages = await this.attachImages(items);
-
-    return {
-      match_exato_codigo: false,
-      items: itemsWithImages,
-      total,
-      page,
-      limit,
-    };
-  }
-
   static async updateProduto(
     empresaId: number,
     produtoId: number,
@@ -253,8 +217,25 @@ export class ProdutoService {
       }
     }
 
-    await ProdutoModel.update(empresaId, produtoId, data);
-    const updated = await ProdutoModel.findById(empresaId, produtoId);
+    let updated: Produto | null;
+    if (SEARCH_FLAGS.writeSyncEnabled) {
+      const connection = await getConnection();
+      try {
+        await connection.beginTransaction();
+        await ProdutoModel.update(empresaId, produtoId, data, connection);
+        await SearchDocumentService.refreshProduct(empresaId, produtoId, connection);
+        updated = await ProdutoModel.findById(empresaId, produtoId, connection);
+        await connection.commit();
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } else {
+      await ProdutoModel.update(empresaId, produtoId, data);
+      updated = await ProdutoModel.findById(empresaId, produtoId);
+    }
 
     if (!updated) {
       throwError('UPDATE_FAILED', 'Falha ao atualizar produto', 500);
@@ -273,7 +254,23 @@ export class ProdutoService {
       throwError('PRODUTO_NOT_FOUND', 'Produto não encontrado', 404);
     }
 
-    const success = await ProdutoModel.delete(empresaId, produtoId);
+    let success: boolean;
+    if (SEARCH_FLAGS.writeSyncEnabled) {
+      const connection = await getConnection();
+      try {
+        await connection.beginTransaction();
+        await SearchDocumentService.removeProduct(empresaId, produtoId, connection);
+        success = await ProdutoModel.delete(empresaId, produtoId, connection);
+        await connection.commit();
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    } else {
+      success = await ProdutoModel.delete(empresaId, produtoId);
+    }
 
     if (!success) {
       throwError('DELETE_FAILED', 'Falha ao deletar produto', 500);

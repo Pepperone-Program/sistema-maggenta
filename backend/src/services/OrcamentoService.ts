@@ -3,6 +3,7 @@ import { OrcamentoItemModel } from '@models/OrcamentoItem';
 import { OrcamentoEmailService } from '@services/OrcamentoEmailService';
 import { OrcamentoNotificationService } from '@services/OrcamentoNotificationService';
 import { BrevoConversionService } from '@services/BrevoConversionService';
+import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
 import type { Orcamento, CreateOrcamentoDTO, UpdateOrcamentoDTO } from '@/types/orcamento';
 import type { OrcamentoItem, CreateOrcamentoItemDTO } from '@/types/orcamento-item';
 import { throwError } from '@utils/helpers';
@@ -17,6 +18,17 @@ export class OrcamentoService {
   private static positiveSeconds(value: string | undefined, fallback: number): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : fallback;
+  }
+
+  private static recordSearchConversion(empresaId: number, data: CreateOrcamentoDTO, orcamentoId: number): void {
+    const searchId = typeof data.search_id === 'string' ? data.search_id : '';
+    if (!searchId) return;
+    SearchAnalyticsService.recordConversion(empresaId, searchId, orcamentoId, null).catch((error) => {
+      console.warn('[OrcamentoService] Falha ao registrar conversao de busca', {
+        orcamentoId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    });
   }
 
   private static async notifyQuote(data: CreateOrcamentoDTO, quoteNumber?: number): Promise<boolean> {
@@ -94,7 +106,10 @@ export class OrcamentoService {
       }
       id = result.id;
       orcamento = await OrcamentoModel.findById(empresaId, id);
-      if (!result.created) return orcamento as Orcamento;
+      if (!result.created) {
+        this.recordSearchConversion(empresaId, data, id);
+        return orcamento as Orcamento;
+      }
     } catch (error) {
       await this.notifyQuote(data);
       throw error;
@@ -117,6 +132,8 @@ export class OrcamentoService {
     if (!orcamento) {
       throwError('CREATE_FAILED', 'Falha ao criar orçamento', 500);
     }
+
+    this.recordSearchConversion(empresaId, data, id);
 
     return orcamento as Orcamento;
   }

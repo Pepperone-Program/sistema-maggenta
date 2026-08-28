@@ -83,6 +83,7 @@ export interface CreateOrcamentoDTO {
   documento?: string;
   empresa?: string;
   idempotency_key?: string;
+  search_id?: string;
 }
 
 export type UpdateOrcamentoDTO = Partial<CreateOrcamentoDTO>;

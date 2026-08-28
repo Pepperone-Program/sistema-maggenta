@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 
 const defaultAllowedOrigins = [
   'http://localhost:3000',
@@ -52,12 +53,16 @@ export const securityHeaders = (_req: Request, res: Response, next: NextFunction
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction): void => {
   const start = Date.now();
+  const requestId = String(req.headers['x-request-id'] || crypto.randomUUID()).slice(0, 100);
+  (req as Request & { requestId: string }).requestId = requestId;
+  res.setHeader('X-Request-Id', requestId);
 
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(
-      `[${new Date().toISOString()}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`
-    );
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(), requestId, method: req.method,
+      path: req.path, statusCode: res.statusCode, durationMs: duration,
+    }));
   });
 
   next();

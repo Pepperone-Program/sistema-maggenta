@@ -10,6 +10,7 @@ import { closeDatabasePool, testDatabaseConnection } from '@database/connection'
 import { CacheInvalidationScheduler } from '@services/CacheInvalidationScheduler';
 import { OrcamentoEmailScheduler } from '@services/OrcamentoEmailScheduler';
 import { OrcamentoModel } from '@models/Orcamento';
+import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
 
 dotenv.config();
 
@@ -64,6 +65,7 @@ const bootstrap = async (): Promise<void> => {
   const server = app.listen(PORT, () => {
     CacheInvalidationScheduler.start();
     OrcamentoEmailScheduler.start();
+    SearchAnalyticsService.start();
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log(`📚 API Documentation: http://localhost:${PORT}/health`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -72,9 +74,11 @@ const bootstrap = async (): Promise<void> => {
   const shutdown = (signal: string) => {
     CacheInvalidationScheduler.stop();
     OrcamentoEmailScheduler.stop();
+    SearchAnalyticsService.stop();
     console.log(`${signal} signal received: closing HTTP server`);
     server.close(async () => {
       console.log('HTTP server closed');
+      await SearchAnalyticsService.drain();
       await closeDatabasePool();
       process.exit(0);
     });

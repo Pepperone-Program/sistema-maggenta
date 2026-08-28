@@ -4,6 +4,7 @@ type RedisCommandResponse<T = unknown> = {
 };
 
 const CACHE_PREFIX = 'site-mag';
+const inFlight = new Map<string, Promise<unknown>>();
 const productRelatedNamespaces = new Set([
   'categorias',
   'subcategorias',
@@ -67,6 +68,48 @@ export class CacheService {
     const value = await loader();
     await this.set(key, value, ttlSeconds);
     return value;
+  }
+
+  static async getOrSetCoalesced<T>(
+    key: string,
+    loader: () => Promise<T>,
+    ttlSeconds: number,
+    lockTtlMs = 1500
+  ): Promise<{ value: T; status: 'hit' | 'miss' | 'coalesced' }> {
+    if (isEnabled()) {
+      const cached = await this.get<T>(key);
+      if (cached.found) return { value: cached.value as T, status: 'hit' };
+    }
+
+    const existing = inFlight.get(key) as Promise<T> | undefined;
+    if (existing) return { value: await existing, status: 'coalesced' };
+
+    const pending = (async () => {
+      let distributedLockToken: string | null = null;
+      try {
+        if (isEnabled()) {
+          distributedLockToken = await this.acquireLock(`${key}:lock`, lockTtlMs);
+          if (!distributedLockToken) {
+            for (let attempt = 0; attempt < 8; attempt += 1) {
+              await new Promise((resolve) => setTimeout(resolve, 50));
+              const retried = await this.get<T>(key);
+              if (retried.found) return retried.value as T;
+            }
+          }
+        }
+        const value = await loader();
+        if (isEnabled()) await this.set(key, value, ttlSeconds);
+        return value;
+      } finally {
+        if (distributedLockToken) await this.releaseLock(`${key}:lock`, distributedLockToken);
+      }
+    })();
+    inFlight.set(key, pending);
+    try {
+      return { value: await pending, status: 'miss' };
+    } finally {
+      if (inFlight.get(key) === pending) inFlight.delete(key);
+    }
   }
 
   static async invalidateNamespace(namespace: string): Promise<void> {
@@ -162,6 +205,33 @@ export class CacheService {
     }
   }
 
+  private static async acquireLock(key: string, ttlMs: number): Promise<string | null> {
+    try {
+      const token = crypto.randomUUID();
+      const response = await this.command<string | null>(['SET', key, token, 'NX', 'PX', String(ttlMs)]);
+      return response.result === 'OK' ? token : null;
+    } catch (error) {
+      console.warn('[CacheService] lock failed; degrading to database', {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return crypto.randomUUID();
+    }
+  }
+
+  private static async releaseLock(key: string, token: string): Promise<void> {
+    try {
+      await this.command<number>([
+        'EVAL',
+        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+        '1',
+        key,
+        token,
+      ]);
+    } catch {
+      // The lock has a short TTL; failure to release must not fail a search.
+    }
+  }
+
   private static async command<T>(command: string[]): Promise<RedisCommandResponse<T>> {
     const { url, token } = getRedisConfig();
     if (!url || !token) {
@@ -189,3 +259,4 @@ export class CacheService {
     return body;
   }
 }
+import crypto from 'crypto';

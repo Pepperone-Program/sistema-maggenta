@@ -56,6 +56,7 @@ export const orcamentoSchema = Joi.object({
   documento: Joi.string().max(30).allow(null, ''),
   empresa: Joi.string().max(255).allow(null, ''),
   idempotency_key: Joi.string().trim().max(200).optional(),
+  search_id: Joi.string().guid({ version: ['uuidv4'] }).optional(),
   itens: Joi.array().items(Joi.object().unknown(true)).optional(),
   items: Joi.array().items(Joi.object().unknown(true)).optional(),
   produtos: Joi.array().items(Joi.object().unknown(true)).optional(),

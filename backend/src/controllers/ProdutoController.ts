@@ -4,6 +4,11 @@ import { CacheService } from '@services/CacheService';
 import { ProdutoService } from '@services/ProdutoService';
 import { ProdutoImageService } from '@services/ProdutoImageService';
 import { successResponse, paginatedResponse, errorResponse } from '@utils/response';
+import { ProductSearchService } from '@search/ProductSearchService';
+import { PublicSearchTenantResolver } from '@search/PublicSearchTenantResolver';
+import type { SearchFilters, SearchSort } from '@/types/search';
+import { SearchCursorCodec } from '@search/SearchCursorCodec';
+import { comparableSearchText } from '@search/QueryNormalizer';
 
 async function invalidateProductCaches(): Promise<void> {
   await CacheService.invalidateNamespaces(CacheService.productContentNamespaces);
@@ -141,22 +146,56 @@ export class ProdutoController {
 
   static async searchSite(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const empresaId = parseInt((req.query.empresaId as string) || '1', 10);
-      const page = parseInt((req.query.page as string) || '1', 10);
-      const requestedLimit = parseInt((req.query.limit as string) || '4', 10);
-      const limit = Math.min(Math.max(requestedLimit || 4, 1), 4);
+      const unsupportedNames = new Set(['price', 'minprice', 'maxprice', 'preco', 'precomin', 'precomax', 'preco_min', 'preco_max', 'brand', 'brandid', 'id_marca', 'marca', 'stock', 'estoque']);
+      const unsupported = Object.keys(req.query).filter((key) => unsupportedNames.has(key.toLocaleLowerCase('pt-BR')));
+      if (unsupported.length) {
+        errorResponse(res, 'UNSUPPORTED_SEARCH_FILTER', 'Preco, marca e estoque ainda nao possuem fonte publica isolada por tenant', 422, { filters: unsupported });
+        return;
+      }
+      const empresaId = PublicSearchTenantResolver.resolve(req);
+      const requestedPage = Number(req.query.page || 1);
+      const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+      const requestedLimit = Number(req.query.limit || 20);
+      const limit = Math.min(Math.max(Number.isInteger(requestedLimit) ? requestedLimit : 20, 1), 40);
       const term = String(req.query.q || '');
+      const positiveInt = (value: unknown): number | undefined => {
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+      };
+      const filters: SearchFilters = {
+        categoryId: positiveInt(req.query.categoryId || req.query.id_categoria),
+        subcategoryId: positiveInt(req.query.subcategoryId || req.query.id_subcategoria),
+        productTypeId: positiveInt(req.query.productTypeId || req.query.id_tipo_produto),
+        material: req.query.material ? comparableSearchText(String(req.query.material)) : undefined,
+        color: req.query.color ? String(req.query.color).trim() : undefined,
+        recordingTypeId: positiveInt(req.query.recordingTypeId || req.query.id_tipo_gravacao),
+        maximumMinimumQuantity: positiveInt(req.query.maximumMinimumQuantity || req.query.quantidade_minima),
+      };
+      const requestedSort = String(req.query.sort || 'relevance');
+      const sortAliases: Record<string, SearchSort> = {
+        relevance: 'relevance', relevancia: 'relevance', newest: 'newest', mais_recentes: 'newest',
+        popular: 'popular', popularidade: 'popular',
+      };
+      const sort = sortAliases[requestedSort] || 'relevance';
+      const result = await ProductSearchService.search({
+        empresaId,
+        term,
+        page,
+        limit,
+        cursor: req.query.cursor ? String(req.query.cursor) : undefined,
+        sort,
+        filters,
+        locale: String(req.query.locale || 'pt-BR'),
+      });
 
-      const result = await CacheService.getOrSet(
-        CacheService.buildKey('produtos', `${empresaId}:${req.originalUrl}`),
-        () =>
-          ProdutoService.searchProdutosSite(
-            empresaId,
-            term,
-            page,
-            limit
-          )
-      );
+      console.log(JSON.stringify({
+        event: 'product_search',
+        requestId: (req as AuthenticatedRequest & { requestId?: string }).requestId,
+        searchId: result.match_exato_codigo ? undefined : result.searchId,
+        queryHash: SearchCursorCodec.queryHash(term.trim().toLocaleLowerCase('pt-BR')),
+        empresaId,
+        mode: result.match_exato_codigo ? 'exact_code' : result.mode,
+      }));
 
       if (result.match_exato_codigo === true) {
         successResponse(
@@ -171,14 +210,7 @@ export class ProdutoController {
         return;
       }
 
-      paginatedResponse(
-        res,
-        result.items,
-        result.total,
-        result.page,
-        result.limit,
-        'Produtos encontrados com sucesso'
-      );
+      successResponse(res, result, 'Produtos encontrados com sucesso');
     } catch (error) {
       const err = error as any;
       errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);

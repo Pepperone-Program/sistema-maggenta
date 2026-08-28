@@ -34,6 +34,7 @@
       "@controllers/*": ["src/controllers/*"],
       "@middleware/*": ["src/middleware/*"],
       "@routes/*": ["src/routes/*"],
+      "@search/*": ["src/search/*"],
       "@types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"],
       "@config/*": ["src/config/*"]

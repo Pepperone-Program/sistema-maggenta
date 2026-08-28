@@ -1,4 +1,5 @@
-import { getConnection, query } from '@database/connection';
+import { getConnection, query, queryWithoutRetry } from '@database/connection';
+import type { PoolConnection } from 'mysql2/promise';
 import type {
   Produto,
   ProdutoCategoria,
@@ -49,7 +50,8 @@ export class ProdutoModel {
 
   static async create(
     empresaId: number,
-    data: CreateProdutoDTO
+    data: CreateProdutoDTO,
+    connection?: PoolConnection
     ): Promise<any> {
     const sql = `
       INSERT INTO produtos (
@@ -98,16 +100,17 @@ export class ProdutoModel {
       data.quantidade_minima || null,
     ];
 
-    const result = await query(sql, values);
+    const result = connection ? (await connection.execute(sql, values))[0] : await query(sql, values);
     return (result as any).insertId;
   }
 
   static async findById(
     empresaId: number,
-    produtoId: number
+    produtoId: number,
+    connection?: PoolConnection
   ): Promise<Produto | null> {
     const sql = 'SELECT * FROM produtos WHERE id_empresa = ? AND id_produto = ?';
-    const result = await query(sql, [empresaId, produtoId]);
+    const result = connection ? (await connection.execute(sql, [empresaId, produtoId]))[0] : await query(sql, [empresaId, produtoId]);
     return (result as any[])[0] || null;
   }
 
@@ -127,7 +130,7 @@ export class ProdutoModel {
     return (result as any[])[0] || null;
   }
 
-  static async findImagesByProductIds(produtoIds: number[]): Promise<Map<number, ProdutoImagem[]>> {
+  static async findImagesByProductIds(produtoIds: number[], retry = true): Promise<Map<number, ProdutoImagem[]>> {
     const imagesByProduct = new Map<number, ProdutoImagem[]>();
     const uniqueIds = Array.from(new Set(produtoIds.filter((id) => Number.isInteger(id) && id > 0)));
 
@@ -140,7 +143,8 @@ export class ProdutoModel {
     for (let start = 0; start < uniqueIds.length; start += chunkSize) {
       const chunk = uniqueIds.slice(start, start + chunkSize);
       const placeholders = chunk.map(() => '?').join(',');
-      const rows = (await query(
+      const executor = retry ? query : queryWithoutRetry;
+      const rows = (await executor(
         `
           SELECT id_imagem, id_produto, url_imagem, ordem_imagem, created_at
           FROM imagens_produtos
@@ -573,7 +577,7 @@ export class ProdutoModel {
     `;
     const filterValues: any[] = [empresaId, searchPattern];
 
-    const countResult = await query(
+    const countResult = await queryWithoutRetry(
       `SELECT COUNT(*) as total ${where}`,
       filterValues
     );
@@ -600,7 +604,7 @@ export class ProdutoModel {
       offset,
     ];
 
-    const items = await query(sql, values);
+    const items = await queryWithoutRetry(sql, values);
     return { items: items as Produto[], total };
   }
 
@@ -608,7 +612,7 @@ export class ProdutoModel {
     empresaId: number,
     codigo: string
   ): Promise<Pick<Produto, 'id_produto' | 'codigo'> | null> {
-    const result = await query(
+    const result = await queryWithoutRetry(
       `
         SELECT id_produto, codigo
         FROM produtos
@@ -627,7 +631,8 @@ export class ProdutoModel {
   static async update(
     empresaId: number,
     produtoId: number,
-    data: UpdateProdutoDTO
+    data: UpdateProdutoDTO,
+    connection?: PoolConnection
   ): Promise<boolean> {
     const updates: string[] = [];
     const values: any[] = [];
@@ -646,13 +651,13 @@ export class ProdutoModel {
       WHERE id_empresa = ? AND id_produto = ?
     `;
 
-    const result = await query(sql, values);
+    const result = connection ? (await connection.execute(sql, values))[0] : await query(sql, values);
     return (result as any).affectedRows > 0;
   }
 
-  static async delete(empresaId: number, produtoId: number): Promise<boolean> {
+  static async delete(empresaId: number, produtoId: number, connection?: PoolConnection): Promise<boolean> {
     const sql = 'DELETE FROM produtos WHERE id_empresa = ? AND id_produto = ?';
-    const result = await query(sql, [empresaId, produtoId]);
+    const result = connection ? (await connection.execute(sql, [empresaId, produtoId]))[0] : await query(sql, [empresaId, produtoId]);
     return (result as any).affectedRows > 0;
   }
 

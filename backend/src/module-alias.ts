@@ -10,6 +10,7 @@ const aliases: Record<string, string> = {
   '@middleware': path.join(rootDir, 'middleware'),
   '@models': path.join(rootDir, 'models'),
   '@routes': path.join(rootDir, 'routes'),
+  '@search': path.join(rootDir, 'search'),
   '@services': path.join(rootDir, 'services'),
   '@types': path.join(rootDir, 'types'),
   '@utils': path.join(rootDir, 'utils'),

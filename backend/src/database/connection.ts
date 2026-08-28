@@ -15,6 +15,7 @@ type DbErrorCode =
   | 'PROTOCOL_CONNECTION_LOST'
   | 'POOL_ENQUEUELIMIT'
   | 'ETIMEDOUT'
+  | 'ER_STATEMENT_TIMEOUT'
   | 'UNKNOWN';
 
 declare global {
@@ -79,6 +80,17 @@ const createDatabasePool = (): mysql.Pool => {
 };
 
 const pool = createDatabasePool();
+const poolStats = { active: 0, queued: 0, connections: 0, connectionLimit };
+const corePool = (pool as unknown as { pool?: NodeJS.EventEmitter }).pool;
+corePool?.on('connection', () => { poolStats.connections += 1; });
+corePool?.on('acquire', () => {
+  poolStats.active += 1;
+  if (poolStats.queued > 0) poolStats.queued -= 1;
+});
+corePool?.on('release', () => { poolStats.active = Math.max(0, poolStats.active - 1); });
+corePool?.on('enqueue', () => { poolStats.queued += 1; });
+
+export const getDatabasePoolStats = (): Readonly<typeof poolStats> => ({ ...poolStats });
 
 const mapDbError = (error: unknown): Error & { code: string; statusCode: number } => {
   const dbError = error as { code?: DbErrorCode; message?: string };
@@ -122,6 +134,11 @@ const mapDbError = (error: unknown): Error & { code: string; statusCode: number 
       mapped.code = 'DB_UNREACHABLE';
       mapped.statusCode = 503;
       mapped.message = 'Servidor MySQL indisponível ou inacessível.';
+      break;
+    case 'ER_STATEMENT_TIMEOUT':
+      mapped.code = 'SEARCH_QUERY_TIMEOUT';
+      mapped.statusCode = 503;
+      mapped.message = 'Consulta de busca excedeu o tempo limite no banco de dados.';
       break;
     default:
       mapped.code = 'DB_QUERY_ERROR';
@@ -177,6 +194,15 @@ export const query = async (sql: string, values?: any[]): Promise<any> => {
   }
 
   throw mapDbError(new Error('Falha ao consultar banco de dados'));
+};
+
+export const queryWithoutRetry = async (sql: string, values?: any[]): Promise<any> => {
+  try {
+    const [result] = await pool.execute(sql, values);
+    return result;
+  } catch (error) {
+    throw mapDbError(error);
+  }
 };
 
 export const testDatabaseConnection = async (): Promise<void> => {

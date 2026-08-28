@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ProdutoController } from '@controllers/ProdutoController';
-import { authMiddleware } from '@middleware/auth';
+import { authMiddleware, optionalAuthMiddleware } from '@middleware/auth';
 import { validationMiddleware } from '@middleware/validation';
 import { productSchema } from '@utils/validation';
 import multer from 'multer';
@@ -88,6 +88,7 @@ router.delete(
 
 router.get(
   '/site/busca',
+  optionalAuthMiddleware,
   ProdutoController.searchSite
 );
 

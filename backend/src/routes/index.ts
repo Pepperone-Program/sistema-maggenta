@@ -16,6 +16,8 @@ import newsletterRoutes from './newsletter';
 import siteTokenRoutes from './site-token';
 import cacheRoutes from './cache';
 import landingPagesRoutes from './landing-pages';
+import searchRoutes from './search';
+import { SearchController } from '@controllers/SearchController';
 import { FreeshopController } from '@controllers/FreeshopController';
 
 const router = Router();
@@ -39,6 +41,8 @@ router.use('/api/v1/newsletter', newsletterRoutes);
 router.use('/api/v1/site-token', siteTokenRoutes);
 router.use('/api/v1/cache', cacheRoutes);
 router.use('/api/v1/landing-pages', landingPagesRoutes);
+router.use('/api/v1/search', searchRoutes);
+router.get('/metrics', SearchController.metrics);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

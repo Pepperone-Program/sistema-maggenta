@@ -1,0 +1,22 @@
+[
+  {
+    "query": "bloco com pauta",
+    "expectedCodes": ["BL331", "BL332", "BL330", "BL333", "BL337", "BL220", "BL233", "BL335"],
+    "forbiddenCodes": ["BL225", "BL226", "BL124", "BL188", "BL239"]
+  },
+  {
+    "query": "garrafa parede dupla",
+    "expectedCodes": ["SQ115", "SQ120", "GT03", "GT428"],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "garrafa térmica inox 500ml",
+    "expectedCodes": ["GT428"],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "mochila notebook 15.6\"",
+    "expectedCodes": ["MC488"],
+    "forbiddenCodes": []
+  }
+]

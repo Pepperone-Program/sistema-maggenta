@@ -19,10 +19,28 @@ const run = async (): Promise<void> => {
       assert.equal(result.totalPages, Math.ceil(result.total / limit));
     }
   }
+  const reorderedPhrase = await ProductSearchService.search({
+    empresaId,
+    term: 'garrafa com parede dupla',
+    page: 1,
+    limit: 20,
+    sort: 'relevance',
+    filters: {},
+    locale: 'pt-BR',
+  });
+  assert.equal(reorderedPhrase.match_exato_codigo, false);
+  if (!reorderedPhrase.match_exato_codigo) {
+    assert.equal(reorderedPhrase.mode, 'legacy');
+    assert.equal(reorderedPhrase.items.length > 0, true);
+    assert.equal(
+      reorderedPhrase.items.some((item) => ['GT03', 'GT401', 'GT428'].includes(item.codigo)),
+      true
+    );
+  }
   const suffix = await ProductSearchService.search({ empresaId, term: 'GF042', page: 1, limit: 20, sort: 'relevance', filters: {}, locale: 'pt-BR' });
   assert.equal(suffix.match_exato_codigo, true);
   if (suffix.match_exato_codigo) assert.equal(suffix.codigo.toLocaleUpperCase('pt-BR'), 'GF042C');
-  console.log('smokeLegacySearchContract: limits 10/24/40 and C suffix priority ok');
+  console.log('smokeLegacySearchContract: limits, tokenized phrase fallback and C suffix priority ok');
 };
 
 run().catch((error) => { console.error('[search:smoke-legacy]', error); process.exitCode = 1; }).finally(() => closeDatabasePool());

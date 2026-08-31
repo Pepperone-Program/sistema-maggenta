@@ -565,17 +565,25 @@ export class ProdutoModel {
     empresaId: number,
     term: string,
     page: number = 1,
-    limit: number = 100
+    limit: number = 100,
+    searchTerms: string[] = []
   ): Promise<{ items: Produto[]; total: number }> {
     const searchPattern = `%${term}%`;
+    const terms = Array.from(new Set(searchTerms.map((value) => value.trim()).filter(Boolean)));
+    const tokenConditions = terms.length > 0
+      ? terms.map(() => `(produto LIKE ? OR COALESCE(descricao, '') LIKE ?)`).join('\n        AND ')
+      : 'produto LIKE ?';
+    const tokenValues = terms.length > 0
+      ? terms.flatMap((value) => [`%${value}%`, `%${value}%`])
+      : [searchPattern];
     const where = `
       FROM produtos
       WHERE id_empresa = ?
         AND site = 'S'
         AND habilitado = 'S'
-        AND produto LIKE ?
+        AND ${tokenConditions}
     `;
-    const filterValues: any[] = [empresaId, searchPattern];
+    const filterValues: any[] = [empresaId, ...tokenValues];
 
     const countResult = await queryWithoutRetry(
       `SELECT COUNT(*) as total ${where}`,
@@ -584,6 +592,10 @@ export class ProdutoModel {
     const total = (countResult as any[])[0].total;
 
     const offset = (page - 1) * limit;
+    const productTokenConditions = terms.length > 0
+      ? terms.map(() => 'produto LIKE ?').join(' AND ')
+      : 'produto LIKE ?';
+    const productTokenValues = (terms.length > 0 ? terms : [term]).map((value) => `%${value}%`);
     const sql = `
       SELECT *
       ${where}
@@ -591,15 +603,18 @@ export class ProdutoModel {
         CASE
           WHEN produto = ? THEN 0
           WHEN produto LIKE ? THEN 1
-          ELSE 2
+          WHEN ${productTokenConditions} THEN 2
+          ELSE 3
         END,
-        data_modificacao DESC
+        data_modificacao DESC,
+        id_produto DESC
       LIMIT ? OFFSET ?
     `;
     const values = [
       ...filterValues,
       term,
       `${term}%`,
+      ...productTokenValues,
       limit,
       offset,
     ];

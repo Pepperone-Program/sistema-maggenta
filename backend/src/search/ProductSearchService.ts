@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { ProdutoModel } from '@models/Produto';
 import { CandidateRetriever } from './CandidateRetriever';
 import { ProductRankingEngine } from './ProductRankingEngine';
-import { QueryNormalizer } from './QueryNormalizer';
+import { legacySearchTerms, QueryNormalizer } from './QueryNormalizer';
 import { QueryParser } from './QueryParser';
 import { SearchAnalyticsService } from './SearchAnalyticsService';
 import { SearchCircuitBreaker } from './SearchCircuitBreaker';
@@ -249,7 +249,13 @@ export class ProductSearchService {
   private static async legacy(input: SearchInput): Promise<ProductSearchResponse> {
     const startedAt = Date.now();
     const normalized = QueryNormalizer.normalize(input.term);
-    const { items, total } = await ProdutoModel.searchForSite(input.empresaId, input.term.trim(), input.page, input.limit);
+    const { items, total } = await ProdutoModel.searchForSite(
+      input.empresaId,
+      input.term.trim(),
+      input.page,
+      input.limit,
+      legacySearchTerms(normalized.tokens)
+    );
     const images = await ProdutoModel.findImagesByProductIds(items.map((item) => Number(item.id_produto)), false);
     const hydrated = items.map((item) => ({ ...item, imagens: images.get(Number(item.id_produto)) || [] }));
     const emptyIntent: SearchIntent = {

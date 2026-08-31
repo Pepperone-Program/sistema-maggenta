@@ -1,7 +1,7 @@
 import '../module-alias';
 import assert from 'node:assert/strict';
 import { ProductRankingEngine } from '@search/ProductRankingEngine';
-import { QueryNormalizer } from '@search/QueryNormalizer';
+import { legacySearchTerms, QueryNormalizer } from '@search/QueryNormalizer';
 import { QueryParser } from '@search/QueryParser';
 import { QueryTokenizer } from '@search/QueryTokenizer';
 import { SearchCursorCodec } from '@search/SearchCursorCodec';
@@ -58,6 +58,7 @@ assert.equal(phraseIntent.positiveTerms.includes('sem'), true);
 assert.equal(phraseIntent.positiveTerms.includes('pauta'), true);
 
 const doubleWallIntent = QueryParser.parse(QueryNormalizer.normalize('garrafa parede dupla'), dictionary);
+assert.deepEqual(legacySearchTerms(QueryNormalizer.normalize('garrafa com parede dupla').tokens), ['garrafa', 'parede', 'dupla']);
 assert.deepEqual(new Set(doubleWallIntent.positiveTerms), new Set(['garrafa', 'parede', 'dupla']));
 assert.equal(doubleWallIntent.safeBooleanQuery.split(' ').every((token) => token.startsWith('+')), true);
 assert.equal(doubleWallIntent.safeBooleanQuery.includes('+garrafa*'), true);

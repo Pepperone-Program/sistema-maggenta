@@ -3,6 +3,9 @@ import type { NormalizedSearchQuery } from '@/types/search';
 
 const CONTROL_CHARACTERS = /[\u0000-\u001F\u007F-\u009F]/g;
 const COMBINING_MARKS = /[\u0300-\u036f]/g;
+const LEGACY_STOP_WORDS = new Set([
+  'a', 'as', 'com', 'da', 'das', 'de', 'do', 'dos', 'e', 'em', 'o', 'os', 'para', 'por',
+]);
 
 export const comparableSearchText = (value: string): string =>
   value
@@ -49,3 +52,13 @@ export class QueryNormalizer {
 
 export const normalizeSearchQuery = (query: string): NormalizedSearchQuery =>
   QueryNormalizer.normalize(query);
+
+export const legacySearchTerms = (tokens: string[]): string[] => {
+  const sanitized = tokens
+    .map((token) => token.replace(/[^a-z0-9]+/g, ''))
+    .filter((token) => token.length > 0 && !LEGACY_STOP_WORDS.has(token));
+  const unique = Array.from(new Set(sanitized));
+
+  // Consultas formadas apenas por palavras de ligacao ainda precisam ser pesquisaveis.
+  return unique.length > 0 ? unique : tokens.map((token) => token.replace(/[^a-z0-9]+/g, '')).filter(Boolean);
+};

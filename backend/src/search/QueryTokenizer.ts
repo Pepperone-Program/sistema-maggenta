@@ -5,6 +5,7 @@ export class QueryTokenizer {
     return Array.from(
       new Set(
         tokens
+          .flatMap((token) => token.split(/\s+/))
           .map((token) => token.replace(/[^a-z0-9.,]/g, ''))
           .filter((token) => token.length >= 2 && SAFE_TOKEN.test(token))
       )

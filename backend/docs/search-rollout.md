@@ -1,12 +1,12 @@
 # Busca publica de produtos
 
-O caminho avancado e opt-in e nasce com `SEARCH_RANKING_PERCENTAGE=0`. A busca legada continua atendendo o endpoint existente; codigo exato preserva a ordem `${codigo}C` e depois `${codigo}`. O site publico ainda precisa deixar de reordenar `data.items` antes de qualquer percentual maior que zero.
+O caminho avancado e opt-in e nasce com `SEARCH_RANKING_PERCENTAGE=0`. A busca legada continua atendendo o endpoint existente; codigo exato preserva a ordem `${codigo}C` e depois `${codigo}`. O consumidor Maggenta preserva a ordem de `data.items`; outros consumidores devem fazer o mesmo antes de depender do ranking.
 
 ## Preparacao segura
 
 1. Faça backup e execute primeiro em staging com MariaDB 10.3. Verifique espaco, transacoes longas, metadata locks e `lock_wait_timeout`.
 2. Configure `SEARCH_EXPECTED_REPLICAS`, `DB_CONNECTION_LIMIT`, `SEARCH_CURSOR_SECRET` e `SEARCH_PUBLIC_DEFAULT_EMPRESA_ID`.
-3. Compile e rode `npm run search:preflight`. O produto `pool x replicas` precisa ficar abaixo de 70% de `max_connections`.
+3. Compile e rode `npm run search:preflight`. O produto `pool x replicas` precisa ficar abaixo de 70% de `max_connections`. Com shadow, escrita sincronizada ou ranking ativos, o preflight tambem exige migrations registradas, dicionario, atributos, versao de catalogo e 100% dos produtos publicos com documento.
 4. Rode `npm run db:migrate`. No Railway isso esta configurado como pre-deploy e bloqueia o start quando falha.
 5. Para cada tenant, rode `npm run search:seed-dictionary -- <empresaId>` e `npm run search:rebuild -- <empresaId> 200`.
 6. Catalogue manualmente atributos e tipos contidos por `PUT /api/v1/search/products/:id/metadata`. O rebuild nunca infere metadata a partir da descricao.
@@ -25,7 +25,8 @@ O build deve existir antes dos scripts operacionais (`npm run build`). Para migr
 
 ## Contratos e operacao
 
-- Busca: `GET /api/v1/produtos/site/busca`; autocomplete: `GET /api/v1/search/autocomplete`; clique: `POST /api/v1/search/click`.
+- Busca: `GET /api/v1/produtos/site/busca`; os aliases legados `GET /api/v1/produtos/site?busca=` e `?search=` delegam ao mesmo motor. Autocomplete: `GET /api/v1/search/autocomplete`; clique: `POST /api/v1/search/click`.
+- O ranking atual e `v2`. O timeout total padrao e 3 s, medido para o banco remoto atual; cada statement de busca continua limitado a 500 ms no MariaDB. Reavalie o timeout somente com benchmark reproduzivel no ambiente de deploy.
 - O consumidor deve aplicar debounce de 150 a 300 ms no autocomplete; ele usa apenas prefixos e dicionario, sem executar o ranking completo.
 - O token do site define o tenant. `empresaId` so e aceito quando coincide; sem token, somente o tenant publico configurado.
 - Preco, marca e estoque retornam `422 UNSUPPORTED_SEARCH_FILTER`.

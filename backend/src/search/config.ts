@@ -20,11 +20,11 @@ export const SEARCH_LIMITS = {
   defaultLimit: 20,
   maxLimit: 40,
   candidatePool: positiveInteger(process.env.SEARCH_CANDIDATE_POOL, 250),
-  applicationTimeoutMs: positiveInteger(process.env.SEARCH_TIMEOUT_MS, 750),
+  applicationTimeoutMs: positiveInteger(process.env.SEARCH_TIMEOUT_MS, 3000),
   statementTimeoutSeconds: 0.5,
 } as const;
 
-export const SEARCH_RANKING_VERSION = process.env.SEARCH_RANKING_VERSION || 'v1';
+export const SEARCH_RANKING_VERSION = process.env.SEARCH_RANKING_VERSION || 'v2';
 
 export const SEARCH_FLAGS = {
   rankingPercentage: percentage(process.env.SEARCH_RANKING_PERCENTAGE),
@@ -52,6 +52,7 @@ export const SEARCH_SCORE_WEIGHTS: Omit<SearchScoreBreakdown, 'total'> = {
   containsType: -3_000,
   differentType: -2_000,
   contradiction: -10_000,
+  lexicalCoverage: 3_500,
   fulltextName: 800,
   fulltextText: 400,
   popularity: 100,

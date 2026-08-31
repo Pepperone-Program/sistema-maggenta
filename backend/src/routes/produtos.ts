@@ -94,6 +94,7 @@ router.get(
 
 router.get(
   '/site',
+  optionalAuthMiddleware,
   ProdutoController.listSite
 );
 

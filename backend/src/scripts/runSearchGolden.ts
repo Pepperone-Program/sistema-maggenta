@@ -10,6 +10,7 @@ const dcg = (relevance: number[]): number => relevance.reduce(
 type GoldenRow = {
   query: string;
   top20: string[];
+  relatedTop10: string[];
   mrr: number;
   ndcg10: number;
   precision10: number;
@@ -28,19 +29,22 @@ const run = async (): Promise<void> => {
     });
     if (response.match_exato_codigo) throw new Error(`Consulta golden interpretada como codigo: ${item.query}`);
     const codes = response.items.map((product) => product.codigo);
+    const relatedCodes = response.relatedItems.map((product) => product.codigo);
+    const evaluationCodes = Array.from(new Set([...codes.slice(0, 15), ...relatedCodes.slice(0, 5)])).slice(0, 20);
     const expected = new Set(item.expectedCodes);
     const relevance10: number[] = codes.slice(0, 10).map((code) => expected.has(code) ? 1 : 0);
     const ideal10: number[] = Array.from({ length: Math.min(expected.size, 10) }, () => 1);
-    const firstRelevant = codes.findIndex((code) => expected.has(code));
-    const hits20 = new Set(codes.slice(0, 20).filter((code) => expected.has(code))).size;
+    const firstRelevant = evaluationCodes.findIndex((code) => expected.has(code));
+    const hits20 = new Set(evaluationCodes.filter((code) => expected.has(code))).size;
     rows.push({
       query: item.query,
       top20: codes.slice(0, 20),
+      relatedTop10: relatedCodes.slice(0, 10),
       mrr: firstRelevant < 0 ? 0 : 1 / (firstRelevant + 1),
       ndcg10: ideal10.length ? dcg(relevance10) / dcg(ideal10) : 1,
       precision10: relevance10.reduce((sum, value) => sum + value, 0) / 10,
       recall20: expected.size ? hits20 / expected.size : 1,
-      constraintViolations: codes.slice(0, 20).filter((code) => item.forbiddenCodes.includes(code)),
+      constraintViolations: evaluationCodes.filter((code) => item.forbiddenCodes.includes(code)),
       timing: response.timing,
     });
   }

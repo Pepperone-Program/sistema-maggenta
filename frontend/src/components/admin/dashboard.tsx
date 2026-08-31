@@ -184,7 +184,10 @@ export function AdminDashboard() {
     }
   }
 
-  const chartData = state.estatisticas?.mais_orcados || [];
+  const chartData = useMemo(
+    () => state.estatisticas?.mais_orcados || [],
+    [state.estatisticas?.mais_orcados],
+  );
   const chartOptions = useMemo<ApexOptions>(
     () => ({
       chart: { toolbar: { show: false }, fontFamily: "inherit" },

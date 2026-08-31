@@ -17,6 +17,10 @@ const requiredTables = [
   'search_conversion_events',
 ];
 
+const requiredMigrations = ['001-search-core', '002-search-analytics'];
+
+type TenantCount = { id_empresa: number; total: number | string; public_enabled?: number | string };
+
 const run = async (): Promise<void> => {
   const [version] = await query(`SELECT VERSION() AS version, DATABASE() AS database_name, @@max_connections AS max_connections,
     @@innodb_ft_min_token_size AS ft_min_token_size, @@character_set_database AS charset_name, @@collation_database AS collation_name`);
@@ -27,6 +31,71 @@ const run = async (): Promise<void> => {
   ) as Array<{ table_name: string }>;
   const existing = new Set(rows.map((row) => row.table_name));
   const missing = requiredTables.filter((table) => !existing.has(table));
+  const publicTenantId = Number(process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID || 1);
+  const migrationRows = existing.has('schema_migrations')
+    ? await query('SELECT id, description, applied_at FROM schema_migrations ORDER BY id') as Array<{ id: string; description: string; applied_at: Date | string }>
+    : [];
+  const appliedMigrationIds = new Set(migrationRows.map((row) => row.id));
+  const missingMigrations = requiredMigrations.filter((id) => !appliedMigrationIds.has(id));
+  let catalogs: Array<{
+    empresaId: number;
+    products: number;
+    publicEnabledProducts: number;
+    documents: number;
+    publicEnabledDocuments: number;
+    dictionaryEntries: number;
+    attributeDefinitions: number;
+    catalogVersions: number;
+    publicDocumentCoverage: number;
+    ready: boolean;
+  }> = [];
+  if (missing.length === 0) {
+    const [products, documents, dictionary, attributes, catalogVersions] = await Promise.all([
+      query(`SELECT id_empresa, COUNT(*) AS total,
+                    SUM(site = 'S' AND habilitado = 'S') AS public_enabled
+             FROM produtos GROUP BY id_empresa`) as Promise<TenantCount[]>,
+      query(`SELECT p.id_empresa, COUNT(d.id_produto) AS total,
+                    SUM(p.site = 'S' AND p.habilitado = 'S'
+                      AND d.site = 'S' AND d.habilitado = 'S') AS public_enabled
+             FROM produtos p
+             LEFT JOIN product_search_documents d
+               ON d.id_empresa = p.id_empresa AND d.id_produto = p.id_produto
+             GROUP BY p.id_empresa`) as Promise<TenantCount[]>,
+      query(`SELECT id_empresa, COUNT(*) AS total FROM search_dictionary
+             WHERE active = 1 GROUP BY id_empresa`) as Promise<TenantCount[]>,
+      query(`SELECT id_empresa, COUNT(*) AS total FROM search_attribute_definitions
+             WHERE active = 1 GROUP BY id_empresa`) as Promise<TenantCount[]>,
+      query(`SELECT id_empresa, COUNT(*) AS total FROM search_catalog_versions GROUP BY id_empresa`) as Promise<TenantCount[]>,
+    ]);
+    const countByTenant = (values: TenantCount[], empresaId: number, key: 'total' | 'public_enabled' = 'total'): number =>
+      Number(values.find((row) => Number(row.id_empresa) === empresaId)?.[key] || 0);
+    catalogs = products.map((product) => {
+      const empresaId = Number(product.id_empresa);
+      const publicEnabledProducts = Number(product.public_enabled || 0);
+      const publicEnabledDocuments = countByTenant(documents, empresaId, 'public_enabled');
+      const dictionaryEntries = countByTenant(dictionary, empresaId);
+      const attributeDefinitions = countByTenant(attributes, empresaId);
+      const catalogVersionCount = countByTenant(catalogVersions, empresaId);
+      const publicDocumentCoverage = publicEnabledProducts > 0
+        ? publicEnabledDocuments / publicEnabledProducts
+        : 1;
+      return {
+        empresaId,
+        products: Number(product.total),
+        publicEnabledProducts,
+        documents: countByTenant(documents, empresaId),
+        publicEnabledDocuments,
+        dictionaryEntries,
+        attributeDefinitions,
+        catalogVersions: catalogVersionCount,
+        publicDocumentCoverage,
+        ready: dictionaryEntries > 0
+          && attributeDefinitions > 0
+          && catalogVersionCount > 0
+          && publicDocumentCoverage >= 1,
+      };
+    });
+  }
   const [statisticsTenantColumn, duplicateProductIds] = await Promise.all([
     query(`SELECT COUNT(*) AS total FROM information_schema.columns
       WHERE table_schema = DATABASE() AND table_name = 'estatisticas_produtos' AND column_name = 'id_empresa'`),
@@ -44,6 +113,16 @@ const run = async (): Promise<void> => {
     database: version,
     schemaPrepared: missing.length === 0,
     missingTables: missing,
+    migrations: {
+      applied: migrationRows,
+      missing: missingMigrations,
+      prepared: missingMigrations.length === 0,
+    },
+    catalog: {
+      publicTenantId,
+      tenants: catalogs,
+      ready: catalogs.find((catalog) => catalog.empresaId === publicTenantId)?.ready || false,
+    },
     rollout: {
       rankingPercentage: Number(process.env.SEARCH_RANKING_PERCENTAGE || 0),
       shadowPercentage: Number(process.env.SEARCH_SHADOW_PERCENTAGE || 0),
@@ -69,7 +148,14 @@ const run = async (): Promise<void> => {
   console.log(JSON.stringify(checks, null, 2));
   const rankingAuthorized = checks.rollout.rankingPercentage === 0 || process.env.SEARCH_PREFLIGHT_ALLOW_RANKING === 'true';
   const schemaRequired = checks.rollout.rankingPercentage > 0 || checks.rollout.shadowPercentage > 0 || checks.rollout.writeSyncEnabled;
-  if (!rankingAuthorized || (schemaRequired && !checks.schemaPrepared) || !checks.capacity.underSeventyPercent || !checks.secrets.cursorSecretConfigured || !checks.secrets.publicTenantConfigured || !checks.popularity.tenantSafe) {
+  const writeSyncReady = checks.rollout.rankingPercentage === 0 || checks.rollout.writeSyncEnabled;
+  if (!rankingAuthorized
+    || (schemaRequired && (!checks.schemaPrepared || !checks.migrations.prepared || !checks.catalog.ready))
+    || !writeSyncReady
+    || !checks.capacity.underSeventyPercent
+    || !checks.secrets.cursorSecretConfigured
+    || !checks.secrets.publicTenantConfigured
+    || !checks.popularity.tenantSafe) {
     process.exitCode = 2;
   }
 };

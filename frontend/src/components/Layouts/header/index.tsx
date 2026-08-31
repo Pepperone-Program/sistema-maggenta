@@ -51,12 +51,12 @@ function normalizeSearch(value: string) {
 export function Header() {
   const { toggleSidebar, isMobile } = useSidebarContext();
   const router = useRouter();
-  const searchRef = useClickOutside<HTMLFormElement>(() =>
-    setShowResults(false),
-  );
   const [search, setSearch] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
+  const searchRef = useClickOutside<HTMLFormElement>(() =>
+    setShowResults(false),
+  );
   const results = useMemo(() => {
     const term = normalizeSearch(search.trim());
 

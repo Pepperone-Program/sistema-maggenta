@@ -1,7 +1,7 @@
 [
   {
     "query": "bloco com pauta",
-    "expectedCodes": ["BL331", "BL332", "BL330", "BL333", "BL337", "BL220", "BL233", "BL335"],
+    "expectedCodes": ["BL42", "BL74", "BL02", "BL123", "BL229", "BL154", "BL83", "BL178", "BL210", "BL152", "BL331", "BL332", "BL330", "BL333", "BL337", "BL220", "BL233", "BL335"],
     "forbiddenCodes": ["BL225", "BL226", "BL124", "BL188", "BL239"]
   },
   {
@@ -16,7 +16,7 @@
   },
   {
     "query": "mochila notebook 15.6\"",
-    "expectedCodes": ["MC488"],
+    "expectedCodes": ["MC201", "MC221", "MC222", "MC488"],
     "forbiddenCodes": []
   }
 ]

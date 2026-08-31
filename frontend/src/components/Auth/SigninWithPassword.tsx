@@ -1,11 +1,11 @@
 "use client";
 import { EmailIcon, PasswordIcon } from "@/assets/icons";
-import { apiRequest, setStoredToken } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import InputGroup from "../FormElements/InputGroup";
 
 type LoginResponse = {
-  token: string;
   usuario: {
     id_usuario: number;
     usuario: string;
@@ -15,9 +15,10 @@ type LoginResponse = {
 };
 
 export default function SigninWithPassword() {
+  const router = useRouter();
   const [data, setData] = useState({
-    email: process.env.NEXT_PUBLIC_DEMO_USER_MAIL || "",
-    password: process.env.NEXT_PUBLIC_DEMO_USER_PASS || "",
+    email: "",
+    password: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -36,15 +37,15 @@ export default function SigninWithPassword() {
     setError("");
 
     try {
-      const response = await apiRequest<LoginResponse>("/api/auth/login", {
+      await apiRequest<LoginResponse>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
           usuario: data.email,
           senha: data.password,
         }),
       });
-      setStoredToken(response.token);
-      window.location.href = "/";
+      router.replace("/");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao fazer login");
     } finally {

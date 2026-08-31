@@ -153,6 +153,7 @@ export interface SearchScoreBreakdown {
   containsType: number;
   differentType: number;
   contradiction: number;
+  lexicalCoverage: number;
   fulltextName: number;
   fulltextText: number;
   popularity: number;

@@ -171,6 +171,7 @@ export class CandidateRetriever {
       FROM (
         SELECT id_produto,
                MAX(retrieval_score) AS retrieval_score,
+               COUNT(*) AS matched_signal_count,
                MAX(fulltext_name_score) AS fulltext_name_score,
                MAX(fulltext_text_score) AS fulltext_text_score
         FROM (${signals.join(' UNION ALL ')}) signals
@@ -179,7 +180,7 @@ export class CandidateRetriever {
       INNER JOIN product_search_documents d ON d.id_empresa = ? AND d.id_produto = aggregated.id_produto
       INNER JOIN produtos p ON p.id_empresa = d.id_empresa AND p.id_produto = d.id_produto
       WHERE d.site = 'S' AND d.habilitado = 'S'${filter.sql}
-      ORDER BY aggregated.retrieval_score DESC, aggregated.id_produto DESC
+      ORDER BY aggregated.matched_signal_count DESC, aggregated.retrieval_score DESC, aggregated.id_produto DESC
       LIMIT ?`;
     const signalRows = (await queryWithoutRetry(sql, [...values, empresaId, ...filter.values, candidateLimit])) as CandidateSignalRow[];
     const candidates = await this.hydrate(empresaId, signalRows);

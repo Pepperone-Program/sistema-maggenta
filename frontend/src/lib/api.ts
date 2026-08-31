@@ -20,23 +20,6 @@ export type PaginatedData<T> = {
 };
 
 const API_BASE_PATH = "/api";
-const TOKEN_STORAGE_KEY = "maggenta_api_token";
-
-export function getStoredToken() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  return window.sessionStorage.getItem(TOKEN_STORAGE_KEY) || "";
-}
-
-export function setStoredToken(token: string) {
-  window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token.trim());
-}
-
-export function clearStoredToken() {
-  window.sessionStorage.removeItem(TOKEN_STORAGE_KEY);
-}
 
 type RequestOptions = RequestInit & {
   query?: Record<string, string | number | undefined | null>;
@@ -61,13 +44,9 @@ function buildUrl(path: string, query?: RequestOptions["query"]) {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}) {
-  const token = getStoredToken();
   const headers = new Headers(options.headers);
 
   headers.set("Content-Type", "application/json");
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   const response = await fetch(buildUrl(path, options.query), {
     ...options,
@@ -90,16 +69,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}) 
 }
 
 export async function apiFormRequest<T>(path: string, formData: FormData) {
-  const token = getStoredToken();
-  const headers = new Headers();
-
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
   const response = await fetch(buildUrl(path), {
     method: "POST",
-    headers,
     body: formData,
     cache: "no-store",
     credentials: "same-origin",

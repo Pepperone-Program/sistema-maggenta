@@ -134,8 +134,16 @@ export class QueryParser {
     const synonymTerms = matchedEntries
       .filter((entry) => entry.termType === 'SYNONYM' && entry.relationType === 'EXACT_SYNONYM')
       .flatMap((entry) => [entry.normalizedTerm, entry.canonicalValue]);
+    const matchedLexicalTerms = matchedEntries
+      .flatMap((entry) => entry.normalizedTerm.split(/\s+/))
+      .filter((token) => !STOPWORDS.has(token));
+    const measurementLexicalTerms = query.tokens.filter((token) =>
+      /^\d+(?:[.,]\d+)?(?:ml|l|mm|cm|m|g|kg)$/.test(token)
+    );
     const positiveTerms = QueryTokenizer.safeTokens([
       ...correctedTerms,
+      ...matchedLexicalTerms,
+      ...measurementLexicalTerms,
       ...synonymTerms,
       ...(productTypeEntry ? [productTypeEntry.canonicalValue] : []),
     ]);

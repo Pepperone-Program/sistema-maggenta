@@ -114,10 +114,15 @@ export class ProdutoController {
 
   static async listSite(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      const searchTerm = String(req.query.busca || req.query.search || '').trim();
+      if (searchTerm) {
+        req.query.q = searchTerm;
+        await ProdutoController.searchSite(req, res);
+        return;
+      }
       const empresaId = parseInt((req.query.empresaId as string) || '1', 10);
       const page = parseInt((req.query.page as string) || '1', 10);
       const limit = parseInt((req.query.limit as string) || '100', 10);
-      const search = req.query.search as string | undefined;
 
       const result = await CacheService.getOrSet(
         CacheService.buildKey('produtos', `${empresaId}:${req.originalUrl}`),
@@ -125,8 +130,7 @@ export class ProdutoController {
           ProdutoService.listProdutosSite(
             empresaId,
             page,
-            limit,
-            search
+            limit
           )
       );
 
@@ -157,7 +161,7 @@ export class ProdutoController {
       const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
       const requestedLimit = Number(req.query.limit || 20);
       const limit = Math.min(Math.max(Number.isInteger(requestedLimit) ? requestedLimit : 20, 1), 40);
-      const term = String(req.query.q || '');
+      const term = String(req.query.q || req.query.busca || req.query.search || '');
       const positiveInt = (value: unknown): number | undefined => {
         const parsed = Number(value);
         return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
@@ -213,7 +217,7 @@ export class ProdutoController {
       successResponse(res, result, 'Produtos encontrados com sucesso');
     } catch (error) {
       const err = error as any;
-      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500, err.details);
     }
   }
 

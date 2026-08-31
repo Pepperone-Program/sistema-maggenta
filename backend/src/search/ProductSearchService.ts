@@ -121,6 +121,7 @@ export class ProductSearchService {
   ): Promise<ProductSearchResponse> {
     const totalStartedAt = Date.now();
     const parseStartedAt = Date.now();
+    await SearchDictionaryService.assertCatalogReady(input.empresaId);
     const versions = await SearchDictionaryService.getCatalogVersion(input.empresaId);
     const dictionary = await SearchDictionaryService.getEntries(input.empresaId, versions);
     const normalized = QueryNormalizer.normalize(input.term);
@@ -161,8 +162,12 @@ export class ProductSearchService {
           : ranked;
         const offset = input.cursor ? 0 : (input.page - 1) * input.limit;
         const pageItems = afterCursor.slice(offset, offset + input.limit);
+        const pageIds = new Set(pageItems.map((item) => item.candidate.idProduto));
+        const relatedCandidates = ranked
+          .filter((item) => item.group === 'RELATED' && !pageIds.has(item.candidate.idProduto))
+          .slice(0, Math.min(input.limit, 10));
         const imageStartedAt = Date.now();
-        const products = await this.productsWithImages(pageItems);
+        const products = await this.productsWithImages([...pageItems, ...relatedCandidates]);
         const imageDatabaseTimeMs = Date.now() - imageStartedAt;
         const nextCandidate = offset + input.limit < afterCursor.length ? pageItems[pageItems.length - 1] : undefined;
         const nextCursor = nextCandidate
@@ -175,9 +180,14 @@ export class ProductSearchService {
               last: SearchCursorCodec.tuple(nextCandidate),
             })
           : null;
-        const primary = products.filter((item) => item.ranked.group === 'PRIMARY').map((item) => item.product);
-        const related = products.filter((item) => item.ranked.group === 'RELATED').map((item) => item.product);
-        const allProducts = products.map((item) => item.product);
+        const productsById = new Map(products.map((item) => [item.ranked.candidate.idProduto, item.product]));
+        const pageProducts = pageItems.map((item) => ({ ranked: item, product: productsById.get(item.candidate.idProduto)! }));
+        const primary = pageProducts.filter((item) => item.ranked.group === 'PRIMARY').map((item) => item.product);
+        const related = [
+          ...pageProducts.filter((item) => item.ranked.group === 'RELATED').map((item) => item.product),
+          ...relatedCandidates.map((item) => productsById.get(item.candidate.idProduto)!),
+        ];
+        const allProducts = pageProducts.map((item) => item.product);
         const primaryTotal = ranked.filter((item) => item.group === 'PRIMARY').length;
         const relatedTotal = ranked.length - primaryTotal;
         const result: SearchResult<Produto> = {

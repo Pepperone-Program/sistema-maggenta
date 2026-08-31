@@ -6,20 +6,27 @@ import {
   DropdownContent,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
-import { clearStoredToken } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
 
 export function UserInfo() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   async function handleLogout() {
-    clearStoredToken();
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-    window.location.href = "/login";
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+    }
   }
 
   const USER = {

@@ -54,11 +54,25 @@ const phraseIntent = QueryParser.parse(QueryNormalizer.normalize('bloco sem paut
 assert.equal(phraseIntent.constraints.length, 1, 'a frase longa deve impedir o rematch isolado de pauta');
 assert.equal(phraseIntent.constraints[0].explicitNegation, true);
 assert.equal(phraseIntent.constraints[0].strength, 'HARD');
+assert.equal(phraseIntent.positiveTerms.includes('sem'), true);
+assert.equal(phraseIntent.positiveTerms.includes('pauta'), true);
+
+const doubleWallIntent = QueryParser.parse(QueryNormalizer.normalize('garrafa parede dupla'), dictionary);
+assert.deepEqual(new Set(doubleWallIntent.positiveTerms), new Set(['garrafa', 'parede', 'dupla']));
+assert.equal(doubleWallIntent.safeBooleanQuery.split(' ').every((token) => token.startsWith('+')), true);
+assert.equal(doubleWallIntent.safeBooleanQuery.includes('+garrafa*'), true);
+assert.equal(doubleWallIntent.safeBooleanQuery.includes('+parede*'), true);
+assert.equal(doubleWallIntent.safeBooleanQuery.includes('+dupla*'), true);
 
 const intent = QueryParser.parse(QueryNormalizer.normalize('garrafa térmica inox 500ml'), dictionary);
 assert.equal(intent.productType?.id, 10);
 assert.equal(intent.measurements.capacityMl, 500);
 assert.equal(intent.constraints.find((item) => item.key === 'capacity_ml')?.attributeId, 50);
+assert.equal(intent.positiveTerms.includes('parede'), true, 'sinonimo composto deve ser separado em tokens');
+assert.equal(intent.positiveTerms.includes('dupla'), true, 'sinonimo composto deve ser separado em tokens');
+assert.equal(intent.positiveTerms.includes('parededupla'), false);
+assert.equal(intent.positiveTerms.includes('inox'), true, 'material reconhecido tambem deve participar da recuperacao lexical');
+assert.equal(intent.positiveTerms.includes('500ml'), true, 'medida deve participar da recuperacao lexical quando indexavel');
 const ranked = ProductRankingEngine.rankCandidate(candidate(), intent);
 assert.equal(ranked.primaryTypeMatch, true);
 assert.equal(ranked.excluded, false);
@@ -76,6 +90,20 @@ const injection = QueryTokenizer.buildSafeBooleanQuery(['garrafa', "+'--", 'inox
 assert.equal(injection, '+garrafa* +inox*');
 const metallic = QueryParser.parse(QueryNormalizer.normalize('garrafa metalizada'), dictionary);
 assert.equal(metallic.materials.length, 0, 'metalizada nao pode inferir material metalico');
+
+const notebookIntent = QueryParser.parse(QueryNormalizer.normalize('mochila notebook 15.6"'), dictionary);
+const exactNotebook = ProductRankingEngine.rankCandidate(candidate({
+  normalizedName: 'mochila para notebook 15.6"',
+  descricao: 'compartimento para notebook de 15,6 polegadas',
+  attributes: [],
+}), notebookIntent);
+const wrongSizeNotebook = ProductRankingEngine.rankCandidate(candidate({
+  normalizedName: 'mochila para notebook',
+  descricao: 'compartimento para notebook de 17 polegadas',
+  attributes: [],
+}), notebookIntent);
+assert.equal(exactNotebook.score.lexicalCoverage > wrongSizeNotebook.score.lexicalCoverage, true,
+  'medida textual exata deve melhorar o ranking sem virar metadata manual');
 
 const cursor = SearchCursorCodec.encode({ tenantId: 1, rankingVersion: 'v1', catalogVersion: 2,
   queryHash: SearchCursorCodec.queryHash('garrafa'), sort: 'relevance', last: SearchCursorCodec.tuple(ranked) }, 60_000);

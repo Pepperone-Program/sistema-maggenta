@@ -1,44 +1,77 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendBaseUrl } from "@/lib/server/backend-url";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
 const SESSION_COOKIE = "maggenta_session";
 
 type LoginPayload = {
   success?: boolean;
   data?: {
     token?: string;
+    [key: string]: unknown;
   };
   message?: string;
+  [key: string]: unknown;
 };
 
 export async function POST(request: NextRequest) {
-  const response = await fetch(
-    `${BACKEND_URL.replace(/\/$/, "")}/api/v1/usuarios/login`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+  try {
+    const response = await fetch(
+      `${getBackendBaseUrl()}/api/v1/usuarios/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: await request.text(),
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
       },
-      body: await request.text(),
-      cache: "no-store",
-    },
-  );
+    );
 
-  const payload = (await response.json().catch(() => null)) as LoginPayload | null;
-  const nextResponse = NextResponse.json(payload, { status: response.status });
-  const token = payload?.data?.token;
+    const payload = (await response.json().catch(() => null)) as LoginPayload | null;
+    const token = payload?.data?.token;
+    const safePayload = payload ? { ...payload } : null;
 
-  if (response.ok && payload?.success && token) {
-    nextResponse.cookies.set({
-      name: SESSION_COOKIE,
-      value: token,
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-    });
+    if (safePayload?.data) {
+      safePayload.data = { ...safePayload.data };
+      delete safePayload.data.token;
+    }
+
+    const nextResponse = NextResponse.json(
+      safePayload || {
+        success: false,
+        message: "Resposta invalida do servico de autenticacao",
+        data: null,
+      },
+      { status: payload ? response.status : 502 },
+    );
+
+    if (response.ok && payload?.success && token) {
+      nextResponse.cookies.set({
+        name: SESSION_COOKIE,
+        value: token,
+        httpOnly: true,
+        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
+    }
+
+    return nextResponse;
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Servico de autenticacao indisponivel",
+        data: null,
+        error: { code: timedOut ? "AUTH_TIMEOUT" : "AUTH_UNAVAILABLE" },
+      },
+      {
+        status: timedOut ? 504 : 502,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
   }
-
-  return nextResponse;
 }

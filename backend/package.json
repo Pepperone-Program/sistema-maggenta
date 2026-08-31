@@ -32,7 +32,7 @@
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit",
     "test:orcamento-idempotency": "tsx src/tests/orcamentoIdempotency.test.ts",
-    "test:search": "tsx src/tests/searchEngine.test.ts && tsx src/tests/searchMigrations.test.ts"
+    "test:search": "tsx src/tests/searchEngine.test.ts && tsx src/tests/searchMigrations.test.ts && tsx src/tests/searchController.test.ts"
   },
   "dependencies": {
     "axios": "^1.6.2",

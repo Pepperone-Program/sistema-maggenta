@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendBaseUrl } from "@/lib/server/backend-url";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
 const SESSION_COOKIE = "maggenta_session";
-const SITE_TOKEN = process.env.SITE_API_TOKEN || "";
 
 type RouteContext = {
   params: Promise<{
@@ -11,11 +10,10 @@ type RouteContext = {
 };
 
 function getBackendUrl(path: string[], request: NextRequest) {
-  const baseUrl = BACKEND_URL.replace(/\/$/, "");
   const pathname = ["api", ...path]
     .map((segment) => encodeURIComponent(segment))
     .join("/");
-  const url = new URL(`/${pathname}`, baseUrl);
+  const url = new URL(`/${pathname}`, getBackendBaseUrl());
   request.nextUrl.searchParams.forEach((value, key) => {
     url.searchParams.append(key, value);
   });
@@ -35,17 +33,6 @@ function getForwardHeaders(request: NextRequest) {
     if (value) headers.set(name, value);
   });
 
-  if (SITE_TOKEN) {
-    headers.set("authorization", `Bearer ${SITE_TOKEN.trim()}`);
-    return headers;
-  }
-
-  const authorization = request.headers.get("authorization");
-  if (authorization) {
-    headers.set("authorization", authorization);
-    return headers;
-  }
-
   const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
   if (sessionToken) {
     headers.set("authorization", `Bearer ${sessionToken}`);
@@ -56,28 +43,46 @@ function getForwardHeaders(request: NextRequest) {
 }
 
 async function proxyRequest(request: NextRequest, context: RouteContext) {
-  const { path } = await context.params;
-  const method = request.method.toUpperCase();
-  const hasBody = !["GET", "HEAD"].includes(method);
-  const response = await fetch(getBackendUrl(path, request), {
-    method,
-    headers: getForwardHeaders(request),
-    body: hasBody ? await request.arrayBuffer() : undefined,
-    cache: "no-store",
-  });
+  try {
+    const { path } = await context.params;
+    const method = request.method.toUpperCase();
+    const hasBody = !["GET", "HEAD"].includes(method);
+    const response = await fetch(getBackendUrl(path, request), {
+      method,
+      headers: getForwardHeaders(request),
+      body: hasBody ? await request.arrayBuffer() : undefined,
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
+    });
 
-  const headers = new Headers(response.headers);
-  headers.delete("content-encoding");
-  headers.delete("content-length");
-  headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-  headers.set("Pragma", "no-cache");
-  headers.set("Expires", "0");
+    const headers = new Headers(response.headers);
+    headers.delete("content-encoding");
+    headers.delete("content-length");
+    headers.delete("set-cookie");
+    headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    headers.set("Pragma", "no-cache");
+    headers.set("Expires", "0");
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+    return new NextResponse(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === "TimeoutError";
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Servico de backend indisponivel",
+        data: null,
+        error: { code: timedOut ? "BACKEND_TIMEOUT" : "BACKEND_UNAVAILABLE" },
+      },
+      {
+        status: timedOut ? 504 : 502,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
 }
 
 export const GET = proxyRequest;

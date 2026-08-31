@@ -12,6 +12,29 @@ import type {
 const normalizedScore = (score: number, cap: number): number =>
   Math.min(Math.max(score, 0) * 100, cap);
 
+const LEXICAL_STOPWORDS = new Set(['a', 'as', 'com', 'da', 'das', 'de', 'do', 'dos', 'e', 'em', 'o', 'os', 'para', 'por']);
+
+const comparableLexicalText = (value: string): string => value
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase('pt-BR')
+  .replace(/(\d),(\d)/g, '$1.$2');
+
+const lexicalCoverage = (candidate: SearchCandidate, intent: SearchIntent): number => {
+  const terms = Array.from(new Set(intent.comparable
+    .split(/\s+/)
+    .map((token) => token.replace(/^[^a-z0-9]+|[^a-z0-9.,]+$/g, ''))
+    .filter((token) => token.length >= 2 && !LEXICAL_STOPWORDS.has(token))));
+  if (terms.length === 0) return 0;
+  const text = comparableLexicalText([
+    candidate.normalizedName,
+    candidate.descricao || '',
+    candidate.obs || '',
+  ].join(' '));
+  const matched = terms.filter((term) => text.includes(term)).length;
+  return matched / terms.length;
+};
+
 const numberMatches = (expected: number, actual: number): boolean =>
   Math.abs(expected - actual) <= Math.max(1, expected * 0.01);
 
@@ -71,6 +94,7 @@ export class ProductRankingEngine {
     const namePrefix = !exactName && candidate.normalizedName.startsWith(intent.comparable);
     const phraseMatches = intent.phrases.filter((phrase) => candidate.normalizedName.includes(phrase)).length;
     const synonymMatch = intent.synonyms.some((synonym) => candidate.normalizedName.includes(synonym));
+    const lexicalCoverageRatio = lexicalCoverage(candidate, intent);
     const allConstraints = intent.constraints.length > 0
       && matched.length === intent.constraints.length
       && (!intent.productType || primaryTypeMatch);
@@ -89,6 +113,7 @@ export class ProductRankingEngine {
       containsType: containsTypeMatch && !primaryTypeMatch ? SEARCH_SCORE_WEIGHTS.containsType : 0,
       differentType: intent.productType && !primaryTypeMatch && !containsTypeMatch ? SEARCH_SCORE_WEIGHTS.differentType : 0,
       contradiction: contradictions.length * SEARCH_SCORE_WEIGHTS.contradiction,
+      lexicalCoverage: lexicalCoverageRatio * SEARCH_SCORE_WEIGHTS.lexicalCoverage,
       fulltextName: normalizedScore(candidate.fulltextNameScore, SEARCH_SCORE_WEIGHTS.fulltextName),
       fulltextText: normalizedScore(candidate.fulltextTextScore, SEARCH_SCORE_WEIGHTS.fulltextText),
       popularity: Math.min(Math.log1p(Math.max(candidate.popularidade, 0)) * 10, SEARCH_SCORE_WEIGHTS.popularity),

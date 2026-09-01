@@ -26,6 +26,9 @@ const lexicalCoverage = (candidate: SearchCandidate, intent: SearchIntent): numb
     .map((token) => token.replace(/^[^a-z0-9]+|[^a-z0-9.,]+$/g, ''))
     .filter((token) => token.length >= 2 && !LEXICAL_STOPWORDS.has(token))));
   if (terms.length === 0) return 0;
+  // CandidateRetriever usa apenas a consulta booleana estrita para estes
+  // scores; um score positivo comprova todos os termos obrigatorios.
+  if (candidate.fulltextNameScore > 0 || candidate.fulltextTextScore > 0) return 1;
   const text = comparableLexicalText([
     candidate.normalizedName,
     candidate.descricao || '',
@@ -82,6 +85,11 @@ export class ProductRankingEngine {
   static rankCandidate(candidate: SearchCandidate, intent: SearchIntent): RankedSearchCandidate {
     const primaryTypeMatch = Boolean(intent.productType && candidate.idTipoProduto === intent.productType.id);
     const containsTypeMatch = Boolean(intent.productType && candidate.containsTypeIds.includes(intent.productType.id));
+    const normalizedCandidateName = comparableLexicalText(candidate.normalizedName);
+    const productTypeNameMatch = !intent.productType || intent.productType.canonicalValue
+      .split(/\s+/)
+      .filter(Boolean)
+      .every((term) => normalizedCandidateName.includes(term));
     const states = intent.constraints.map((constraint) => ({ constraint, state: constraintState(constraint, candidate) }));
     const matched = states.filter((item) => item.state === 'MATCH');
     const contradictions = states.filter((item) => item.state === 'CONTRADICTION');
@@ -98,6 +106,28 @@ export class ProductRankingEngine {
     const allConstraints = intent.constraints.length > 0
       && matched.length === intent.constraints.length
       && (!intent.productType || primaryTypeMatch);
+    const strongConstraintStates = states.filter((item) => item.constraint.strength !== 'SOFT');
+    const strongConstraintsSatisfied = strongConstraintStates.length > 0
+      && strongConstraintStates.every((item) => item.state === 'MATCH');
+    const candidateText = comparableLexicalText([
+      candidate.normalizedName,
+      candidate.descricao || '',
+      candidate.codigo || '',
+      candidate.obs || '',
+    ].join(' '));
+    const strictFulltextMatch = candidate.fulltextNameScore > 0 || candidate.fulltextTextScore > 0;
+    const unknownTermsCovered = intent.unknownTerms.length === 0
+      || strictFulltextMatch
+      || intent.unknownTerms.every((term) => candidateText.includes(comparableLexicalText(term)));
+    const hasCompleteEvidence = lexicalCoverageRatio >= 1
+      || (strongConstraintsSatisfied && unknownTermsCovered);
+    const relevance = hardContradiction
+      ? 'LOW'
+      : intent.productType
+        ? primaryTypeMatch && productTypeNameMatch && hasCompleteEvidence
+          ? 'HIGH'
+          : (containsTypeMatch || lexicalCoverageRatio > 0 ? 'MEDIUM' : 'LOW')
+        : hasCompleteEvidence ? 'HIGH' : lexicalCoverageRatio > 0 ? 'MEDIUM' : 'LOW';
 
     const score = sumBreakdown({
       productType: primaryTypeMatch ? SEARCH_SCORE_WEIGHTS.productType : 0,
@@ -122,18 +152,22 @@ export class ProductRankingEngine {
     return {
       candidate,
       group: primaryTypeMatch || (!intent.productType && contradictions.length === 0) ? 'PRIMARY' : 'RELATED',
+      relevance,
       excluded: hardContradiction,
       primaryTypeMatch,
       containsTypeMatch,
       matchedConstraints: matched.length,
       totalConstraints: intent.constraints.length,
       contradictions: contradictions.length,
+      lexicalCoverageRatio,
       score,
     };
   }
 
   static compare(left: RankedSearchCandidate, right: RankedSearchCandidate, sort: SearchSort = 'relevance'): number {
     if (left.excluded !== right.excluded) return left.excluded ? 1 : -1;
+    const relevanceOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 } as const;
+    if (left.relevance !== right.relevance) return relevanceOrder[left.relevance] - relevanceOrder[right.relevance];
     if (left.primaryTypeMatch !== right.primaryTypeMatch) return left.primaryTypeMatch ? -1 : 1;
     if (left.contradictions !== right.contradictions) return left.contradictions - right.contradictions;
     if (left.matchedConstraints !== right.matchedConstraints) return right.matchedConstraints - left.matchedConstraints;

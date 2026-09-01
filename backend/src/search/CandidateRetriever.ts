@@ -111,7 +111,7 @@ export class CandidateRetriever {
     empresaId: number,
     intent: SearchIntent,
     filters: SearchFilters,
-    candidateLimit = SEARCH_LIMITS.candidatePool
+    hydrationBatchSize = SEARCH_LIMITS.hydrationBatchSize
   ): Promise<{ candidates: SearchCandidate[]; databaseTimeMs: number }> {
     const startedAt = Date.now();
     const signals: string[] = [];
@@ -158,10 +158,8 @@ export class CandidateRetriever {
     };
     fulltextSignal('normalized_name', intent.safeBooleanQuery, 850);
     fulltextSignal('search_text', intent.safeBooleanQuery, 650);
-    if (intent.relaxedBooleanQuery !== intent.safeBooleanQuery) {
-      fulltextSignal('normalized_name', intent.relaxedBooleanQuery, 400);
-      fulltextSignal('search_text', intent.relaxedBooleanQuery, 250);
-    }
+    // A consulta relaxada e util para sugestoes, mas nao pode preencher a
+    // paginacao principal com produtos que atendem apenas parte dos termos.
 
     const filter = buildFilters(filters);
     const sql = `SET STATEMENT max_statement_time=${SEARCH_LIMITS.statementTimeoutSeconds} FOR
@@ -180,10 +178,12 @@ export class CandidateRetriever {
       INNER JOIN product_search_documents d ON d.id_empresa = ? AND d.id_produto = aggregated.id_produto
       INNER JOIN produtos p ON p.id_empresa = d.id_empresa AND p.id_produto = d.id_produto
       WHERE d.site = 'S' AND d.habilitado = 'S'${filter.sql}
-      ORDER BY aggregated.matched_signal_count DESC, aggregated.retrieval_score DESC, aggregated.id_produto DESC
-      LIMIT ?`;
-    const signalRows = (await queryWithoutRetry(sql, [...values, empresaId, ...filter.values, candidateLimit])) as CandidateSignalRow[];
-    const candidates = await this.hydrate(empresaId, signalRows);
+      ORDER BY aggregated.matched_signal_count DESC, aggregated.retrieval_score DESC, aggregated.id_produto DESC`;
+    const signalRows = (await queryWithoutRetry(sql, [...values, empresaId, ...filter.values])) as CandidateSignalRow[];
+    const requiresSemanticHydration = Boolean(intent.productType || intent.constraints.length || intent.colors.length);
+    const candidates = requiresSemanticHydration
+      ? await this.hydrate(empresaId, signalRows, hydrationBatchSize, intent)
+      : await this.hydrateLexical(empresaId, signalRows);
     const pool = getDatabasePoolStats();
     SearchMetrics.gauge('database_pool_active_connections', pool.active);
     SearchMetrics.gauge('database_pool_queued_requests', pool.queued);
@@ -191,20 +191,102 @@ export class CandidateRetriever {
     return { candidates, databaseTimeMs: Date.now() - startedAt };
   }
 
-  private static async hydrate(empresaId: number, signals: CandidateSignalRow[]): Promise<SearchCandidate[]> {
+  private static async hydrateLexical(empresaId: number, signals: CandidateSignalRow[]): Promise<SearchCandidate[]> {
+    if (!signals.length) return [];
+    const batches: number[][] = [];
+    const ids = signals.map((row) => Number(row.id_produto));
+    for (let start = 0; start < ids.length; start += 1000) batches.push(ids.slice(start, start + 1000));
+    const productBatches = await Promise.all(batches.map((batch) => queryWithoutRetry(
+      `SELECT p.id_empresa, p.id_produto, p.id_tipo_produto, p.produto, p.codigo, p.data_inclusao,
+              d.normalized_name, d.popularity_score
+       FROM produtos p
+       INNER JOIN product_search_documents d ON d.id_empresa = p.id_empresa AND d.id_produto = p.id_produto
+       WHERE p.id_empresa = ? AND p.site = 'S' AND p.habilitado = 'S'
+         AND p.id_produto IN (${placeholders(batch)})`,
+      [empresaId, ...batch]
+    ) as Promise<ProductRow[]>));
+    const productsById = new Map(productBatches.flat().map((row) => [Number(row.id_produto), row]));
+    return signals.map((signal) => {
+      const row = productsById.get(Number(signal.id_produto));
+      if (!row) return null;
+      return {
+      rawProduct: {
+        id_empresa: row.id_empresa,
+        id_produto: row.id_produto,
+        id_tipo_produto: row.id_tipo_produto,
+        produto: row.produto,
+        codigo: row.codigo,
+      } as unknown as import('@/types/produto').Produto,
+      idEmpresa: Number(row.id_empresa),
+      idProduto: Number(row.id_produto),
+      idTipoProduto: row.id_tipo_produto === null ? null : Number(row.id_tipo_produto),
+      produto: row.produto,
+      normalizedName: row.normalized_name,
+      descricao: null,
+      codigo: row.codigo,
+      imagem: null,
+      altura: null,
+      largura: null,
+      profundidade: null,
+      peso: null,
+      ncm: null,
+      quantidadeMinima: null,
+      dataInclusao: row.data_inclusao instanceof Date ? row.data_inclusao.toISOString() : row.data_inclusao,
+      obs: null,
+      lancamento: 'N',
+      promocao: 'N',
+      premium: 'N',
+      popularidade: Number(row.popularity_score || 0),
+      fulltextNameScore: Number(signal.fulltext_name_score || 0),
+      fulltextTextScore: Number(signal.fulltext_text_score || 0),
+      containsTypeIds: [],
+      colors: [],
+      attributes: [],
+      } as SearchCandidate;
+    }).filter((candidate): candidate is SearchCandidate => Boolean(candidate));
+  }
+
+  private static async hydrate(
+    empresaId: number,
+    signals: CandidateSignalRow[],
+    batchSize: number,
+    intent: SearchIntent
+  ): Promise<SearchCandidate[]> {
+    const candidates: SearchCandidate[] = [];
+    const batches: CandidateSignalRow[][] = [];
+    for (let start = 0; start < signals.length; start += batchSize) {
+      batches.push(signals.slice(start, start + batchSize));
+    }
+    const concurrency = 2;
+    for (let start = 0; start < batches.length; start += concurrency) {
+      const hydrated = await Promise.all(
+        batches.slice(start, start + concurrency).map((batch) => this.hydrateBatch(empresaId, batch, intent))
+      );
+      candidates.push(...hydrated.flat());
+    }
+    return candidates;
+  }
+
+  private static async hydrateBatch(
+    empresaId: number,
+    signals: CandidateSignalRow[],
+    intent: SearchIntent
+  ): Promise<SearchCandidate[]> {
     if (signals.length === 0) return [];
     const ids = signals.map((row) => Number(row.id_produto));
     const idSql = placeholders(ids);
     const [products, attributeRows, containsRows, colorRows] = await Promise.all([
       queryWithoutRetry(
-        `SET STATEMENT max_statement_time=${SEARCH_LIMITS.statementTimeoutSeconds} FOR
-         SELECT p.*, d.normalized_name, d.popularity_score
+        `SELECT p.id_empresa, p.id_produto, p.id_tipo_produto, p.produto,
+                p.descricao, p.codigo, p.quantidade_minima, p.data_inclusao,
+                p.obs, p.lancamento, p.promocao, p.premium,
+                d.normalized_name, d.popularity_score
          FROM produtos p
          INNER JOIN product_search_documents d ON d.id_empresa = p.id_empresa AND d.id_produto = p.id_produto
          WHERE p.id_empresa = ? AND p.site = 'S' AND p.habilitado = 'S' AND p.id_produto IN (${idSql})`,
         [empresaId, ...ids]
       ),
-      queryWithoutRetry(
+      intent.constraints.length > 0 ? queryWithoutRetry(
         `SELECT psa.id_produto, psa.id_attribute, sad.attribute_key, sad.semantic_type,
                 psa.id_option, sao.option_key, sao.canonical_value, psa.value_boolean,
                 psa.value_number, psa.value_text, psa.unit, sac.conflicting_option_id
@@ -214,17 +296,17 @@ export class CandidateRetriever {
          LEFT JOIN search_attribute_conflicts sac ON sac.id_empresa = psa.id_empresa AND sac.id_option = psa.id_option
          WHERE psa.id_empresa = ? AND psa.id_produto IN (${idSql})`,
         [empresaId, ...ids]
-      ),
-      queryWithoutRetry(
+      ) : Promise.resolve([]),
+      intent.productType ? queryWithoutRetry(
         `SELECT id_produto, id_tipo_produto FROM product_search_contains_types
          WHERE id_empresa = ? AND id_produto IN (${idSql})`,
         [empresaId, ...ids]
-      ),
-      queryWithoutRetry(
+      ) : Promise.resolve([]),
+      intent.colors.length > 0 ? queryWithoutRetry(
         `SELECT id_produto, cor FROM aux_produtos_cores
          WHERE id_empresa = ? AND id_produto IN (${idSql})`,
         [empresaId, ...ids]
-      ),
+      ) : Promise.resolve([]),
     ]);
     const signalsById = new Map(signals.map((row) => [Number(row.id_produto), row]));
     const attributesByProduct = new Map<number, Map<number, SearchAttributeFact>>();
@@ -268,7 +350,14 @@ export class CandidateRetriever {
       const idProduto = Number(row.id_produto);
       const signal = signalsById.get(idProduto);
       return {
-        rawProduct: row as unknown as import('@/types/produto').Produto,
+        rawProduct: {
+          id_empresa: row.id_empresa,
+          id_produto: row.id_produto,
+          id_tipo_produto: row.id_tipo_produto,
+          produto: row.produto,
+          descricao: row.descricao,
+          codigo: row.codigo,
+        } as unknown as import('@/types/produto').Produto,
         idEmpresa: Number(row.id_empresa),
         idProduto,
         idTipoProduto: row.id_tipo_produto === null ? null : Number(row.id_tipo_produto),
@@ -276,12 +365,12 @@ export class CandidateRetriever {
         normalizedName: row.normalized_name,
         descricao: row.descricao,
         codigo: row.codigo,
-        imagem: row.imagem,
-        altura: row.altura,
-        largura: row.largura,
-        profundidade: row.profundidade,
-        peso: row.peso,
-        ncm: row.ncm,
+        imagem: null,
+        altura: null,
+        largura: null,
+        profundidade: null,
+        peso: null,
+        ncm: null,
         quantidadeMinima: row.quantidade_minima === null ? null : Number(row.quantidade_minima),
         dataInclusao: row.data_inclusao instanceof Date ? row.data_inclusao.toISOString() : row.data_inclusao,
         obs: row.obs,

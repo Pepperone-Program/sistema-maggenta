@@ -47,12 +47,13 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
     const { path } = await context.params;
     const method = request.method.toUpperCase();
     const hasBody = !["GET", "HEAD"].includes(method);
+    const timeoutMs = path.includes("gerar-descricao") ? 300_000 : 30_000;
     const response = await fetch(getBackendUrl(path, request), {
       method,
       headers: getForwardHeaders(request),
       body: hasBody ? await request.arrayBuffer() : undefined,
       cache: "no-store",
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     const headers = new Headers(response.headers);

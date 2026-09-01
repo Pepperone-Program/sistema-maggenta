@@ -6,6 +6,7 @@ import { QueryParser } from '@search/QueryParser';
 import { QueryTokenizer } from '@search/QueryTokenizer';
 import { SearchCursorCodec } from '@search/SearchCursorCodec';
 import { SearchCacheService } from '@search/SearchCacheService';
+import { paginateRankingItems, type RankingPlanItem } from '@search/ProductSearchService';
 import type { SearchCandidate, SearchDictionaryEntry } from '@/types/search';
 
 const entry = (partial: Partial<SearchDictionaryEntry> & Pick<SearchDictionaryEntry, 'normalizedTerm' | 'termType' | 'canonicalValue'>): SearchDictionaryEntry => ({
@@ -49,6 +50,7 @@ const candidate = (overrides: Partial<SearchCandidate> = {}): SearchCandidate =>
 const unicode = QueryNormalizer.normalize('  AÇO\u0000 INOX  ');
 assert.equal(unicode.normalized, 'aço inox');
 assert.equal(unicode.comparable, 'aco inox');
+assert.equal(QueryNormalizer.normalize('Guarda-Chuva').comparable, 'guarda chuva');
 
 const phraseIntent = QueryParser.parse(QueryNormalizer.normalize('bloco sem pauta'), dictionary);
 assert.equal(phraseIntent.constraints.length, 1, 'a frase longa deve impedir o rematch isolado de pauta');
@@ -86,6 +88,56 @@ const hard = ProductRankingEngine.rankCandidate(candidate({
   attributes: [{ attributeId: 30, attributeKey: 'lined', semanticType: 'ATTRIBUTE', optionId: 31, optionKey: 'yes', canonicalValue: 'com pauta', booleanValue: true, numberValue: null, textValue: null, unit: null, conflictingOptionIds: [32] }],
 }), phraseIntent);
 assert.equal(hard.excluded, true);
+assert.equal(hard.relevance, 'LOW');
+
+const unknownIntent = QueryParser.parse(QueryNormalizer.normalize('guarda chuva'), []);
+const completeUnknown = ProductRankingEngine.rankCandidate(candidate({
+  idTipoProduto: 58,
+  normalizedName: 'guarda chuva personalizado',
+  descricao: null,
+  fulltextNameScore: 0,
+  fulltextTextScore: 0,
+}), unknownIntent);
+const partialUnknown = ProductRankingEngine.rankCandidate(candidate({
+  idTipoProduto: 58,
+  normalizedName: 'capa de chuva personalizada',
+  descricao: null,
+  fulltextNameScore: 0,
+  fulltextTextScore: 0,
+}), unknownIntent);
+assert.equal(completeUnknown.relevance, 'HIGH');
+assert.equal(partialUnknown.relevance, 'MEDIUM');
+
+const semanticWithMissingUnknown = QueryParser.parse(
+  QueryNormalizer.normalize('garrafa parede dupla exclusiva'),
+  dictionary
+);
+assert.deepEqual(semanticWithMissingUnknown.unknownTerms, ['exclusiva']);
+const missingExplicitTerm = ProductRankingEngine.rankCandidate(candidate({
+  normalizedName: 'garrafa parede dupla',
+  descricao: null,
+  fulltextNameScore: 0,
+  fulltextTextScore: 0,
+}), semanticWithMissingUnknown);
+assert.equal(missingExplicitTerm.relevance, 'MEDIUM',
+  'metadata estruturada nao pode ocultar a ausencia de um termo explicito');
+
+const umbrellaDictionary = [entry({ normalizedTerm: 'guarda chuva', termType: 'PRODUCT_TYPE', canonicalValue: 'guarda chuva', productTypeId: 336 })];
+const umbrellaIntent = QueryParser.parse(QueryNormalizer.normalize('guarda chuva'), umbrellaDictionary);
+const umbrella = ProductRankingEngine.rankCandidate(candidate({ idTipoProduto: 336, normalizedName: 'guarda chuva automatico' }), umbrellaIntent);
+const backpackMentioningUmbrella = ProductRankingEngine.rankCandidate(candidate({
+  idTipoProduto: 58,
+  normalizedName: 'mochila para notebook',
+  descricao: 'possui bolso para guarda chuva',
+}), umbrellaIntent);
+const wronglyTypedParasol = ProductRankingEngine.rankCandidate(candidate({
+  idTipoProduto: 336,
+  normalizedName: 'guarda sol personalizado',
+  descricao: 'protege do sol e da chuva',
+}), umbrellaIntent);
+assert.equal(umbrella.relevance, 'HIGH');
+assert.equal(backpackMentioningUmbrella.relevance, 'MEDIUM');
+assert.equal(wronglyTypedParasol.relevance, 'MEDIUM');
 
 const injection = QueryTokenizer.buildSafeBooleanQuery(['garrafa', "+'--", 'inox'], true);
 assert.equal(injection, '+garrafa* +inox*');
@@ -97,11 +149,15 @@ const exactNotebook = ProductRankingEngine.rankCandidate(candidate({
   normalizedName: 'mochila para notebook 15.6"',
   descricao: 'compartimento para notebook de 15,6 polegadas',
   attributes: [],
+  fulltextNameScore: 0,
+  fulltextTextScore: 0,
 }), notebookIntent);
 const wrongSizeNotebook = ProductRankingEngine.rankCandidate(candidate({
   normalizedName: 'mochila para notebook',
   descricao: 'compartimento para notebook de 17 polegadas',
   attributes: [],
+  fulltextNameScore: 0,
+  fulltextTextScore: 0,
 }), notebookIntent);
 assert.equal(exactNotebook.score.lexicalCoverage > wrongSizeNotebook.score.lexicalCoverage, true,
   'medida textual exata deve melhorar o ranking sem virar metadata manual');
@@ -114,4 +170,25 @@ assert.throws(() => SearchCursorCodec.decode(`${cursor}x`), /Cursor/);
 assert.throws(() => QueryNormalizer.normalize(Array.from({ length: 21 }, (_value, index) => `termo${index}`).join(' ')), /20 termos/);
 assert.equal(SearchCacheService.resultKey({ tenant: 1, filters: { color: 'azul', material: 'inox' } }), SearchCacheService.resultKey({ filters: { material: 'inox', color: 'azul' }, tenant: 1 }));
 assert.notEqual(SearchCacheService.resultKey({ tenant: 1, catalogVersion: 1 }), SearchCacheService.resultKey({ tenant: 1, catalogVersion: 2 }));
+
+const rankingItems: RankingPlanItem[] = Array.from({ length: 1500 }, (_value, index) => ({
+  idProduto: 1500 - index,
+  group: 'PRIMARY',
+  relevance: 'HIGH',
+  cursorTuple: {
+    primaryTypeMatch: 1,
+    contradictions: 0,
+    matchedConstraints: 0,
+    group: 1,
+    totalScore: 10_000 - index,
+    popularity: 0,
+    idProduto: 1500 - index,
+    newestDate: '2026-01-01',
+  },
+}));
+const lastSyntheticPage = paginateRankingItems(rankingItems, 63, 24, null, 'relevance');
+assert.equal(lastSyntheticPage.total, 1500);
+assert.equal(lastSyntheticPage.totalPages, 63);
+assert.equal(lastSyntheticPage.items.length, 12);
+assert.equal(lastSyntheticPage.hasNext, false);
 console.log('searchEngine.test: ok');

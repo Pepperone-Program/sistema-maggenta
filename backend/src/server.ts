@@ -11,6 +11,8 @@ import { CacheInvalidationScheduler } from '@services/CacheInvalidationScheduler
 import { OrcamentoEmailScheduler } from '@services/OrcamentoEmailScheduler';
 import { OrcamentoModel } from '@models/Orcamento';
 import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
+import { SearchDictionaryService } from '@search/SearchDictionaryService';
+import { SEARCH_FLAGS } from '@search/config';
 
 dotenv.config();
 
@@ -55,6 +57,10 @@ const bootstrap = async (): Promise<void> => {
   try {
     await testDatabaseConnection();
     await OrcamentoModel.ensureIdempotencyInfrastructure();
+    if (SEARCH_FLAGS.rankingPercentage > 0 || SEARCH_FLAGS.shadowPercentage > 0) {
+      const publicSearchTenant = Number(process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || 1);
+      await SearchDictionaryService.prepareCatalog(publicSearchTenant);
+    }
   } catch (error) {
     console.warn(
       'Database startup check failed; server will keep running and retry on requests:',

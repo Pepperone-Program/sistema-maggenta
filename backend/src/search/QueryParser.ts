@@ -177,7 +177,7 @@ export class QueryParser {
       negativeTerms: parsedAttributes.filter((item) => item.explicitNegation).map((item) => item.canonicalValue),
       phrases: matchedEntries.filter((entry) => entry.tokenCount > 1).map((entry) => entry.normalizedTerm),
       synonyms: synonymTerms,
-      unknownTerms: directUnknown.filter((term, index) => correctedTerms[index] === term),
+      unknownTerms: correctedTerms,
       safeBooleanQuery: QueryTokenizer.buildSafeBooleanQuery(positiveTerms, true),
       relaxedBooleanQuery: QueryTokenizer.buildSafeBooleanQuery(positiveTerms, false),
     };

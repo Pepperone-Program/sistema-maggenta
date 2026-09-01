@@ -2,6 +2,7 @@ import '../module-alias';
 import dataset from '@search/golden-dataset.v1.json';
 import { closeDatabasePool } from '@database/connection';
 import { ProductSearchService } from '@search/ProductSearchService';
+import { SearchDictionaryService } from '@search/SearchDictionaryService';
 
 const dcg = (relevance: number[]): number => relevance.reduce(
   (sum, value, index) => sum + value / Math.log2(index + 2), 0
@@ -19,11 +20,19 @@ type GoldenRow = {
   timing: { parseTimeMs: number; databaseTimeMs: number; rankingTimeMs: number; totalTimeMs: number };
 };
 
+type GoldenDatasetItem = {
+  query: string;
+  expectedCodes: string[];
+  forbiddenCodes: string[];
+  forbiddenPrimaryCodes?: string[];
+};
+
 const run = async (): Promise<void> => {
   const empresaId = Number(process.argv[2] || process.env.SEARCH_GOLDEN_EMPRESA_ID);
   if (!Number.isInteger(empresaId) || empresaId <= 0) throw new Error('Informe o tenant: npm run search:golden -- <empresaId>');
+  await SearchDictionaryService.prepareCatalog(empresaId);
   const rows: GoldenRow[] = [];
-  for (const item of dataset) {
+  for (const item of dataset as GoldenDatasetItem[]) {
     const response = await ProductSearchService.search({
       empresaId, term: item.query, page: 1, limit: 20, sort: 'relevance', filters: {}, locale: 'pt-BR', forceAdvanced: true,
     });
@@ -44,7 +53,10 @@ const run = async (): Promise<void> => {
       ndcg10: ideal10.length ? dcg(relevance10) / dcg(ideal10) : 1,
       precision10: relevance10.reduce((sum, value) => sum + value, 0) / 10,
       recall20: expected.size ? hits20 / expected.size : 1,
-      constraintViolations: evaluationCodes.filter((code) => item.forbiddenCodes.includes(code)),
+      constraintViolations: Array.from(new Set([
+        ...evaluationCodes.filter((code) => item.forbiddenCodes.includes(code)),
+        ...codes.filter((code) => (item.forbiddenPrimaryCodes || []).includes(code)),
+      ])),
       timing: response.timing,
     });
   }

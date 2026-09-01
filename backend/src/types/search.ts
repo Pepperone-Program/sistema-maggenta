@@ -25,6 +25,8 @@ export type SearchRelationType =
   | 'BROADER_TERM'
   | 'NARROWER_TERM';
 
+export type SearchRelevanceLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
 export interface NormalizedSearchQuery {
   original: string;
   normalized: string;
@@ -163,12 +165,14 @@ export interface SearchScoreBreakdown {
 export interface RankedSearchCandidate {
   candidate: SearchCandidate;
   group: 'PRIMARY' | 'RELATED';
+  relevance: SearchRelevanceLevel;
   excluded: boolean;
   primaryTypeMatch: boolean;
   containsTypeMatch: boolean;
   matchedConstraints: number;
   totalConstraints: number;
   contradictions: number;
+  lexicalCoverageRatio: number;
   score: SearchScoreBreakdown;
 }
 

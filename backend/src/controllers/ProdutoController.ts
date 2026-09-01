@@ -9,12 +9,35 @@ import { PublicSearchTenantResolver } from '@search/PublicSearchTenantResolver';
 import type { SearchFilters, SearchSort } from '@/types/search';
 import { SearchCursorCodec } from '@search/SearchCursorCodec';
 import { comparableSearchText } from '@search/QueryNormalizer';
+import { GenerateAiDescriptionService } from '@services/generateAiDescriptionService';
 
 async function invalidateProductCaches(): Promise<void> {
   await CacheService.invalidateNamespaces(CacheService.productContentNamespaces);
 }
 
 export class ProdutoController {
+  static async generateAiDescription(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const empresaId = req.user?.id_empresa;
+      const produtoId = Number(req.params.id);
+      if (!empresaId) {
+        errorResponse(res, 'UNAUTHENTICATED_COMPANY', 'Empresa da sessão não identificada', 401);
+        return;
+      }
+      if (!Number.isInteger(produtoId) || produtoId <= 0) {
+        errorResponse(res, 'INVALID_PRODUCT', 'Produto inválido', 400);
+        return;
+      }
+
+      const result = await GenerateAiDescriptionService.generateForProduct(empresaId, produtoId);
+      await invalidateProductCaches();
+      successResponse(res, result, 'Descrição gerada e salva com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'AI_GENERATION_ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
   static async exportSpreadsheet(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const empresaId = req.user?.id_empresa || 1;

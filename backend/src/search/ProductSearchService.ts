@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { ProdutoModel } from '@models/Produto';
+import { TipoProdutoModel } from '@models/TipoProduto';
 import { CandidateRetriever } from './CandidateRetriever';
 import { ProductRankingEngine } from './ProductRankingEngine';
 import { legacySearchTerms, QueryNormalizer } from './QueryNormalizer';
@@ -13,7 +14,7 @@ import { SearchCacheService } from './SearchCacheService';
 import { SearchConcurrencyLimiter } from './SearchConcurrencyLimiter';
 import { SEARCH_FLAGS, SEARCH_LIMITS, SEARCH_RANKING_VERSION } from './config';
 import type { Produto } from '@/types/produto';
-import type { RankedSearchCandidate, SearchFilters, SearchIntent, SearchResult, SearchSort } from '@/types/search';
+import type { SearchCursor, SearchFilters, SearchIntent, SearchResult, SearchSort } from '@/types/search';
 
 export type ProductSearchResponse =
   | { match_exato_codigo: true; id_produto: number; codigo: string }
@@ -29,6 +30,40 @@ type SearchInput = {
   filters: SearchFilters;
   locale: string;
   forceAdvanced?: boolean;
+};
+
+export type RankingPlanItem = {
+  idProduto: number;
+  group: 'PRIMARY' | 'RELATED';
+  relevance: 'HIGH' | 'MEDIUM' | 'LOW';
+  cursorTuple: SearchCursor['last'];
+};
+
+type RankingPlan = {
+  high: RankingPlanItem[];
+  relatedTotal: number;
+  candidateCount: number;
+  databaseTimeMs: number;
+  rankingTimeMs: number;
+};
+
+export const paginateRankingItems = (
+  items: RankingPlanItem[],
+  page: number,
+  limit: number,
+  cursor: SearchCursor['last'] | null,
+  sort: SearchSort
+): { items: RankingPlanItem[]; total: number; totalPages: number; hasNext: boolean } => {
+  const eligible = cursor
+    ? items.filter((item) => SearchCursorCodec.isTupleAfterCursor(item.cursorTuple, cursor, sort))
+    : items;
+  const offset = cursor ? 0 : (page - 1) * limit;
+  return {
+    items: eligible.slice(offset, offset + limit),
+    total: items.length,
+    totalPages: Math.ceil(items.length / limit),
+    hasNext: offset + limit < eligible.length,
+  };
 };
 
 const structuredError = (code: string, message: string, statusCode: number): Error =>
@@ -121,9 +156,7 @@ export class ProductSearchService {
   ): Promise<ProductSearchResponse> {
     const totalStartedAt = Date.now();
     const parseStartedAt = Date.now();
-    await SearchDictionaryService.assertCatalogReady(input.empresaId);
-    const versions = await SearchDictionaryService.getCatalogVersion(input.empresaId);
-    const dictionary = await SearchDictionaryService.getEntries(input.empresaId, versions);
+    const { versions, dictionary } = await SearchDictionaryService.prepareCatalog(input.empresaId);
     const normalized = QueryNormalizer.normalize(input.term);
     const intent = QueryParser.parse(normalized, dictionary);
     const parseTimeMs = Date.now() - parseStartedAt;
@@ -139,96 +172,90 @@ export class ProductSearchService {
       throw structuredError('INVALID_SEARCH_CURSOR', 'Cursor nao pertence a esta busca ou versao', 422);
     }
 
-    const cacheKeyInput = {
+    const rankingKeyInput = {
       tenant: input.empresaId,
       query: comparable,
       filters: input.filters,
-      cursor: input.cursor || null,
-      page: input.cursor ? null : input.page,
       locale: input.locale,
       sort: input.sort,
       rankingVersion: SEARCH_RANKING_VERSION,
       catalogVersion: versions.catalogVersion,
     };
-    const cached = await SearchCacheService.getOrSetResult(
-      cacheKeyInput,
-      async () => {
-        const retrieval = await CandidateRetriever.retrieve(input.empresaId, intent, input.filters);
-        const rankingStartedAt = Date.now();
-        const ranked = ProductRankingEngine.rank(retrieval.candidates, intent, input.sort).filter((item) => !item.excluded);
-        const rankingTimeMs = Date.now() - rankingStartedAt;
-        const afterCursor = decodedCursor
-          ? ranked.filter((item) => SearchCursorCodec.isAfterCursor(item, decodedCursor!.last, input.sort))
-          : ranked;
-        const offset = input.cursor ? 0 : (input.page - 1) * input.limit;
-        const pageItems = afterCursor.slice(offset, offset + input.limit);
-        const pageIds = new Set(pageItems.map((item) => item.candidate.idProduto));
-        const relatedCandidates = ranked
-          .filter((item) => item.group === 'RELATED' && !pageIds.has(item.candidate.idProduto))
-          .slice(0, Math.min(input.limit, 10));
-        const imageStartedAt = Date.now();
-        const products = await this.productsWithImages([...pageItems, ...relatedCandidates]);
-        const imageDatabaseTimeMs = Date.now() - imageStartedAt;
-        const nextCandidate = offset + input.limit < afterCursor.length ? pageItems[pageItems.length - 1] : undefined;
-        const nextCursor = nextCandidate
-          ? SearchCursorCodec.encode({
-              tenantId: input.empresaId,
-              rankingVersion: SEARCH_RANKING_VERSION,
-              catalogVersion: versions.catalogVersion,
-              queryHash,
-              sort: input.sort,
-              last: SearchCursorCodec.tuple(nextCandidate),
-            })
-          : null;
-        const productsById = new Map(products.map((item) => [item.ranked.candidate.idProduto, item.product]));
-        const pageProducts = pageItems.map((item) => ({ ranked: item, product: productsById.get(item.candidate.idProduto)! }));
-        const primary = pageProducts.filter((item) => item.ranked.group === 'PRIMARY').map((item) => item.product);
-        const related = [
-          ...pageProducts.filter((item) => item.ranked.group === 'RELATED').map((item) => item.product),
-          ...relatedCandidates.map((item) => productsById.get(item.candidate.idProduto)!),
-        ];
-        const allProducts = pageProducts.map((item) => item.product);
-        const primaryTotal = ranked.filter((item) => item.group === 'PRIMARY').length;
-        const relatedTotal = ranked.length - primaryTotal;
-        const result: SearchResult<Produto> = {
-          items: allProducts,
-          relatedItems: related,
-          groups: { primary, related },
-          total: ranked.length,
-          relatedTotal,
-          page: input.page,
-          limit: input.limit,
-          totalPages: Math.ceil(ranked.length / input.limit),
-          nextCursor,
-          searchId: crypto.randomUUID(),
-          rankingVersion: SEARCH_RANKING_VERSION,
-          mode: 'advanced',
-          query: input.term,
-          interpretedQuery: intent,
-          timing: {
-            parseTimeMs,
-            databaseTimeMs: retrieval.databaseTimeMs + imageDatabaseTimeMs,
-            rankingTimeMs,
-            totalTimeMs: Date.now() - totalStartedAt,
-          },
-        };
-        return { result, candidateCount: retrieval.candidates.length };
-      }
+    const cached = await SearchCacheService.getOrSetRankingPlan<RankingPlan>(rankingKeyInput, async () => {
+      const retrieval = await CandidateRetriever.retrieve(input.empresaId, intent, input.filters);
+      const rankingStartedAt = Date.now();
+      const ranked = ProductRankingEngine.rank(retrieval.candidates, intent, input.sort)
+        .filter((item) => !item.excluded);
+      const compact = (item: typeof ranked[number]): RankingPlanItem => ({
+        idProduto: item.candidate.idProduto,
+        group: item.group,
+        relevance: item.relevance,
+        cursorTuple: SearchCursorCodec.tuple(item),
+      });
+      return {
+        high: ranked.filter((item) => item.relevance === 'HIGH').map(compact),
+        relatedTotal: ranked.filter((item) => item.relevance !== 'HIGH').length,
+        candidateCount: retrieval.candidates.length,
+        databaseTimeMs: retrieval.databaseTimeMs,
+        rankingTimeMs: Date.now() - rankingStartedAt,
+      };
+    });
+    const plan = cached.value;
+    const pageResult = paginateRankingItems(
+      plan.high,
+      input.page,
+      input.limit,
+      decodedCursor?.last || null,
+      input.sort
     );
-    const result = {
-      ...cached.value.result,
+    const pageItems = pageResult.items;
+    const hydrationStartedAt = Date.now();
+    const hydrated = await this.productsWithImages(
+      input.empresaId,
+      pageItems.map((item) => item.idProduto)
+    );
+    const hydrationTimeMs = Date.now() - hydrationStartedAt;
+    const productsById = new Map(hydrated.map((product) => [Number(product.id_produto), product]));
+    const items = pageItems.map((item) => productsById.get(item.idProduto)).filter((item): item is Produto => Boolean(item));
+    const nextItem = pageResult.hasNext ? pageItems[pageItems.length - 1] : undefined;
+    const nextCursor = nextItem ? SearchCursorCodec.encode({
+      tenantId: input.empresaId,
+      rankingVersion: SEARCH_RANKING_VERSION,
+      catalogVersion: versions.catalogVersion,
+      queryHash,
+      sort: input.sort,
+      last: nextItem.cursorTuple,
+    }) : null;
+    const result: SearchResult<Produto> = {
+      items,
+      relatedItems: [],
+      groups: { primary: items, related: [] },
+      total: pageResult.total,
+      relatedTotal: plan.relatedTotal,
+      page: input.page,
+      limit: input.limit,
+      totalPages: pageResult.totalPages,
+      nextCursor,
       searchId: crypto.randomUUID(),
+      rankingVersion: SEARCH_RANKING_VERSION,
+      mode: 'advanced',
       query: input.term,
-      timing: cached.status === 'hit'
-        ? { parseTimeMs, databaseTimeMs: 0, rankingTimeMs: 0, totalTimeMs: Date.now() - totalStartedAt }
-        : { ...cached.value.result.timing, totalTimeMs: Date.now() - totalStartedAt },
+      interpretedQuery: intent,
+      timing: {
+        parseTimeMs,
+        databaseTimeMs: (cached.status === 'hit' ? 0 : plan.databaseTimeMs) + hydrationTimeMs,
+        rankingTimeMs: cached.status === 'hit' ? 0 : plan.rankingTimeMs,
+        totalTimeMs: Date.now() - totalStartedAt,
+      },
     };
     SearchCircuitBreaker.success();
     SearchMetrics.increment('product_search_requests_total', { mode: analyticsMode, cache: cached.status });
     SearchMetrics.increment('product_search_results_total', { group: 'primary' }, result.groups.primary.length);
     SearchMetrics.increment('product_search_results_total', { group: 'related' }, result.groups.related.length);
     if (result.items.length === 0) SearchMetrics.increment('product_search_zero_results_total', { mode: analyticsMode });
-    SearchMetrics.gauge('product_search_candidates', cached.value.candidateCount);
+    SearchMetrics.gauge('product_search_candidates', plan.candidateCount);
+    SearchMetrics.gauge('product_search_relevance_results', plan.high.length, { relevance: 'high' });
+    SearchMetrics.gauge('product_search_relevance_results', plan.relatedTotal, { relevance: 'excluded' });
     SearchMetrics.observe('product_search_duration_seconds', result.timing.totalTimeMs, { mode: analyticsMode });
     SearchAnalyticsService.enqueue({
       searchId: result.searchId,
@@ -238,7 +265,7 @@ export class ProductSearchService {
       intent,
       results: result.groups.primary.length,
       related: result.groups.related.length,
-      candidates: cached.value.candidateCount,
+      candidates: plan.candidateCount,
       timing: result.timing,
       rankingVersion: SEARCH_RANKING_VERSION,
       mode: analyticsMode,
@@ -249,12 +276,15 @@ export class ProductSearchService {
   private static async legacy(input: SearchInput): Promise<ProductSearchResponse> {
     const startedAt = Date.now();
     const normalized = QueryNormalizer.normalize(input.term);
+    const matchingTypes = await TipoProdutoModel.findSearchCandidates(input.empresaId, input.term.trim(), 2);
+    const exactType = matchingTypes.length === 1 ? Number(matchingTypes[0].id_tipo_produto) : undefined;
     const { items, total } = await ProdutoModel.searchForSite(
       input.empresaId,
       input.term.trim(),
       input.page,
       input.limit,
-      legacySearchTerms(normalized.tokens)
+      legacySearchTerms(normalized.tokens),
+      exactType
     );
     const images = await ProdutoModel.findImagesByProductIds(items.map((item) => Number(item.id_produto)), false);
     const hydrated = items.map((item) => ({ ...item, imagens: images.get(Number(item.id_produto)) || [] }));
@@ -299,16 +329,15 @@ export class ProductSearchService {
     };
   }
 
-  private static async productsWithImages(
-    ranked: RankedSearchCandidate[]
-  ): Promise<Array<{ ranked: RankedSearchCandidate; product: Produto }>> {
-    const images = await ProdutoModel.findImagesByProductIds(ranked.map((item) => item.candidate.idProduto), false);
-    return ranked.map((item) => ({
-      ranked: item,
-      product: {
-        ...item.candidate.rawProduct,
-        imagens: images.get(item.candidate.idProduto) || [],
-      },
-    }));
+  private static async productsWithImages(empresaId: number, produtoIds: number[]): Promise<Produto[]> {
+    const [products, images] = await Promise.all([
+      ProdutoModel.findByIdsForSite(empresaId, produtoIds),
+      ProdutoModel.findImagesByProductIds(produtoIds, false),
+    ]);
+    const productsById = new Map(products.map((product) => [Number(product.id_produto), product]));
+    return produtoIds
+      .map((produtoId) => productsById.get(produtoId))
+      .filter((product): product is Produto => Boolean(product))
+      .map((product) => ({ ...product, imagens: images.get(Number(product.id_produto)) || [] }));
   }
 }

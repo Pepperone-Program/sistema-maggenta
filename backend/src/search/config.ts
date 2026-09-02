@@ -19,12 +19,15 @@ export const SEARCH_LIMITS = {
   maxParsedAttributes: 12,
   defaultLimit: 20,
   maxLimit: 40,
-  candidatePool: positiveInteger(process.env.SEARCH_CANDIDATE_POOL, 250),
+  hydrationBatchSize: positiveInteger(
+    process.env.SEARCH_HYDRATION_BATCH_SIZE || process.env.SEARCH_CANDIDATE_POOL,
+    250
+  ),
   applicationTimeoutMs: positiveInteger(process.env.SEARCH_TIMEOUT_MS, 3000),
   statementTimeoutSeconds: 0.5,
 } as const;
 
-export const SEARCH_RANKING_VERSION = process.env.SEARCH_RANKING_VERSION || 'v2';
+export const SEARCH_RANKING_VERSION = process.env.SEARCH_RANKING_VERSION || 'v3';
 
 export const SEARCH_FLAGS = {
   rankingPercentage: percentage(process.env.SEARCH_RANKING_PERCENTAGE),
@@ -36,6 +39,7 @@ export const SEARCH_CACHE = {
   resultTtlSeconds: positiveInteger(process.env.SEARCH_RESULT_CACHE_TTL_SECONDS, 60),
   autocompleteTtlSeconds: positiveInteger(process.env.SEARCH_AUTOCOMPLETE_CACHE_TTL_SECONDS, 300),
   dictionaryTtlMs: positiveInteger(process.env.SEARCH_DICTIONARY_TTL_MS, 60_000),
+  rankingPlanMaxEntries: positiveInteger(process.env.SEARCH_RANKING_PLAN_MAX_ENTRIES, 100),
 } as const;
 
 export const SEARCH_SCORE_WEIGHTS: Omit<SearchScoreBreakdown, 'total'> = {

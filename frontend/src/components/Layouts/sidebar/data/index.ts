@@ -35,6 +35,12 @@ export const NAV_DATA: NavSection[] = [
         items: [],
       },
       {
+        title: "Descrições com IA",
+        url: "/produtos/gerar-descricoes",
+        icon: Icons.PieChart,
+        items: [],
+      },
+      {
         title: "Clientes",
         url: "/clientes",
         icon: Icons.User,

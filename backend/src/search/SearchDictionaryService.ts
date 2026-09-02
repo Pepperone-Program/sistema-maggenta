@@ -1,5 +1,6 @@
 import { queryWithoutRetry } from '@database/connection';
 import { SEARCH_CACHE } from './config';
+import { comparableSearchText } from './QueryNormalizer';
 import type { SearchDictionaryEntry } from '@/types/search';
 
 type DictionaryRow = {
@@ -18,15 +19,27 @@ type DictionaryRow = {
   token_count: number;
 };
 
-type CacheEntry = { expiresAt: number; version: number; entries: SearchDictionaryEntry[] };
+type CacheEntry = { expiresAt: number; version: string; entries: SearchDictionaryEntry[] };
 type CatalogVersion = { catalogVersion: number; dictionaryVersion: number };
 type VersionCacheEntry = { expiresAt: number; value: CatalogVersion };
+type ProductTypeRow = { id_tipo_produto: number; tipo_produto: string };
 
 const cache = new Map<number, CacheEntry>();
 const versionCache = new Map<number, VersionCacheEntry>();
 const readyCatalogs = new Set<number>();
 
 export class SearchDictionaryService {
+  static async prepareCatalog(empresaId: number): Promise<{
+    versions: CatalogVersion;
+    dictionary: SearchDictionaryEntry[];
+  }> {
+    const [, dictionary] = await Promise.all([
+      this.assertCatalogReady(empresaId),
+      this.getEntries(empresaId),
+    ]);
+    return { versions: await this.getCatalogVersion(empresaId), dictionary };
+  }
+
   static async assertCatalogReady(empresaId: number): Promise<void> {
     if (readyCatalogs.has(empresaId)) return;
     const rows = (await queryWithoutRetry(
@@ -102,22 +115,35 @@ export class SearchDictionaryService {
     empresaId: number,
     knownVersion?: { catalogVersion: number; dictionaryVersion: number }
   ): Promise<SearchDictionaryEntry[]> {
-    const version = knownVersion || await this.getCatalogVersion(empresaId);
+    const cachedVersion = versionCache.get(empresaId);
+    const usableCachedVersion = cachedVersion && cachedVersion.expiresAt > Date.now()
+      ? cachedVersion.value
+      : undefined;
+    const version = knownVersion || usableCachedVersion;
     const cached = cache.get(empresaId);
-    if (cached && cached.expiresAt > Date.now() && cached.version === version.dictionaryVersion) {
+    const expectedCacheVersion = version ? `${version.catalogVersion}:${version.dictionaryVersion}` : undefined;
+    if (cached && cached.expiresAt > Date.now() && cached.version === expectedCacheVersion) {
       return cached.entries;
     }
 
-    const rows = (await queryWithoutRetry(
+    const [resolvedVersion, rows, productTypes] = await Promise.all([
+      version ? Promise.resolve(version) : this.getCatalogVersion(empresaId),
+      (queryWithoutRetry(
       `SELECT id_dictionary, id_empresa, term, normalized_term, term_type,
               relation_type, canonical_value, id_tipo_produto, id_attribute,
               id_option, priority, confidence, token_count
        FROM search_dictionary
        WHERE id_empresa = ? AND active = 1
-       ORDER BY token_count DESC, priority DESC, id_dictionary ASC`,
+      ORDER BY token_count DESC, priority DESC, id_dictionary ASC`,
       [empresaId]
-    )) as DictionaryRow[];
-    const entries = rows.map((row) => ({
+    ) as Promise<DictionaryRow[]>), (queryWithoutRetry(
+      `SELECT tp.id_tipo_produto, tp.tipo_produto
+       FROM tipos_produtos tp
+       WHERE tp.id_empresa = ? AND tp.habilitado = 'S'
+       ORDER BY tp.id_tipo_produto ASC`,
+      [empresaId]
+    ) as Promise<ProductTypeRow[]>)]);
+    const manualEntries = rows.map((row) => ({
       id: Number(row.id_dictionary),
       idEmpresa: Number(row.id_empresa),
       term: row.term,
@@ -132,9 +158,34 @@ export class SearchDictionaryService {
       confidence: Number(row.confidence),
       tokenCount: Number(row.token_count),
     }));
+    const manualProductTerms = new Set(manualEntries
+      .filter((entry) => entry.termType === 'PRODUCT_TYPE')
+      .map((entry) => entry.normalizedTerm));
+    const automaticEntries = productTypes
+      .map((row, index): SearchDictionaryEntry => {
+        const normalizedTerm = comparableSearchText(row.tipo_produto);
+        return {
+          id: -(index + 1),
+          idEmpresa: empresaId,
+          term: row.tipo_produto,
+          normalizedTerm,
+          termType: 'PRODUCT_TYPE',
+          relationType: 'EXACT_SYNONYM',
+          canonicalValue: normalizedTerm,
+          productTypeId: Number(row.id_tipo_produto),
+          attributeId: null,
+          optionId: null,
+          priority: 500,
+          confidence: 1,
+          tokenCount: normalizedTerm.split(/\s+/).filter(Boolean).length,
+        };
+      })
+      .filter((entry) => entry.normalizedTerm && !manualProductTerms.has(entry.normalizedTerm));
+    const entries = [...manualEntries, ...automaticEntries]
+      .sort((left, right) => right.tokenCount - left.tokenCount || right.priority - left.priority || left.id - right.id);
     cache.set(empresaId, {
       expiresAt: Date.now() + SEARCH_CACHE.dictionaryTtlMs,
-      version: version.dictionaryVersion,
+      version: `${resolvedVersion.catalogVersion}:${resolvedVersion.dictionaryVersion}`,
       entries,
     });
     return entries;

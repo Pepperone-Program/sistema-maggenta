@@ -14,6 +14,8 @@
     "import:banner-images": "tsx src/scripts/importBannerImages.ts",
     "catalog:pdf": "tsx src/scripts/generateProductCatalogPdf.ts",
     "catalog:maggenta:pdf": "tsx src/scripts/generateMaggentaProductCatalogPdf.ts",
+    "ai:descriptions": "node dist/scripts/generateProductDescriptions.js",
+    "ai:descriptions:dev": "tsx src/scripts/generateProductDescriptions.ts",
     "brevo:convert:last3": "tsx src/scripts/registerBrevoConversions.ts",
     "db:ensure-orcamento-idempotency": "tsx src/scripts/ensureOrcamentoIdempotency.ts",
     "db:migrate": "node dist/scripts/runMigrations.js up",
@@ -23,6 +25,7 @@
     "search:preflight": "node dist/scripts/searchPreflight.js",
     "search:seed-dictionary": "node dist/scripts/seedSearchDictionary.js",
     "search:rebuild": "node dist/scripts/rebuildSearchData.js",
+    "search:repair-coverage": "tsx src/scripts/repairSearchCoverage.ts",
     "search:purge-analytics": "node dist/scripts/purgeSearchAnalytics.js",
     "search:golden": "node dist/scripts/runSearchGolden.js",
     "search:benchmark": "k6 run src/benchmarks/product-search.k6.js",
@@ -32,6 +35,7 @@
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit",
     "test:orcamento-idempotency": "tsx src/tests/orcamentoIdempotency.test.ts",
+    "test:ai-description": "tsx src/tests/generateAiDescriptionService.test.ts",
     "test:search": "tsx src/tests/searchEngine.test.ts && tsx src/tests/searchMigrations.test.ts && tsx src/tests/searchController.test.ts"
   },
   "dependencies": {

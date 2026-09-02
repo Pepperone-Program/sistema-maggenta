@@ -13,6 +13,7 @@ export const comparableSearchText = (value: string): string =>
     .replace(COMBINING_MARKS, '')
     .toLocaleLowerCase('pt-BR')
     .replace(CONTROL_CHARACTERS, ' ')
+    .replace(/[-_/]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 

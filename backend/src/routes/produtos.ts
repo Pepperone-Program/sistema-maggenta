@@ -28,6 +28,12 @@ router.get(
 );
 
 router.post(
+  '/:id/gerar-descricao',
+  authMiddleware,
+  ProdutoController.generateAiDescription
+);
+
+router.post(
   '/',
   validationMiddleware(productSchema),
   ProdutoController.create

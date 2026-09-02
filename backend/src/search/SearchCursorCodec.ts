@@ -58,7 +58,10 @@ export class SearchCursorCodec {
   }
 
   static isAfterCursor(candidate: RankedSearchCandidate, last: SearchCursor['last'], sort: SearchCursor['sort']): boolean {
-    const current = tuple(candidate);
+    return this.isTupleAfterCursor(tuple(candidate), last, sort);
+  }
+
+  static isTupleAfterCursor(current: SearchCursor['last'], last: SearchCursor['last'], sort: SearchCursor['sort']): boolean {
     const sortValues = sort === 'newest'
       ? [current.newestDate]
       : sort === 'popular'

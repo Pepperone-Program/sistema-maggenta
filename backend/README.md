@@ -95,6 +95,55 @@ npm start
 - `GET /api/v1/produtos/:id` - Obter produto por ID
 - `PUT /api/v1/produtos/:id` - Atualizar produto
 - `DELETE /api/v1/produtos/:id` - Deletar produto
+- `POST /api/v1/produtos/:id/gerar-descricao` - Gerar e salvar titulo/descricao com IA
+
+### Geracao de descricoes com IA
+
+O servico usa `gemini-3.1-flash-lite` como provedor principal, limitado a 15
+requisicoes por minuto por processo. Se o Gemini falhar ou exceder a cota, o
+produto passa automaticamente pelo DeepSeek. O DeepSeek tenta primeiro o modelo
+de maior qualidade (`deepseek-v4-pro`) e depois o modelo rápido
+`deepseek-v4-flash`. Se ambos falharem, o Groq tenta `openai/gpt-oss-120b`,
+`openai/gpt-oss-20b` e, se necessário, os Qwen multimodais 3.8 e 3.6. O Gemini
+recebe até três fotos; o DeepSeek recebe os dados textuais e medidas; o Qwen
+recebe uma foto para preservar a cota diária de tokens.
+
+Configure `DEEPSEEK_API_KEY` no `.env` do backend. Os modelos podem ser alterados
+com `AI_DESCRIPTION_DEEPSEEK_MODEL` e
+`AI_DESCRIPTION_DEEPSEEK_FALLBACK_MODEL`. Erros de autenticação, permissão ou
+saldo insuficiente desativam novas chamadas ao DeepSeek durante aquele processo,
+evitando repetir milhares de requisições sem possibilidade de sucesso.
+
+No lote, erros transitórios de cota, timeout e indisponibilidade não finalizam o
+produto. Cada uma das cinco filas permanece no mesmo item, aguarda o tempo de
+reset informado pelo provedor e tenta novamente. A espera máxima padrão é de
+168 horas e pode ser alterada com `--max-wait-hours=24`.
+
+Para testar poucos produtos durante o desenvolvimento:
+
+```bash
+npm run ai:descriptions:dev -- --empresa=1 --limit=10
+```
+
+Para percorrer todos os produtos da empresa com cinco filas:
+
+```bash
+npm run ai:descriptions:dev -- --empresa=1
+```
+
+Depois do build, use `npm run ai:descriptions -- --empresa=1`. Para retomar
+somente a partir de um ID, acrescente `--start-after=1234`. Cada resultado e
+salvo imediatamente; nao execute duas instancias do lote ao mesmo tempo, pois
+os limites dos provedores sao compartilhados por projeto/organizacao, enquanto
+o limitador da aplicacao atua por processo.
+
+Para recuperar somente as falhas de uma execução antiga, copie o valor `inicio`
+exibido no resumo daquela execução. Produtos salvos pela IA depois desse instante
+serão ignorados:
+
+```bash
+npm run ai:descriptions:dev -- --empresa=1 --not-modified-since=2026-09-02T00:00:00.000Z
+```
 
 ### Orçamentos
 

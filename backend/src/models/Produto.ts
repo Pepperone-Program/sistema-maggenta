@@ -130,6 +130,24 @@ export class ProdutoModel {
     return (result as any[])[0] || null;
   }
 
+  static async findByIdsForSite(empresaId: number, produtoIds: number[]): Promise<Produto[]> {
+    const uniqueIds = Array.from(new Set(produtoIds.filter((id) => Number.isInteger(id) && id > 0)));
+    if (!uniqueIds.length) return [];
+    const products: Produto[] = [];
+    const chunkSize = 1000;
+    for (let start = 0; start < uniqueIds.length; start += chunkSize) {
+      const chunk = uniqueIds.slice(start, start + chunkSize);
+      const chunkPlaceholders = chunk.map(() => '?').join(',');
+      products.push(...await queryWithoutRetry(
+        `SELECT * FROM produtos
+         WHERE id_empresa = ? AND site = 'S' AND habilitado = 'S'
+           AND id_produto IN (${chunkPlaceholders})`,
+        [empresaId, ...chunk]
+      ) as Produto[]);
+    }
+    return products;
+  }
+
   static async findImagesByProductIds(produtoIds: number[], retry = true): Promise<Map<number, ProdutoImagem[]>> {
     const imagesByProduct = new Map<number, ProdutoImagem[]>();
     const uniqueIds = Array.from(new Set(produtoIds.filter((id) => Number.isInteger(id) && id > 0)));
@@ -566,7 +584,8 @@ export class ProdutoModel {
     term: string,
     page: number = 1,
     limit: number = 100,
-    searchTerms: string[] = []
+    searchTerms: string[] = [],
+    productTypeId?: number
   ): Promise<{ items: Produto[]; total: number }> {
     const searchPattern = `%${term}%`;
     const terms = Array.from(new Set(searchTerms.map((value) => value.trim()).filter(Boolean)));
@@ -582,8 +601,9 @@ export class ProdutoModel {
         AND site = 'S'
         AND habilitado = 'S'
         AND ${tokenConditions}
+        ${productTypeId ? 'AND id_tipo_produto = ?' : ''}
     `;
-    const filterValues: any[] = [empresaId, ...tokenValues];
+    const filterValues: any[] = [empresaId, ...tokenValues, ...(productTypeId ? [productTypeId] : [])];
 
     const countResult = await queryWithoutRetry(
       `SELECT COUNT(*) as total ${where}`,

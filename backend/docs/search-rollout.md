@@ -21,12 +21,13 @@ O build deve existir antes dos scripts operacionais (`npm run build`). Para migr
 - Use `SEARCH_SHADOW_PERCENTAGE` para comparacao amostrada sem alterar a resposta.
 - Depois da correcao do consumidor e dos gates de qualidade/carga, avance `SEARCH_RANKING_PERCENTAGE` por 5, 25, 50 e 100. O bucket e estavel por tenant e consulta normalizada.
 - Somente depois de registrar esses gates, defina `SEARCH_PREFLIGHT_ALLOW_RANKING=true`; sem essa confirmacao o preflight rejeita percentuais maiores que zero.
-- Nao altere `SEARCH_CANDIDATE_POOL=250` sem novo benchmark.
+- `SEARCH_HYDRATION_BATCH_SIZE=250` controla apenas o lote interno. A busca percorre todos os candidatos de alta relevancia e nao possui teto global de 250 resultados. Altere o lote somente com novo benchmark.
 
 ## Contratos e operacao
 
 - Busca: `GET /api/v1/produtos/site/busca`; os aliases legados `GET /api/v1/produtos/site?busca=` e `?search=` delegam ao mesmo motor. Autocomplete: `GET /api/v1/search/autocomplete`; clique: `POST /api/v1/search/click`.
-- O ranking atual e `v2`. O timeout total padrao e 3 s, medido para o banco remoto atual; cada statement de busca continua limitado a 500 ms no MariaDB. Reavalie o timeout somente com benchmark reproduzivel no ambiente de deploy.
+- Tipos habilitados usados por produtos publicos entram automaticamente no dicionario em tempo de leitura. Nomes com hifen, barra ou sublinhado sao equivalentes a espacos; entradas manuais continuam com precedencia.
+- O ranking atual e `v3`. Somente resultados `HIGH` entram em `items`, `total`, `totalPages` e `nextCursor`; correspondencias parciais permanecem fora da paginacao principal. O timeout total padrao e 3 s, medido para o banco remoto atual; cada statement de busca continua limitado a 500 ms no MariaDB. Reavalie o timeout somente com benchmark reproduzivel no ambiente de deploy.
 - O consumidor deve aplicar debounce de 150 a 300 ms no autocomplete; ele usa apenas prefixos e dicionario, sem executar o ranking completo.
 - O token do site define o tenant. `empresaId` so e aceito quando coincide; sem token, somente o tenant publico configurado.
 - Preco, marca e estoque retornam `422 UNSUPPORTED_SEARCH_FILTER`.
@@ -37,3 +38,9 @@ O build deve existir antes dos scripts operacionais (`npm run build`). Para migr
 ## Rollback
 
 O rollback imediato e `SEARCH_RANKING_PERCENTAGE=0`; as chaves antigas ficam inacessiveis porque incluem ranking e catalog version. Se necessario, volte o SHA mantendo as tabelas aditivas. Exporte dicionario e metadata antes de `npm run db:rollback`; o rollback estrutural nao e necessario para restaurar a busca legada.
+
+Se o preflight indicar cobertura inferior a 100%, repare apenas os documentos
+ausentes com `npm run search:repair-coverage -- 1` e execute o preflight novamente.
+Enquanto o catálogo estiver incompleto, saturado ou acima do timeout, o endpoint
+público degrada para a busca legada em vez de responder 503. Erros de entrada,
+cursor inválido e indisponibilidade real do banco continuam sendo retornados.

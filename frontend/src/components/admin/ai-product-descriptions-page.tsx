@@ -29,6 +29,7 @@ type GeneratedDescription = {
   titulo: string;
   descricao: string;
   imagens_consideradas: number;
+  provedor: "gemini" | "deepseek" | "groq";
   modelo: string;
   response_id: string | null;
 };
@@ -41,6 +42,11 @@ type ProductRun = {
 
 const MAX_SELECTION = 50;
 const APP_CONCURRENCY = 3;
+const PROVIDER_LABELS: Record<GeneratedDescription["provedor"], string> = {
+  gemini: "Gemini",
+  deepseek: "DeepSeek",
+  groq: "Groq",
+};
 
 function firstImage(product: Product): string | null {
   const ordered = [...(product.imagens || [])].sort(
@@ -417,7 +423,9 @@ export function AiProductDescriptionsPage() {
                             <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Resultado salvo</p>
                             <p className="mt-2 text-sm font-bold text-dark dark:text-white">{result.titulo}</p>
                             <p className="mt-2 text-sm leading-6 text-dark-4 dark:text-dark-6">{result.descricao}</p>
-                            <p className="mt-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">{result.imagens_consideradas} foto{result.imagens_consideradas === 1 ? "" : "s"} considerada{result.imagens_consideradas === 1 ? "" : "s"}</p>
+                            <p className="mt-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                              {result.imagens_consideradas} foto{result.imagens_consideradas === 1 ? "" : "s"} considerada{result.imagens_consideradas === 1 ? "" : "s"} · {PROVIDER_LABELS[result.provedor]}
+                            </p>
                           </div>
                         </div>
                       )}

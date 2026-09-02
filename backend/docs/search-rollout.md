@@ -38,3 +38,9 @@ O build deve existir antes dos scripts operacionais (`npm run build`). Para migr
 ## Rollback
 
 O rollback imediato e `SEARCH_RANKING_PERCENTAGE=0`; as chaves antigas ficam inacessiveis porque incluem ranking e catalog version. Se necessario, volte o SHA mantendo as tabelas aditivas. Exporte dicionario e metadata antes de `npm run db:rollback`; o rollback estrutural nao e necessario para restaurar a busca legada.
+
+Se o preflight indicar cobertura inferior a 100%, repare apenas os documentos
+ausentes com `npm run search:repair-coverage -- 1` e execute o preflight novamente.
+Enquanto o catálogo estiver incompleto, saturado ou acima do timeout, o endpoint
+público degrada para a busca legada em vez de responder 503. Erros de entrada,
+cursor inválido e indisponibilidade real do banco continuam sendo retornados.

@@ -19,7 +19,15 @@ export class SearchCircuitBreaker {
 
   static failure(error: unknown): void {
     const code = String((error as { code?: string })?.code || '');
-    if (!['DB_QUERY_ERROR', 'DB_TOO_MANY_REQUESTS', 'DB_UNREACHABLE', 'SEARCH_QUERY_TIMEOUT', 'SEARCH_SATURATED'].includes(code)) return;
+    if (![
+      'DB_QUERY_ERROR',
+      'DB_TOO_MANY_REQUESTS',
+      'DB_UNREACHABLE',
+      'SEARCH_CATALOG_NOT_READY',
+      'SEARCH_TIMEOUT',
+      'SEARCH_QUERY_TIMEOUT',
+      'SEARCH_SATURATED',
+    ].includes(code)) return;
     this.failures += 1;
     if (this.failures >= FAILURE_THRESHOLD) this.openUntil = Date.now() + OPEN_MS;
   }

@@ -1,6 +1,14 @@
 import '../module-alias';
 import assert from 'node:assert/strict';
-import { validateGeneratedDescription } from '@services/generateAiDescriptionService';
+import {
+  AI_DESCRIPTION_PROMPT,
+  parseRetryDurationMs,
+  validateGeneratedDescription,
+} from '@services/generateAiDescriptionService';
+
+assert.match(AI_DESCRIPTION_PROMPT, /A Caneca Cristal de 400ml/);
+assert.match(AI_DESCRIPTION_PROMPT, /somente referência de estilo/i);
+assert.match(AI_DESCRIPTION_PROMPT, /só podem ser usadas quando forem sustentadas/i);
 
 const valid = validateGeneratedDescription({
   titulo: 'Garrafa Térmica Inox 750ml Personalizada',
@@ -31,5 +39,11 @@ const exactLimit = validateGeneratedDescription({
   descricao: 'A'.repeat(800),
 });
 assert.equal(Array.from(exactLimit.descricao).length, 800);
+
+assert.equal(parseRetryDurationMs('49.561140959s'), 49_561.140959);
+assert.equal(parseRetryDurationMs('1m4.368s'), 64_368);
+assert.equal(parseRetryDurationMs('38m52.8s'), 2_332_800);
+assert.equal(parseRetryDurationMs('348.624198ms'), 348.624198);
+assert.equal(parseRetryDurationMs('inválido'), null);
 
 console.log('generateAiDescriptionService tests passed');

@@ -25,6 +25,7 @@
     "search:preflight": "node dist/scripts/searchPreflight.js",
     "search:seed-dictionary": "node dist/scripts/seedSearchDictionary.js",
     "search:rebuild": "node dist/scripts/rebuildSearchData.js",
+    "search:repair-coverage": "tsx src/scripts/repairSearchCoverage.ts",
     "search:purge-analytics": "node dist/scripts/purgeSearchAnalytics.js",
     "search:golden": "node dist/scripts/runSearchGolden.js",
     "search:benchmark": "k6 run src/benchmarks/product-search.k6.js",

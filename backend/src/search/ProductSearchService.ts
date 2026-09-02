@@ -78,6 +78,19 @@ const schemaUnavailable = (error: unknown): boolean => {
   return code === 'ER_NO_SUCH_TABLE' || /doesn't exist|product_search_|search_dictionary|search_catalog_versions/i.test(message);
 };
 
+const ADVANCED_FALLBACK_CODES = new Set([
+  'SEARCH_CATALOG_NOT_READY',
+  'SEARCH_TIMEOUT',
+  'SEARCH_QUERY_TIMEOUT',
+  'SEARCH_SATURATED',
+  'SEARCH_CURSOR_SECRET_NOT_CONFIGURED',
+]);
+
+export const shouldFallbackToLegacySearch = (error: unknown): boolean => {
+  const code = String((error as { code?: string })?.code || '');
+  return ADVANCED_FALLBACK_CODES.has(code) || schemaUnavailable(error);
+};
+
 const withTimeout = async <T>(operation: Promise<T>): Promise<T> => {
   let timer: NodeJS.Timeout | undefined;
   try {
@@ -114,11 +127,16 @@ export class ProductSearchService {
       try {
         return await withTimeout(SearchConcurrencyLimiter.run(() => this.advanced(input, normalized.comparable)));
       } catch (error) {
-        SearchMetrics.increment('product_search_errors_total', { code: String((error as { code?: string }).code || 'UNKNOWN') });
-        if (['SEARCH_TIMEOUT', 'SEARCH_QUERY_TIMEOUT'].includes(String((error as { code?: string }).code))) SearchMetrics.increment('product_search_timeouts_total');
+        const code = String((error as { code?: string }).code || 'UNKNOWN');
+        SearchMetrics.increment('product_search_errors_total', { code });
+        if (['SEARCH_TIMEOUT', 'SEARCH_QUERY_TIMEOUT'].includes(code)) SearchMetrics.increment('product_search_timeouts_total');
         SearchCircuitBreaker.failure(error);
-        if (!schemaUnavailable(error)) throw error;
-        console.warn('[ProductSearch] advanced schema unavailable; using legacy mode');
+        if (!shouldFallbackToLegacySearch(error)) throw error;
+        SearchMetrics.increment('product_search_legacy_fallback_total', { code });
+        console.warn('[ProductSearch] advanced search unavailable; using legacy mode', {
+          code,
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 

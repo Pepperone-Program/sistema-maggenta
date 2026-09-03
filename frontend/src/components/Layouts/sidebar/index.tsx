@@ -18,14 +18,9 @@ export function Sidebar() {
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));
 
-    // Uncomment the following line to enable multiple expanded items
-    // setExpandedItems((prev) =>
-    //   prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
-    // );
   };
 
   useEffect(() => {
-    // Keep collapsible open, when it's subpage is active
     const activeParent = NAV_DATA.flatMap((section) => section.items).find(
       (item) => item.items.some((subItem) => subItem.url === pathname),
     );
@@ -39,7 +34,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Overlay */}
       {isMobile && isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300"

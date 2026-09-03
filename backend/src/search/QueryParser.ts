@@ -120,16 +120,14 @@ export class QueryParser {
     const directUnknown = query.tokens.filter(
       (token, index) => !matchedTokenIndexes.has(index) && !STOPWORDS.has(token) && !/^\d+(?:[.,]\d+)?(?:ml|l|mm|cm|m|g|kg)?$/.test(token)
     );
-    const vocabulary = Array.from(new Set(dictionary.map((entry) => entry.normalizedTerm).filter((term) => !term.includes(' '))));
+    const vocabulary = QueryTokenizer.safeTokens(dictionary.map((entry) => entry.normalizedTerm));
     const correctedTerms = directUnknown.map((token) => {
       if (token.length < 4 || CODE_OR_NUMBER.test(token) || vocabulary.includes(token)) return token;
       const matches = vocabulary
         .map((term) => ({ term, distance: levenshtein(token, term) }))
-        .filter((item) => item.distance <= 2)
+        .filter((item) => item.term[0] === token[0] && item.distance === 1)
         .sort((left, right) => left.distance - right.distance || left.term.localeCompare(right.term));
-      return matches.length === 1 || (matches[0] && matches[1] && matches[0].distance < matches[1].distance)
-        ? matches[0].term
-        : token;
+      return matches.length === 1 ? matches[0].term : token;
     });
     const synonymTerms = matchedEntries
       .filter((entry) => entry.termType === 'SYNONYM' && entry.relationType === 'EXACT_SYNONYM')

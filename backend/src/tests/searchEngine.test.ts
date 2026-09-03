@@ -41,6 +41,12 @@ const dictionary: SearchDictionaryEntry[] = [
   entry({ id: 7, normalizedTerm: 'capacidade', termType: 'ATTRIBUTE', canonicalValue: 'capacity_ml', attributeId: 50, priority: 1 }),
 ];
 
+const penDictionary: SearchDictionaryEntry[] = [
+  entry({ id: 101, normalizedTerm: 'caneta plastica', termType: 'PRODUCT_TYPE', canonicalValue: 'caneta plastica', productTypeId: 11 }),
+  entry({ id: 102, normalizedTerm: 'caneta metal', termType: 'PRODUCT_TYPE', canonicalValue: 'caneta metal', productTypeId: 12 }),
+  entry({ id: 103, normalizedTerm: 'manta', termType: 'PRODUCT_TYPE', canonicalValue: 'manta', productTypeId: 337 }),
+];
+
 const candidate = (overrides: Partial<SearchCandidate> = {}): SearchCandidate => ({
   rawProduct: {} as SearchCandidate['rawProduct'], idEmpresa: 1, idProduto: 100, idTipoProduto: 10,
   produto: 'Garrafa termica inox 500ml', normalizedName: 'garrafa termica inox 500ml', descricao: null,
@@ -59,6 +65,32 @@ const unicode = QueryNormalizer.normalize('  AÇO\u0000 INOX  ');
 assert.equal(unicode.normalized, 'aço inox');
 assert.equal(unicode.comparable, 'aco inox');
 assert.equal(QueryNormalizer.normalize('Guarda-Chuva').comparable, 'guarda chuva');
+
+const penIntent = QueryParser.parse(QueryNormalizer.normalize('caneta'), penDictionary);
+assert.deepEqual(penIntent.positiveTerms, ['caneta'], 'token de tipo composto deve permanecer pesquisavel');
+assert.deepEqual(penIntent.unknownTerms, ['caneta']);
+assert.equal(penIntent.safeBooleanQuery, '+caneta*');
+
+const correctedPenIntent = QueryParser.parse(QueryNormalizer.normalize('canetta'), penDictionary);
+assert.deepEqual(correctedPenIntent.positiveTerms, ['caneta'], 'erro unico de uma edicao deve ser corrigido');
+assert.equal(correctedPenIntent.safeBooleanQuery, '+caneta*');
+
+const ambiguousTypoDictionary = [
+  ...penDictionary,
+  entry({ id: 104, normalizedTerm: 'canetra', termType: 'RELATED_TERM', canonicalValue: 'canetra' }),
+];
+const ambiguousPenIntent = QueryParser.parse(QueryNormalizer.normalize('canetaa'), ambiguousTypoDictionary);
+assert.deepEqual(ambiguousPenIntent.positiveTerms, ['canetaa'], 'correcao ambigua deve preservar o termo original');
+
+const unrelatedBlanket = ProductRankingEngine.rankCandidate(candidate({
+  idTipoProduto: 337,
+  produto: 'Manta Cobertor Personalizada',
+  normalizedName: 'manta cobertor personalizada',
+  descricao: 'manta em tecido polar',
+  fulltextNameScore: 0,
+  fulltextTextScore: 0,
+}), penIntent);
+assert.notEqual(unrelatedBlanket.relevance, 'HIGH', 'manta nao pode ter alta relevancia para caneta');
 
 const phraseIntent = QueryParser.parse(QueryNormalizer.normalize('bloco sem pauta'), dictionary);
 assert.equal(phraseIntent.constraints.length, 1, 'a frase longa deve impedir o rematch isolado de pauta');

@@ -1,13 +1,12 @@
 import darkLogo from "@/assets/logos/dark.svg";
-import logo from "@/assets/logos/Logo-Vertical-Flat.svg";
+import logo from "@/assets/logos/LOGO_MAGGENTA_v2.svg";
 import Image from "next/image";
 
 export function Logo() {
   return (
-    <div className="relative h-20 max-w-[18.847rem]">
+    <div className="relative h-25 max-w-[18.847rem] mb-6 min-[850px]:mb-10">
       <Image
         src={logo}
-        fill
         className="dark:hidden"
         alt="NextAdmin logo"
         role="presentation"

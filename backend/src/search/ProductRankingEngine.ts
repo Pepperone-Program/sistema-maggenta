@@ -21,8 +21,8 @@ const comparableLexicalText = (value: string): string => value
   .replace(/(\d),(\d)/g, '$1.$2');
 
 const lexicalCoverage = (candidate: SearchCandidate, intent: SearchIntent): number => {
-  const terms = Array.from(new Set(intent.comparable
-    .split(/\s+/)
+  const terms = Array.from(new Set(intent.positiveTerms
+    .flatMap((term) => term.split(/\s+/))
     .map((token) => token.replace(/^[^a-z0-9]+|[^a-z0-9.,]+$/g, ''))
     .filter((token) => token.length >= 2 && !LEXICAL_STOPWORDS.has(token))));
   if (terms.length === 0) return 0;

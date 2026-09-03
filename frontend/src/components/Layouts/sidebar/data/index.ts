@@ -49,7 +49,7 @@ export const NAV_DATA: NavSection[] = [
       {
         title: "Orçamentos",
         url: "/orcamentos",
-        icon: Icons.Calendar,
+        icon: Icons.Budget,
         items: [],
       },
     ],
@@ -84,19 +84,19 @@ export const NAV_DATA: NavSection[] = [
       {
         title: "Datas promocionais",
         url: "/datas-promocionais",
-        icon: Icons.PieChart,
+        icon: Icons.Calendar,
         items: [],
       },
       {
         title: "Banners",
         url: "/banners",
-        icon: Icons.Table,
+        icon: Icons.Banner,
         items: [],
       },
       {
         title: "Landing pages",
         url: "/landing-pages",
-        icon: Icons.Table,
+        icon: Icons.Website,
         items: [],
       },
     ],
@@ -107,13 +107,13 @@ export const NAV_DATA: NavSection[] = [
       {
         title: "Usuarios",
         url: "/usuarios",
-        icon: Icons.Authentication,
+        icon: Icons.User,
         items: [],
       },
       {
         title: "Permissoes",
         url: "/permissoes",
-        icon: Icons.User,
+        icon: Icons.Permission,
         items: [],
       },
     ],

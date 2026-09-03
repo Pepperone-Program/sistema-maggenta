@@ -63,6 +63,34 @@ export function Calendar(props: PropsType) {
   );
 }
 
+export function Banner (props: PropsType) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      viewBox="0 0 24 24" 
+      {...props}
+    >
+      <path fill="currentColor" d="M6 22q-.825 0-1.413-.588T4 20V4q0-.825.588-1.413T6 2h12q.825 0 1.413.588T20 4v16q0 .825-.588 1.413T18 22H6Zm0-2h12V4H6v16Zm1-2h10l-3.45-4.5l-2.3 3l-1.55-2L7 18Zm-1 2V4v16Z"/>
+    </svg>
+  )
+}
+
+export function Permission(props: PropsType) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="24" 
+      height="24" 
+      viewBox="0 0 2048 2048"
+      {...props}
+    >
+        <path fill="currentColor" d="M2048 1573v475h-512v-256h-256v-256h-256v-207q-74 39-155 59t-165 20q-97 0-187-25t-168-71t-142-110t-111-143t-71-168T0 704q0-97 25-187t71-168t110-142T349 96t168-71T704 0q97 0 187 25t168 71t142 110t111 143t71 168t25 187q0 51-8 101t-23 98l671 670zm-128 54l-690-690q22-57 36-114t14-119q0-119-45-224t-124-183t-183-123t-224-46q-119 0-224 45T297 297T174 480t-46 224q0 119 45 224t124 183t183 123t224 46q97 0 190-33t169-95h89v256h256v256h256v256h256v-293zM512 384q27 0 50 10t40 27t28 41t10 50q0 27-10 50t-27 40t-41 28t-50 10q-27 0-50-10t-40-27t-28-41t-10-50q0-27 10-50t27-40t41-28t50-10z"/>
+    </svg>
+  )
+}
+
 export function User(props: PropsType) {
   return (
     <svg
@@ -121,6 +149,27 @@ export function Table(props: PropsType) {
     </svg>
   );
 }
+
+export function Budget (props: PropsType) {
+  return (
+    <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width="24" 
+    height="24" 
+    viewBox="0 0 48 48"
+    {...props}
+  >
+    <circle cx="24" cy="24" r="21.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="24" r="12.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M18.794 29.31a3.138 3.138 0 0 0 3.062 1.49h2.013a4.263 4.263 0 0 0 4.015-3.4h0a2.752 2.752 0 0 0-2.772-3.4h-2.224a2.752 2.752 0 0 1-2.772-3.4h0a4.263 4.263 0 0 1 4.015-3.4h2.013a3.138 3.138 0 0 1 3.062 1.49m-3.963-1.49l.311-1.7m-3.108 17l.311-1.7M24 36.5v8.999M13.194 17.716l-7.779-4.524m29.449 4.626l7.822-4.451"/>
+    </svg>
+  )
+}
+
+export function Website(props: PropsType) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" {...props} width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 8.384H4v8.5h16zM4 20.134h5.5M4 23.25h5.5m3.5 0v-3.116h7v3.116"/><path stroke-linecap="round" stroke-linejoin="round" d="m8.5 16.884l3.956-4.395a2.706 2.706 0 0 1 4.124.12L20 16.884"/><path d="M7.5 12.384a.5.5 0 0 1 0-1m0 1a.5.5 0 0 0 0-1"/><path stroke-linecap="round" stroke-linejoin="round" d="M.75 23.25V2.75a2 2 0 0 1 2-2h18.5a2 2 0 0 1 2 2v20.5M.769 4.964h22.469M5.082.75v4.214M9.415.75v4.214"/></g></svg>
+  )
+}
+
 
 export function PieChart(props: PropsType) {
   return (

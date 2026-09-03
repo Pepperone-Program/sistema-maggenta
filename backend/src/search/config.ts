@@ -27,7 +27,7 @@ export const SEARCH_LIMITS = {
   statementTimeoutSeconds: 0.5,
 } as const;
 
-export const SEARCH_RANKING_VERSION = process.env.SEARCH_RANKING_VERSION || 'v3';
+export const SEARCH_RANKING_VERSION = process.env.SEARCH_RANKING_VERSION || 'v4';
 
 export const SEARCH_FLAGS = {
   rankingPercentage: percentage(process.env.SEARCH_RANKING_PERCENTAGE),

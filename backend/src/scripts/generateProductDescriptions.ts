@@ -1,6 +1,9 @@
 import '../module-alias';
 import { closeDatabasePool } from '@database/connection';
-import { GenerateAiDescriptionService } from '@services/generateAiDescriptionService';
+import {
+  GenerateAiDescriptionService,
+  MAX_BATCH_CONCURRENCY,
+} from '@services/generateAiDescriptionService';
 
 function argument(name: string): string | undefined {
   const prefix = `--${name}=`;
@@ -30,6 +33,7 @@ function durationText(milliseconds: number): string {
 async function main(): Promise<void> {
   const empresaId = positiveArgument('empresa') || Number(process.env.AI_DESCRIPTION_EMPRESA_ID || 1);
   const limit = positiveArgument('limit');
+  const concurrency = positiveArgument('concurrency') || MAX_BATCH_CONCURRENCY;
   const startAfterId = positiveArgument('start-after') || 0;
   const maxWaitHours = positiveArgument('max-wait-hours')
     || Number(process.env.AI_DESCRIPTION_BATCH_MAX_WAIT_HOURS || 168);
@@ -42,6 +46,9 @@ async function main(): Promise<void> {
   if (!Number.isInteger(maxWaitHours) || maxWaitHours <= 0) {
     throw new Error('O argumento --max-wait-hours deve ser um número inteiro positivo');
   }
+  if (concurrency > MAX_BATCH_CONCURRENCY) {
+    throw new Error(`O argumento --concurrency deve ser no máximo ${MAX_BATCH_CONCURRENCY}`);
+  }
   if (notModifiedSince && Number.isNaN(notModifiedSince.getTime())) {
     throw new Error('O argumento --not-modified-since deve ser uma data ISO válida');
   }
@@ -49,7 +56,8 @@ async function main(): Promise<void> {
   console.log('[descricoes:ia] Iniciando geração', {
     inicio: new Date().toISOString(),
     empresaId,
-    concorrencia: 5,
+    concorrencia: concurrency,
+    provedorPrincipal: 'DeepSeek',
     gemini: process.env.AI_DESCRIPTION_MODEL || 'gemini-3.1-flash-lite',
     geminiRpm: Number(process.env.AI_DESCRIPTION_GEMINI_RPM || 15),
     deepSeekFallback: [
@@ -71,7 +79,7 @@ async function main(): Promise<void> {
 
   const summary = await GenerateAiDescriptionService.generateAllProducts({
     empresaId,
-    concurrency: 5,
+    concurrency,
     limit,
     startAfterId,
     notModifiedSince,

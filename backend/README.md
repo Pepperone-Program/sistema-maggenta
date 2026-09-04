@@ -99,11 +99,11 @@ npm start
 
 ### Geracao de descricoes com IA
 
-O servico usa `gemini-3.1-flash-lite` como provedor principal, limitado a 15
-requisicoes por minuto por processo. Se o Gemini falhar ou exceder a cota, o
-produto passa automaticamente pelo DeepSeek. O DeepSeek tenta primeiro o modelo
+O servico usa o DeepSeek como provedor principal. Ele tenta primeiro o modelo
 de maior qualidade (`deepseek-v4-pro`) e depois o modelo rápido
-`deepseek-v4-flash`. Se ambos falharem, o Groq tenta `openai/gpt-oss-120b`,
+`deepseek-v4-flash`. Se ambos falharem, o produto passa automaticamente pelo
+Gemini (`gemini-3.1-flash-lite`), limitado a 15 requisicoes por minuto por
+processo. Por fim, o Groq tenta `openai/gpt-oss-120b`,
 `openai/gpt-oss-20b` e, se necessário, os Qwen multimodais 3.8 e 3.6. O Gemini
 recebe até três fotos; o DeepSeek recebe os dados textuais e medidas; o Qwen
 recebe uma foto para preservar a cota diária de tokens.
@@ -115,9 +115,10 @@ saldo insuficiente desativam novas chamadas ao DeepSeek durante aquele processo,
 evitando repetir milhares de requisições sem possibilidade de sucesso.
 
 No lote, erros transitórios de cota, timeout e indisponibilidade não finalizam o
-produto. Cada uma das cinco filas permanece no mesmo item, aguarda o tempo de
+produto. Cada fila permanece no mesmo item, aguarda o tempo de
 reset informado pelo provedor e tenta novamente. A espera máxima padrão é de
-168 horas e pode ser alterada com `--max-wait-hours=24`.
+168 horas e pode ser alterada com `--max-wait-hours=24`. A concorrencia padrão
+e máxima é 10 e pode ser reduzida, por exemplo, com `--concurrency=5`.
 
 Para testar poucos produtos durante o desenvolvimento:
 
@@ -125,7 +126,7 @@ Para testar poucos produtos durante o desenvolvimento:
 npm run ai:descriptions:dev -- --empresa=1 --limit=10
 ```
 
-Para percorrer todos os produtos da empresa com cinco filas:
+Para percorrer todos os produtos da empresa com dez filas:
 
 ```bash
 npm run ai:descriptions:dev -- --empresa=1

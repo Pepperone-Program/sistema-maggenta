@@ -41,7 +41,7 @@ type ProductRun = {
 };
 
 const MAX_SELECTION = 50;
-const APP_CONCURRENCY = 3;
+const APP_CONCURRENCY = 10;
 const PROVIDER_LABELS: Record<GeneratedDescription["provedor"], string> = {
   gemini: "Gemini",
   deepseek: "DeepSeek",

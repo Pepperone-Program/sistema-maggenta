@@ -11,7 +11,7 @@ export class QueryParser {
         statusCode: 422,
       });
     }
-    const booleanQuery = QueryTokenizer.buildSafeBooleanQuery(positiveTerms);
+    const booleanQuery = QueryTokenizer.buildSafeBooleanQuery(positiveTerms, true);
     return {
       original: query.original,
       normalized: query.normalized,

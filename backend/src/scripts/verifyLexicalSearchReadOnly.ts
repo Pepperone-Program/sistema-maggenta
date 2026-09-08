@@ -27,9 +27,9 @@ const run = async () => {
     const found = await CandidateRetriever.retrieve(tenant, intent, {});
     const ranked = ProductRankingEngine.rank(found.candidates, intent);
     assert.equal(
-      ranked.every((item) => item.lexical.matchedTerms.length > 0),
+      ranked.every((item) => item.lexical.complete),
       true,
-      'Every fulltext result must have literal evidence',
+      'Every API candidate must cover every searchable term',
     );
     assert.equal(
       ranked.every((item) => item.candidate.idEmpresa === tenant),
@@ -43,7 +43,16 @@ const run = async () => {
     cafe.ranked.map((p) => p.candidate.idProduto),
     accented.ranked.map((p) => p.candidate.idProduto),
   );
-  for (const query of ['cafe', 'caneca cafe', 'garrafa', 'personalizado', 'A5', 'UV', 'cafffe']) {
+  for (const query of [
+    'cafe',
+    'caneca cafe',
+    'kit churrasco',
+    'garrafa',
+    'personalizado',
+    'A5',
+    'UV',
+    'cafffe',
+  ]) {
     const value = query === 'cafe' ? cafe : await search(query);
     console.log(
       JSON.stringify({

@@ -51,6 +51,47 @@ const run = async (): Promise<void> => {
       true,
     );
   }
+  const barbecue = await ProductSearchService.search({
+    empresaId,
+    term: 'kit churrasco',
+    page: 1,
+    limit: 24,
+    sort: 'relevance',
+    filters: {},
+    locale: 'pt-BR',
+  });
+  assert.equal(barbecue.match_exato_codigo, false);
+  if (!barbecue.match_exato_codigo) {
+    assert.equal(barbecue.total > 0, true);
+    assert.equal(barbecue.relatedTotal, 0);
+    assert.deepEqual(barbecue.relatedItems, []);
+    assert.deepEqual(barbecue.groups.related, []);
+    const lastPage = await ProductSearchService.search({
+      empresaId,
+      term: 'kit churrasco',
+      page: barbecue.totalPages,
+      limit: 24,
+      sort: 'relevance',
+      filters: {},
+      locale: 'pt-BR',
+    });
+    assert.equal(lastPage.match_exato_codigo, false);
+    if (!lastPage.match_exato_codigo) {
+      assert.equal(lastPage.items.length > 0, true);
+      assert.equal(lastPage.nextCursor, null);
+    }
+    const afterLastPage = await ProductSearchService.search({
+      empresaId,
+      term: 'kit churrasco',
+      page: barbecue.totalPages + 1,
+      limit: 24,
+      sort: 'relevance',
+      filters: {},
+      locale: 'pt-BR',
+    });
+    assert.equal(afterLastPage.match_exato_codigo, false);
+    if (!afterLastPage.match_exato_codigo) assert.deepEqual(afterLastPage.items, []);
+  }
   const suffix = await ProductSearchService.search({
     empresaId,
     term: 'GF042',
@@ -62,7 +103,9 @@ const run = async (): Promise<void> => {
   });
   assert.equal(suffix.match_exato_codigo, true);
   if (suffix.match_exato_codigo) assert.equal(suffix.codigo.toLocaleUpperCase('pt-BR'), 'GF042C');
-  console.log('smokeLegacySearchContract: limits, lexical fulltext phrase and C suffix priority ok');
+  console.log(
+    'smokeLegacySearchContract: limits, complete relevance cutoff, last page and C suffix priority ok',
+  );
 };
 
 run()

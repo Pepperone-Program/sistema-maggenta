@@ -15,7 +15,7 @@ export const SEARCH_LIMITS = {
   statementTimeoutSeconds: 0.5,
 } as const;
 
-export const SEARCH_RANKING_VERSION = 'v5-lexical:' + (process.env.SEARCH_RANKING_VERSION || '1');
+export const SEARCH_RANKING_VERSION = 'v6-complete:' + (process.env.SEARCH_RANKING_VERSION || '1');
 
 export const SEARCH_FLAGS = {
   writeSyncEnabled: process.env.SEARCH_WRITE_SYNC_ENABLED === 'true',

@@ -90,17 +90,32 @@ const candidate = (overrides: Partial<SearchCandidate> = {}): SearchCandidate =>
 });
 const parse = (text: string) => QueryParser.parse(QueryNormalizer.normalize(text));
 const product = (id: number, title: string, text = title, overrides: Partial<SearchCandidate> = {}) =>
-  candidate({ idProduto: id, normalizedName: title, produto: title, searchText: text, ...overrides });
+  candidate({
+    idProduto: id,
+    normalizedName: title,
+    produto: title,
+    searchText: text,
+    ...overrides,
+  });
 const dict = [
-  { normalizedTerm: 'case', termType: 'PRODUCT_TYPE', canonicalValue: 'case', productTypeId: 10 },
-  { normalizedTerm: 'termica', termType: 'SYNONYM', canonicalValue: 'parede dupla' },
+  {
+    normalizedTerm: 'case',
+    termType: 'PRODUCT_TYPE',
+    canonicalValue: 'case',
+    productTypeId: 10,
+  },
+  {
+    normalizedTerm: 'termica',
+    termType: 'SYNONYM',
+    canonicalValue: 'parede dupla',
+  },
 ] as SearchDictionaryEntry[];
 assert.deepEqual(QueryParser.parse(QueryNormalizer.normalize('cafe'), dict).positiveTerms, ['cafe']);
 assert.deepEqual(QueryParser.parse(QueryNormalizer.normalize('termica'), dict).positiveTerms, ['termica']);
-assert.equal(parse('caneca cafe').safeBooleanQuery, 'caneca* cafe*');
+assert.equal(parse('caneca cafe').safeBooleanQuery, '+caneca* +cafe*');
 assert.equal(parse('CAF\u00c9').safeBooleanQuery, parse('cafe').safeBooleanQuery);
-assert.equal(parse('A5 UV').safeBooleanQuery, 'a5* uv*');
-assert.equal(parse('cafffe').safeBooleanQuery, 'cafffe*');
+assert.equal(parse('A5 UV').safeBooleanQuery, '+a5* +uv*');
+assert.equal(parse('cafffe').safeBooleanQuery, '+cafffe*');
 assert.throws(() => parse('com para'), { code: 'NO_SEARCHABLE_TERMS' });
 assert.throws(() => parse('***'), { code: 'NO_SEARCHABLE_TERMS' });
 assert.equal(QueryTokenizer.buildSafeBooleanQuery(['garrafa', "+'--", 'inox']), 'garrafa* inox*');
@@ -137,9 +152,27 @@ const pool = [
 const ranked = ProductRankingEngine.rank(pool, multi);
 assert.deepEqual(
   ranked.map((item) => item.candidate.idProduto),
-  [3, 4, 5, 2, 1],
+  [3, 4, 5],
 );
-assert.equal(ranked[3].relevance, 'MEDIUM', 'a positive OR fulltext score is not full coverage');
+assert.equal(
+  ranked.every((item) => item.relevance === 'HIGH'),
+  true,
+);
+const barbecue = parse('kit churrasco');
+const barbecueResults = ProductRankingEngine.rank(
+  [
+    product(11, 'kit churrasco'),
+    product(12, 'kit executivo'),
+    product(13, 'kit cafe'),
+    product(14, 'estojo', 'estojo para kit de churrasco'),
+  ],
+  barbecue,
+);
+assert.deepEqual(
+  barbecueResults.map((item) => item.candidate.idProduto),
+  [11, 14],
+  'products matching only kit must be excluded before pagination',
+);
 assert.equal(
   ProductRankingEngine.rankCandidate(product(1, 'caneca cafe', 'caneca cafe', { idTipoProduto: 999 }), multi)
     .relevance,
@@ -147,7 +180,11 @@ assert.equal(
 );
 for (const sort of ['relevance', 'newest', 'popular'] as SearchSort[]) {
   const items = ProductRankingEngine.rank(
-    pool.map((p, i) => ({ ...p, popularidade: 100 - i, dataInclusao: '2026-01-0' + (i + 1) })),
+    pool.map((p, i) => ({
+      ...p,
+      popularidade: 100 - i,
+      dataInclusao: '2026-01-0' + (i + 1),
+    })),
     multi,
     sort,
   );
@@ -186,8 +223,12 @@ const manyPlan = many.map((item) => ({
 }));
 assert.equal(paginateRankingItems(manyPlan, 63, 24, null, 'relevance').items.length, 12);
 assert.equal(
-  SearchCacheService.resultKey({ filters: { color: 'azul', material: 'inox' } }),
-  SearchCacheService.resultKey({ filters: { material: 'inox', color: 'azul' } }),
+  SearchCacheService.resultKey({
+    filters: { color: 'azul', material: 'inox' },
+  }),
+  SearchCacheService.resultKey({
+    filters: { material: 'inox', color: 'azul' },
+  }),
 );
 
 const verifyService = async () => {
@@ -213,10 +254,22 @@ const verifyService = async () => {
       throw new Error('Legacy must never execute');
     };
     SearchDictionaryService.assertCatalogReady = async () => {};
-    SearchDictionaryService.getCatalogVersion = async () => ({ catalogVersion: 987, dictionaryVersion: 1 });
-    CandidateRetriever.retrieve = async () => ({ candidates: pool, databaseTimeMs: 0 });
+    SearchDictionaryService.getCatalogVersion = async () => ({
+      catalogVersion: 987,
+      dictionaryVersion: 1,
+    });
+    CandidateRetriever.retrieve = async () => ({
+      candidates: pool,
+      databaseTimeMs: 0,
+    });
     ProdutoModel.findByIdsForSite = async (_tenant, ids) =>
-      ids.map((id) => ({ id_produto: id, codigo: 'P' + id }) as SearchCandidate['rawProduct']);
+      ids.map(
+        (id) =>
+          ({
+            id_produto: id,
+            codigo: 'P' + id,
+          }) as SearchCandidate['rawProduct'],
+      );
     ProdutoModel.findImagesByProductIds = async () => new Map();
     SearchAnalyticsService.enqueue = () => {};
     const input = {
@@ -233,18 +286,21 @@ const verifyService = async () => {
     const first = await ProductSearchService.search(input);
     assert.equal(first.match_exato_codigo, false);
     if (first.match_exato_codigo) throw new Error('unexpected code');
-    assert.equal(first.total, 5);
-    assert.equal(first.relatedTotal, 2);
-    assert.equal(first.totalPages, 3);
+    assert.equal(first.total, 3);
+    assert.equal(first.relatedTotal, 0);
+    assert.equal(first.totalPages, 2);
     assert.deepEqual(
       first.items.map((p) => p.id_produto),
       [3, 4],
     );
-    const next = await ProductSearchService.search({ ...input, cursor: first.nextCursor! });
+    const next = await ProductSearchService.search({
+      ...input,
+      cursor: first.nextCursor!,
+    });
     if (next.match_exato_codigo) throw new Error('unexpected code');
     assert.deepEqual(
       next.items.map((p) => p.id_produto),
-      [5, 2],
+      [5],
     );
     assert.deepEqual(
       next.groups.primary.map((p) => p.id_produto),
@@ -252,8 +308,10 @@ const verifyService = async () => {
     );
     assert.deepEqual(
       next.relatedItems.map((p) => p.id_produto),
-      [2],
+      [],
     );
+    assert.deepEqual(next.groups.related, []);
+    assert.equal(next.nextCursor, null);
     for (const changed of [
       { filters: { color: 'red' } },
       { empresaId: 2 },
@@ -261,24 +319,39 @@ const verifyService = async () => {
       { term: 'cafe' },
       { locale: 'en' },
     ]) {
-      await assert.rejects(ProductSearchService.search({ ...input, ...changed, cursor: first.nextCursor! }), {
-        code: 'INVALID_SEARCH_CURSOR',
-      });
+      await assert.rejects(
+        ProductSearchService.search({
+          ...input,
+          ...changed,
+          cursor: first.nextCursor!,
+        }),
+        {
+          code: 'INVALID_SEARCH_CURSOR',
+        },
+      );
     }
     await assert.rejects(ProductSearchService.search({ ...input, cursor: first.nextCursor + 'x' }), {
       code: 'INVALID_SEARCH_CURSOR',
     });
-    SearchDictionaryService.getCatalogVersion = async () => ({ catalogVersion: 988, dictionaryVersion: 1 });
+    SearchDictionaryService.getCatalogVersion = async () => ({
+      catalogVersion: 988,
+      dictionaryVersion: 1,
+    });
     await assert.rejects(ProductSearchService.search({ ...input, cursor: first.nextCursor! }), {
       code: 'INVALID_SEARCH_CURSOR',
     });
     const decoded = SearchCursorCodec.decode(first.nextCursor!);
-    const oldVersion = SearchCursorCodec.encode({ ...decoded, rankingVersion: 'v4' });
+    const oldVersion = SearchCursorCodec.encode({
+      ...decoded,
+      rankingVersion: 'v4',
+    });
     await assert.rejects(ProductSearchService.search({ ...input, cursor: oldVersion }), {
       code: 'INVALID_SEARCH_CURSOR',
     });
     const expired = SearchCursorCodec.encode(decoded, -1);
-    assert.throws(() => SearchCursorCodec.decode(expired), { code: 'INVALID_SEARCH_CURSOR' });
+    assert.throws(() => SearchCursorCodec.decode(expired), {
+      code: 'INVALID_SEARCH_CURSOR',
+    });
     for (const code of ['SEARCH_CATALOG_NOT_READY', 'SEARCH_TIMEOUT', 'SEARCH_SATURATED', 'DB_QUERY_ERROR']) {
       SearchCircuitBreaker.success();
       SearchDictionaryService.assertCatalogReady = async () => {
@@ -291,9 +364,14 @@ const verifyService = async () => {
     }
     SearchCircuitBreaker.success();
     ProdutoModel.findByExactCodeForSite = async () => {
-      throw Object.assign(new Error('connection failed'), { code: 'DB_UNREACHABLE' });
+      throw Object.assign(new Error('connection failed'), {
+        code: 'DB_UNREACHABLE',
+      });
     };
-    await assert.rejects(ProductSearchService.search(input), { code: 'SEARCH_UNAVAILABLE', statusCode: 503 });
+    await assert.rejects(ProductSearchService.search(input), {
+      code: 'SEARCH_UNAVAILABLE',
+      statusCode: 503,
+    });
   } finally {
     ProdutoModel.findByExactCodeForSite = originals.exact;
     ProdutoModel.searchForSite = originals.legacy;

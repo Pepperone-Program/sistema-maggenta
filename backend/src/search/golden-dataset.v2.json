@@ -52,5 +52,10 @@
     "query": "caneca cafe",
     "expectedCodes": ["KC19", "KC10", "XIC001", "KC13", "XIC002"],
     "forbiddenCodes": []
+  },
+  {
+    "query": "kit churrasco",
+    "expectedCodes": ["KCH34", "KCH10", "KCH300C", "KCH8216", "KCH8205"],
+    "forbiddenCodes": []
   }
 ]

@@ -36,11 +36,11 @@ const rememberRankingPlan = <T>(key: string, value: T): void => {
 
 export class SearchCacheService {
   static resultKey(input: unknown): string {
-    return CacheService.buildKey('search-v5-lexical', digest(input));
+    return CacheService.buildKey('search-v6-complete', digest(input));
   }
 
   static rankingPlanKey(input: unknown): string {
-    return CacheService.buildKey('search-v5-lexical-plan', digest(input));
+    return CacheService.buildKey('search-v6-complete-plan', digest(input));
   }
 
   static autocompleteKey(input: unknown): string {

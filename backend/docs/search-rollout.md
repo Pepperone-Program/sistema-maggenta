@@ -1,20 +1,21 @@
-﻿# Busca lexical full text (v5)
+﻿# Busca lexical full text (v6)
 
 A busca pública usa exclusivamente os índices `normalized_name` e `search_text` para recuperar candidatos. Preserva a resolução de código `${codigo}C`, depois `${codigo}`. Os aliases `q`, `busca` e `search` usam o mesmo serviço. A busca administrativa permanece independente.
 
 ## Contrato
 
 - Acentos, caixa e espaços são normalizados. Não há correção ortográfica, expansão de sinônimos ou filtro por tipo inferido. O dicionário continua disponível para administração, autocomplete e resolução dos filtros explícitos.
-- `caneca cafe` gera `caneca* cafe*`: palavras por prefixo, combinadas com OR. `case` não corresponde a `cafe`. Um título diferente pode corresponder por evidência no documento indexado, que inclui descrição e metadados cadastrados.
+- `caneca cafe` gera `+caneca* +cafe*`: palavras por prefixo e todos os termos pesquisáveis obrigatórios. `case` não corresponde a `cafe`. Um título diferente pode corresponder por evidência no documento indexado, que inclui descrição e metadados cadastrados.
 - Palavras de ligação são ignoradas. Consultas sem termos pesquisáveis retornam `422 NO_SEARCHABLE_TERMS`. Termos de dois caracteres podem encontrar palavras indexadas maiores por prefixo; isso não torna palavras curtas excluídas do índice pesquisáveis. Não há fallback `LIKE`.
 - Ranking por quantidade de termos atendidos; título exato; palavras inteiras no título; prefixos no título; sequência no título; score FT do título; score FT do documento; popularidade; ID. Tipos e atributos inferidos não alteram a elegibilidade ou prioridade.
-- `items` contém completos e parciais, nessa ordem. `groups.primary` contém completos da página; `groups.related` e `relatedItems`, parciais da página. `total` inclui ambos; `relatedTotal` conta os parciais do conjunto. O consumidor deve preservar a ordem de `items` e não concatenar `relatedItems` novamente.
-- `newest` e `popular` ordenam dentro das faixas completo/parcial. O cursor usa o mesmo comparador e pertence à consulta, filtros, idioma, empresa, ordenação e versões de catálogo/ranking.
+- A API descarta qualquer candidato sem cobertura lexical completa antes da paginação. Assim, `kit churrasco` não continua com kits executivos, de café ou de viagem que correspondam somente a `kit`.
+- `items` e `groups.primary` contêm somente resultados completos. `groups.related` e `relatedItems` são vazios; `relatedTotal` é `0`. `total` e `totalPages` consideram apenas os resultados elegíveis.
+- `newest` e `popular` ordenam o mesmo conjunto completo. O cursor usa o mesmo comparador e pertence à consulta, filtros, idioma, empresa, ordenação e versões de catálogo/ranking.
 - Erros de índice, catálogo incompleto, timeout e saturação retornam `503 SEARCH_UNAVAILABLE`. Não são resultados vazios nem provocam busca legada.
 
 ## Ativação e diagnóstico
 
-`SEARCH_RANKING_PERCENTAGE` e `SEARCH_SHADOW_PERCENTAGE` são configurações históricas e não selecionam mais outro motor. `SEARCH_WRITE_SYNC_ENABLED=true` continua necessário para sincronizar alterações. A versão efetiva tem prefixo obrigatório `v5-lexical:`, inclusive com um valor antigo no ambiente; chaves de cache e cursores anteriores ficam incompatíveis.
+`SEARCH_RANKING_PERCENTAGE` e `SEARCH_SHADOW_PERCENTAGE` são configurações históricas e não selecionam mais outro motor. `SEARCH_WRITE_SYNC_ENABLED=true` continua necessário para sincronizar alterações. A versão efetiva tem prefixo obrigatório `v6-complete:`, inclusive com um valor antigo no ambiente; chaves de cache e cursores anteriores ficam incompatíveis.
 
 Antes de publicar, executar `npm run search:preflight`. Ele verifica índices, cobertura por empresa, token mínimo, stopwords e capacidade. Não aplicar migração ou reconstruir índices apenas para esta alteração: os dois índices existentes são reutilizados. Reconstrução/configuração do servidor é uma operação separada quando necessária.
 
@@ -34,8 +35,8 @@ Rollback requer reverter o código publicado; zerar o percentual antigo não res
 
 MariaDB 10.3.39: os dois índices existem e a empresa 1 possui cobertura de 2.741/2.741 produtos públicos. A empresa 2 não tem documentos preparados e deve receber indisponibilidade, sem fallback. `innodb_ft_min_token_size=3`, stopwords habilitadas; `A5` retornou zero e `UV` encontrou `UV400`.
 
-Na verificação de leitura: `cafe`/`café` retornaram os mesmos 48 produtos; `caneca cafe`, 133 produtos, com 18 completos. `personalizado` recuperou e ranqueou 1.408 candidatos sem corte. Após reunir documentos e scores na mesma consulta, as amostras sequenciais de recuperação/ranking ficaram entre 148 e 850 ms; três consultas concorrentes ficaram entre 155 e 1.181 ms. Cache local: miss 168 ms, hit abaixo de 1 ms. São amostras a partir desta máquina, não percentis de produção nem benchmark HTTP completo.
+Na verificação de leitura após o corte: `cafe`/`café` retornaram os mesmos 48 produtos; `caneca cafe` caiu de 133 candidatos parciais para 18 resultados completos. `kit churrasco` retornou 68 produtos, todos com os dois termos comprovados, em 158 ms; os kits que continham apenas `kit` deixaram de entrar na API. `personalizado` recuperou e ranqueou 1.408 candidatos sem corte. Três consultas concorrentes ficaram entre 155 e 1.171 ms. São amostras a partir desta máquina, não percentis de produção nem benchmark HTTP completo.
 
-O golden v2 passou o gate configurado (recall@20 médio 0,65), mas o conjunto histórico teve recall zero em `bloco com pauta`: não interpretar o gate agregado como prova de relevância editorial de todo o catálogo. O comportamento atual segue evidência lexical, incluindo prefixos e parciais, sem interpretação semântica.
+O comportamento atual segue evidência lexical completa e prefixos, sem interpretação semântica. O golden deve ser reexecutado sempre que a versão do ranking mudar; não interpretar o gate agregado como prova de relevância editorial de todo o catálogo.
 
 Não houve deploy, migração ou alteração de dados nesta validação. A ordem renderizada no site após publicação e a carga HTTP completa permanecem validações separadas.

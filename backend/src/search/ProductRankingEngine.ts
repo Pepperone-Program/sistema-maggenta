@@ -80,6 +80,7 @@ export class ProductRankingEngine {
   ): RankedSearchCandidate[] {
     return candidates
       .map((candidate) => this.rankCandidate(candidate, intent))
+      .filter((candidate) => candidate.lexical.complete)
       .sort((left, right) => this.compare(left, right, sort));
   }
 }

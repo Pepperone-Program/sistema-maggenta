@@ -40,7 +40,6 @@ export type RankingPlanItem = {
 
 type RankingPlan = {
   items: RankingPlanItem[];
-  relatedTotal: number;
   candidateCount: number;
   databaseTimeMs: number;
   rankingTimeMs: number;
@@ -172,7 +171,6 @@ export class ProductSearchService {
       });
       return {
         items: ranked.map(compact),
-        relatedTotal: ranked.filter((item) => item.relevance !== 'HIGH').length,
         candidateCount: retrieval.candidates.length,
         databaseTimeMs: retrieval.databaseTimeMs,
         rankingTimeMs: Date.now() - rankingStartedAt,
@@ -208,19 +206,12 @@ export class ProductSearchService {
           last: nextItem.cursorTuple,
         })
       : null;
-    const groupProducts = (group: RankingPlanItem['group']): Produto[] =>
-      pageItems
-        .filter((item) => item.group === group)
-        .map((item) => productsById.get(item.idProduto))
-        .filter((item): item is Produto => Boolean(item));
-    const primary = groupProducts('PRIMARY');
-    const related = groupProducts('RELATED');
     const result: SearchResult<Produto> = {
       items,
-      relatedItems: related,
-      groups: { primary, related },
+      relatedItems: [],
+      groups: { primary: items, related: [] },
       total: pageResult.total,
-      relatedTotal: plan.relatedTotal,
+      relatedTotal: 0,
       page: input.page,
       limit: input.limit,
       totalPages: pageResult.totalPages,
@@ -252,10 +243,9 @@ export class ProductSearchService {
     if (result.items.length === 0)
       SearchMetrics.increment('product_search_zero_results_total', { mode: analyticsMode });
     SearchMetrics.gauge('product_search_candidates', plan.candidateCount);
-    SearchMetrics.gauge('product_search_relevance_results', plan.items.length - plan.relatedTotal, {
+    SearchMetrics.gauge('product_search_relevance_results', plan.items.length, {
       relevance: 'high',
     });
-    SearchMetrics.gauge('product_search_relevance_results', plan.relatedTotal, { relevance: 'partial' });
     SearchMetrics.observe('product_search_duration_seconds', result.timing.totalTimeMs, {
       mode: analyticsMode,
     });
@@ -266,7 +256,7 @@ export class ProductSearchService {
       normalized: comparable,
       intent,
       results: result.items.length,
-      related: result.groups.related.length,
+      related: 0,
       candidates: plan.candidateCount,
       timing: result.timing,
       rankingVersion: SEARCH_RANKING_VERSION,

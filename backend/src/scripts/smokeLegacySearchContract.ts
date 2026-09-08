@@ -1,19 +1,33 @@
 import '../module-alias';
 import assert from 'node:assert/strict';
 import { closeDatabasePool } from '@database/connection';
+import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
 import { ProductSearchService } from '@search/ProductSearchService';
 
 const run = async (): Promise<void> => {
-  const empresaId = Number(process.argv[2] || process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID || 1);
+  process.env.UPSTASH_REDIS_REST_URL = '';
+  process.env.UPSTASH_REDIS_REST_TOKEN = '';
+  SearchAnalyticsService.enqueue = () => {};
+  const empresaId = Number(
+    process.argv[2] || process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID || 1,
+  );
   for (const limit of [10, 24, 40]) {
-    const result = await ProductSearchService.search({ empresaId, term: 'garrafa', page: 1, limit, sort: 'relevance', filters: {}, locale: 'pt-BR' });
+    const result = await ProductSearchService.search({
+      empresaId,
+      term: 'garrafa',
+      page: 1,
+      limit,
+      sort: 'relevance',
+      filters: {},
+      locale: 'pt-BR',
+    });
     assert.equal(result.match_exato_codigo, false);
     if (!result.match_exato_codigo) {
       assert.equal(result.limit, limit);
       assert.equal(result.items.length <= limit, true);
       assert.equal(result.page, 1);
       assert.equal(typeof result.total, 'number');
-      assert.equal(result.mode, 'legacy');
+      assert.equal(result.mode, 'advanced');
       assert.equal(result.groups.primary.length, result.items.length);
       assert.equal(result.groups.related.length, 0);
       assert.equal(result.totalPages, Math.ceil(result.total / limit));
@@ -30,17 +44,30 @@ const run = async (): Promise<void> => {
   });
   assert.equal(reorderedPhrase.match_exato_codigo, false);
   if (!reorderedPhrase.match_exato_codigo) {
-    assert.equal(reorderedPhrase.mode, 'legacy');
+    assert.equal(reorderedPhrase.mode, 'advanced');
     assert.equal(reorderedPhrase.items.length > 0, true);
     assert.equal(
       reorderedPhrase.items.some((item) => ['GT03', 'GT401', 'GT428'].includes(item.codigo)),
-      true
+      true,
     );
   }
-  const suffix = await ProductSearchService.search({ empresaId, term: 'GF042', page: 1, limit: 20, sort: 'relevance', filters: {}, locale: 'pt-BR' });
+  const suffix = await ProductSearchService.search({
+    empresaId,
+    term: 'GF042',
+    page: 1,
+    limit: 20,
+    sort: 'relevance',
+    filters: {},
+    locale: 'pt-BR',
+  });
   assert.equal(suffix.match_exato_codigo, true);
   if (suffix.match_exato_codigo) assert.equal(suffix.codigo.toLocaleUpperCase('pt-BR'), 'GF042C');
-  console.log('smokeLegacySearchContract: limits, tokenized phrase fallback and C suffix priority ok');
+  console.log('smokeLegacySearchContract: limits, lexical fulltext phrase and C suffix priority ok');
 };
 
-run().catch((error) => { console.error('[search:smoke-legacy]', error); process.exitCode = 1; }).finally(() => closeDatabasePool());
+run()
+  .catch((error) => {
+    console.error('[search:smoke-legacy]', error);
+    process.exitCode = 1;
+  })
+  .finally(() => closeDatabasePool());

@@ -1,0 +1,56 @@
+[
+  {
+    "query": "bloco com pauta",
+    "expectedCodes": [
+      "BL42",
+      "BL74",
+      "BL02",
+      "BL123",
+      "BL229",
+      "BL154",
+      "BL83",
+      "BL178",
+      "BL210",
+      "BL152",
+      "BL331",
+      "BL332",
+      "BL330",
+      "BL333",
+      "BL337",
+      "BL220",
+      "BL233",
+      "BL335"
+    ],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "garrafa parede dupla",
+    "expectedCodes": ["SQ115", "SQ120", "GT03", "GT428"],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "garrafa térmica inox 500ml",
+    "expectedCodes": ["GT428"],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "mochila notebook 15.6\"",
+    "expectedCodes": ["MC201", "MC221", "MC222", "MC488"],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "guarda chuva",
+    "expectedCodes": ["GCH18", "GCH05", "GCH11", "GCH25", "GCH16"],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "cafe",
+    "expectedCodes": ["KC21", "KC32", "KP03", "XIC001", "KC10"],
+    "forbiddenCodes": []
+  },
+  {
+    "query": "caneca cafe",
+    "expectedCodes": ["KC19", "KC10", "XIC001", "KC13", "XIC002"],
+    "forbiddenCodes": []
+  }
+]

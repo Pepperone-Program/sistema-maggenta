@@ -22,18 +22,31 @@ const requiredMigrations = ['001-search-core', '002-search-analytics'];
 type TenantCount = { id_empresa: number; total: number | string; public_enabled?: number | string };
 
 const run = async (): Promise<void> => {
-  const [version] = await query(`SELECT VERSION() AS version, DATABASE() AS database_name, @@max_connections AS max_connections,
-    @@innodb_ft_min_token_size AS ft_min_token_size, @@character_set_database AS charset_name, @@collation_database AS collation_name`);
-  const rows = await query(
+  const [version] =
+    await query(`SELECT VERSION() AS version, DATABASE() AS database_name, @@max_connections AS max_connections,
+    @@innodb_ft_min_token_size AS ft_min_token_size, @@innodb_ft_enable_stopword AS ft_stopwords_enabled, @@character_set_database AS charset_name, @@collation_database AS collation_name`);
+  const fulltextIndexes = (await query(
+    "SELECT index_name, column_name FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'product_search_documents' AND index_type = 'FULLTEXT'",
+  )) as Array<{ index_name: string; column_name: string }>;
+  const fulltextReady = ['normalized_name', 'search_text'].every((column) =>
+    fulltextIndexes.some((index) => index.column_name === column),
+  );
+  const rows = (await query(
     `SELECT table_name FROM information_schema.tables
      WHERE table_schema = DATABASE() AND table_name IN (${requiredTables.map(() => '?').join(',')})`,
-    requiredTables
-  ) as Array<{ table_name: string }>;
+    requiredTables,
+  )) as Array<{ table_name: string }>;
   const existing = new Set(rows.map((row) => row.table_name));
   const missing = requiredTables.filter((table) => !existing.has(table));
-  const publicTenantId = Number(process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID || 1);
+  const publicTenantId = Number(
+    process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID || 1,
+  );
   const migrationRows = existing.has('schema_migrations')
-    ? await query('SELECT id, description, applied_at FROM schema_migrations ORDER BY id') as Array<{ id: string; description: string; applied_at: Date | string }>
+    ? ((await query('SELECT id, description, applied_at FROM schema_migrations ORDER BY id')) as Array<{
+        id: string;
+        description: string;
+        applied_at: Date | string;
+      }>)
     : [];
   const appliedMigrationIds = new Set(migrationRows.map((row) => row.id));
   const missingMigrations = requiredMigrations.filter((id) => !appliedMigrationIds.has(id));
@@ -65,10 +78,15 @@ const run = async (): Promise<void> => {
              WHERE active = 1 GROUP BY id_empresa`) as Promise<TenantCount[]>,
       query(`SELECT id_empresa, COUNT(*) AS total FROM search_attribute_definitions
              WHERE active = 1 GROUP BY id_empresa`) as Promise<TenantCount[]>,
-      query(`SELECT id_empresa, COUNT(*) AS total FROM search_catalog_versions GROUP BY id_empresa`) as Promise<TenantCount[]>,
+      query(
+        `SELECT id_empresa, COUNT(*) AS total FROM search_catalog_versions GROUP BY id_empresa`,
+      ) as Promise<TenantCount[]>,
     ]);
-    const countByTenant = (values: TenantCount[], empresaId: number, key: 'total' | 'public_enabled' = 'total'): number =>
-      Number(values.find((row) => Number(row.id_empresa) === empresaId)?.[key] || 0);
+    const countByTenant = (
+      values: TenantCount[],
+      empresaId: number,
+      key: 'total' | 'public_enabled' = 'total',
+    ): number => Number(values.find((row) => Number(row.id_empresa) === empresaId)?.[key] || 0);
     catalogs = products.map((product) => {
       const empresaId = Number(product.id_empresa);
       const publicEnabledProducts = Number(product.public_enabled || 0);
@@ -76,9 +94,8 @@ const run = async (): Promise<void> => {
       const dictionaryEntries = countByTenant(dictionary, empresaId);
       const attributeDefinitions = countByTenant(attributes, empresaId);
       const catalogVersionCount = countByTenant(catalogVersions, empresaId);
-      const publicDocumentCoverage = publicEnabledProducts > 0
-        ? publicEnabledDocuments / publicEnabledProducts
-        : 1;
+      const publicDocumentCoverage =
+        publicEnabledProducts > 0 ? publicEnabledDocuments / publicEnabledProducts : 1;
       return {
         empresaId,
         products: Number(product.total),
@@ -89,10 +106,7 @@ const run = async (): Promise<void> => {
         attributeDefinitions,
         catalogVersions: catalogVersionCount,
         publicDocumentCoverage,
-        ready: dictionaryEntries > 0
-          && attributeDefinitions > 0
-          && catalogVersionCount > 0
-          && publicDocumentCoverage >= 1,
+        ready: catalogVersionCount > 0 && publicDocumentCoverage >= 1,
       };
     });
   }
@@ -111,6 +125,11 @@ const run = async (): Promise<void> => {
   const poolShare = replicas > 0 ? (replicas * poolSize) / maximumConnections : null;
   const checks = {
     database: version,
+    fulltext: {
+      indexes: fulltextIndexes,
+      ready: fulltextReady,
+      shortTerms: 'Prefixos curtos dependem de palavras presentes no indice; nao ha fallback LIKE',
+    },
     schemaPrepared: missing.length === 0,
     missingTables: missing,
     migrations: {
@@ -124,8 +143,7 @@ const run = async (): Promise<void> => {
       ready: catalogs.find((catalog) => catalog.empresaId === publicTenantId)?.ready || false,
     },
     rollout: {
-      rankingPercentage: Number(process.env.SEARCH_RANKING_PERCENTAGE || 0),
-      shadowPercentage: Number(process.env.SEARCH_SHADOW_PERCENTAGE || 0),
+      mode: 'lexical-fulltext',
       writeSyncEnabled: process.env.SEARCH_WRITE_SYNC_ENABLED === 'true',
     },
     capacity: {
@@ -137,7 +155,9 @@ const run = async (): Promise<void> => {
     },
     secrets: {
       cursorSecretConfigured: Boolean(process.env.SEARCH_CURSOR_SECRET || process.env.JWT_SECRET),
-      publicTenantConfigured: Boolean(process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID),
+      publicTenantConfigured: Boolean(
+        process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID,
+      ),
     },
     popularity: {
       statisticsHasTenant,
@@ -146,21 +166,24 @@ const run = async (): Promise<void> => {
     },
   };
   console.log(JSON.stringify(checks, null, 2));
-  const rankingAuthorized = checks.rollout.rankingPercentage === 0 || process.env.SEARCH_PREFLIGHT_ALLOW_RANKING === 'true';
-  const schemaRequired = checks.rollout.rankingPercentage > 0 || checks.rollout.shadowPercentage > 0 || checks.rollout.writeSyncEnabled;
-  const writeSyncReady = checks.rollout.rankingPercentage === 0 || checks.rollout.writeSyncEnabled;
-  if (!rankingAuthorized
-    || (schemaRequired && (!checks.schemaPrepared || !checks.migrations.prepared || !checks.catalog.ready))
-    || !writeSyncReady
-    || !checks.capacity.underSeventyPercent
-    || !checks.secrets.cursorSecretConfigured
-    || !checks.secrets.publicTenantConfigured
-    || !checks.popularity.tenantSafe) {
+  if (
+    !checks.schemaPrepared ||
+    !checks.migrations.prepared ||
+    !checks.catalog.ready ||
+    !fulltextReady ||
+    !checks.rollout.writeSyncEnabled ||
+    !checks.capacity.underSeventyPercent ||
+    !checks.secrets.cursorSecretConfigured ||
+    !checks.secrets.publicTenantConfigured ||
+    !checks.popularity.tenantSafe
+  ) {
     process.exitCode = 2;
   }
 };
 
-run().catch((error) => {
-  console.error('[search:preflight]', error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-}).finally(() => closeDatabasePool());
+run()
+  .catch((error) => {
+    console.error('[search:preflight]', error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  })
+  .finally(() => closeDatabasePool());

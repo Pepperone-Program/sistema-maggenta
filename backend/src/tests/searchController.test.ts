@@ -63,14 +63,18 @@ const response = {
   },
 } as unknown as Response;
 
-const request = (query: Record<string, string>): AuthenticatedRequest => ({
-  query,
-  originalUrl: `/api/v1/produtos/site?${new URLSearchParams(query).toString()}`,
-} as unknown as AuthenticatedRequest);
+const request = (query: Record<string, string>): AuthenticatedRequest =>
+  ({
+    query,
+    originalUrl: `/api/v1/produtos/site?${new URLSearchParams(query).toString()}`,
+  }) as unknown as AuthenticatedRequest;
 
 const run = async (): Promise<void> => {
   try {
-    await ProdutoController.listSite(request({ busca: 'garrafa parede dupla', empresaId: '1', page: '2', limit: '24' }), response);
+    await ProdutoController.listSite(
+      request({ busca: 'garrafa parede dupla', empresaId: '1', page: '2', limit: '24' }),
+      response,
+    );
     assert.equal(calls[0]?.term, 'garrafa parede dupla');
     assert.equal(calls[0]?.page, 2);
     assert.equal(calls[0]?.limit, 24);
@@ -80,7 +84,23 @@ const run = async (): Promise<void> => {
     await ProdutoController.listSite(request({ search: 'bloco com pauta', empresaId: '1' }), response);
     assert.equal(calls[1]?.term, 'bloco com pauta');
     assert.equal(calls[1]?.limit, 20);
-    console.log('searchController.test: aliases busca/search delegate to intelligent search');
+    await ProdutoController.listSite(
+      request({ q: 'cafe', empresaId: '1', color: 'Azul', categoryId: '7', sort: 'newest' }),
+      response,
+    );
+    assert.equal(calls[2]?.term, 'cafe');
+    assert.equal(calls[2]?.filters.color, 'Azul');
+    assert.equal(calls[2]?.filters.categoryId, 7);
+    assert.equal(calls[2]?.sort, 'newest');
+    ProductSearchService.search = async () => {
+      throw Object.assign(new Error('Busca temporariamente indisponivel'), {
+        code: 'SEARCH_UNAVAILABLE',
+        statusCode: 503,
+      });
+    };
+    await ProdutoController.searchSite(request({ q: 'cafe', empresaId: '1' }), response);
+    assert.equal(responseStatus, 503);
+    console.log('searchController.test: q/busca/search, filters and 503 contract ok');
   } finally {
     ProductSearchService.search = originalSearch;
   }

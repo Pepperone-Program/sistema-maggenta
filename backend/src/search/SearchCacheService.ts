@@ -5,15 +5,21 @@ import { SEARCH_CACHE } from './config';
 const stable = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(stable);
   if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => [key, stable(item)]));
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, stable(item)]),
+    );
   }
   return value;
 };
 
 const digest = (value: unknown): string =>
-  crypto.createHash('sha256').update(JSON.stringify(stable(value))).digest('hex').slice(0, 32);
+  crypto
+    .createHash('sha256')
+    .update(JSON.stringify(stable(value)))
+    .digest('hex')
+    .slice(0, 32);
 
 type LocalEntry = { expiresAt: number; value: unknown };
 const localRankingPlans = new Map<string, LocalEntry>();
@@ -30,11 +36,11 @@ const rememberRankingPlan = <T>(key: string, value: T): void => {
 
 export class SearchCacheService {
   static resultKey(input: unknown): string {
-    return CacheService.buildKey('search-v3', digest(input));
+    return CacheService.buildKey('search-v5-lexical', digest(input));
   }
 
   static rankingPlanKey(input: unknown): string {
-    return CacheService.buildKey('search-v3-plan-high-only', digest(input));
+    return CacheService.buildKey('search-v5-lexical-plan', digest(input));
   }
 
   static autocompleteKey(input: unknown): string {
@@ -60,6 +66,10 @@ export class SearchCacheService {
   }
 
   static getOrSetAutocomplete<T>(keyInput: unknown, loader: () => Promise<T>) {
-    return CacheService.getOrSetCoalesced(this.autocompleteKey(keyInput), loader, SEARCH_CACHE.autocompleteTtlSeconds);
+    return CacheService.getOrSetCoalesced(
+      this.autocompleteKey(keyInput),
+      loader,
+      SEARCH_CACHE.autocompleteTtlSeconds,
+    );
   }
 }

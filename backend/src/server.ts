@@ -12,7 +12,6 @@ import { OrcamentoEmailScheduler } from '@services/OrcamentoEmailScheduler';
 import { OrcamentoModel } from '@models/Orcamento';
 import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
 import { SearchDictionaryService } from '@search/SearchDictionaryService';
-import { SEARCH_FLAGS } from '@search/config';
 
 dotenv.config();
 
@@ -20,16 +19,18 @@ const app: Express = express();
 
 // Middleware de segurança
 app.use(helmet());
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedCorsOrigins().includes(origin)) {
-      callback(null, true);
-      return;
-    }
-    callback(new Error('Origem nao permitida pelo CORS'));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedCorsOrigins().includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error('Origem nao permitida pelo CORS'));
+    },
+    credentials: true,
+  }),
+);
 
 // Middleware de headers customizados
 app.use(corsMiddleware);
@@ -57,14 +58,14 @@ const bootstrap = async (): Promise<void> => {
   try {
     await testDatabaseConnection();
     await OrcamentoModel.ensureIdempotencyInfrastructure();
-    if (SEARCH_FLAGS.rankingPercentage > 0 || SEARCH_FLAGS.shadowPercentage > 0) {
-      const publicSearchTenant = Number(process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || 1);
-      await SearchDictionaryService.prepareCatalog(publicSearchTenant);
-    }
+    const publicSearchTenant = Number(
+      process.env.SEARCH_PUBLIC_DEFAULT_EMPRESA_ID || process.env.SITE_API_EMPRESA_ID || 1,
+    );
+    await SearchDictionaryService.assertCatalogReady(publicSearchTenant);
   } catch (error) {
     console.warn(
       'Database startup check failed; server will keep running and retry on requests:',
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 

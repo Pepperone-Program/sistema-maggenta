@@ -1,291 +1,313 @@
 import '../module-alias';
 import assert from 'node:assert/strict';
 import { ProductRankingEngine } from '@search/ProductRankingEngine';
-import { legacySearchTerms, QueryNormalizer } from '@search/QueryNormalizer';
+import { QueryNormalizer } from '@search/QueryNormalizer';
 import { QueryParser } from '@search/QueryParser';
 import { QueryTokenizer } from '@search/QueryTokenizer';
 import { SearchCursorCodec } from '@search/SearchCursorCodec';
 import { SearchCacheService } from '@search/SearchCacheService';
 import { SearchDictionaryService } from '@search/SearchDictionaryService';
+import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
+import { SearchCircuitBreaker } from '@search/SearchCircuitBreaker';
+import { CandidateRetriever } from '@search/CandidateRetriever';
 import {
   paginateRankingItems,
   ProductSearchService,
-  shouldFallbackToLegacySearch,
   type RankingPlanItem,
 } from '@search/ProductSearchService';
 import { ProdutoModel } from '@models/Produto';
-import { TipoProdutoModel } from '@models/TipoProduto';
-import type { SearchCandidate, SearchDictionaryEntry } from '@/types/search';
-
-const entry = (partial: Partial<SearchDictionaryEntry> & Pick<SearchDictionaryEntry, 'normalizedTerm' | 'termType' | 'canonicalValue'>): SearchDictionaryEntry => ({
-  id: partial.id || 1,
-  idEmpresa: 1,
-  term: partial.normalizedTerm,
-  relationType: partial.relationType || 'EXACT_SYNONYM',
-  productTypeId: partial.productTypeId || null,
-  attributeId: partial.attributeId || null,
-  optionId: partial.optionId || null,
-  priority: partial.priority || 100,
-  confidence: partial.confidence || 1,
-  tokenCount: partial.normalizedTerm.split(' ').length,
-  ...partial,
-});
-
-const dictionary: SearchDictionaryEntry[] = [
-  entry({ id: 1, normalizedTerm: 'garrafa', termType: 'PRODUCT_TYPE', canonicalValue: 'garrafa', productTypeId: 10 }),
-  entry({ id: 2, normalizedTerm: 'parede dupla', termType: 'ATTRIBUTE', canonicalValue: 'double_wall', attributeId: 20, optionId: 21 }),
-  entry({ id: 3, normalizedTerm: 'sem pauta', termType: 'NEGATION', canonicalValue: 'lined', attributeId: 30, optionId: 32 }),
-  entry({ id: 4, normalizedTerm: 'pauta', termType: 'ATTRIBUTE', canonicalValue: 'lined', attributeId: 30, optionId: 31 }),
-  entry({ id: 5, normalizedTerm: 'inox', termType: 'MATERIAL', canonicalValue: 'material', attributeId: 40, optionId: 41 }),
-  entry({ id: 6, normalizedTerm: 'termica', termType: 'SYNONYM', canonicalValue: 'parede dupla' }),
-  entry({ id: 7, normalizedTerm: 'capacidade', termType: 'ATTRIBUTE', canonicalValue: 'capacity_ml', attributeId: 50, priority: 1 }),
-];
-
-const penDictionary: SearchDictionaryEntry[] = [
-  entry({ id: 101, normalizedTerm: 'caneta plastica', termType: 'PRODUCT_TYPE', canonicalValue: 'caneta plastica', productTypeId: 11 }),
-  entry({ id: 102, normalizedTerm: 'caneta metal', termType: 'PRODUCT_TYPE', canonicalValue: 'caneta metal', productTypeId: 12 }),
-  entry({ id: 103, normalizedTerm: 'manta', termType: 'PRODUCT_TYPE', canonicalValue: 'manta', productTypeId: 337 }),
-];
+import type { SearchCandidate, SearchDictionaryEntry, SearchSort } from '@/types/search';
 
 const candidate = (overrides: Partial<SearchCandidate> = {}): SearchCandidate => ({
-  rawProduct: {} as SearchCandidate['rawProduct'], idEmpresa: 1, idProduto: 100, idTipoProduto: 10,
-  produto: 'Garrafa termica inox 500ml', normalizedName: 'garrafa termica inox 500ml', descricao: null,
-  codigo: 'GAR500', imagem: null, altura: null, largura: null, profundidade: null, peso: null, ncm: null,
-  quantidadeMinima: 10, dataInclusao: '2026-01-01', obs: null, lancamento: 'N', promocao: 'N', premium: 'N',
-  popularidade: 10, fulltextNameScore: 2, fulltextTextScore: 1, containsTypeIds: [], colors: [],
+  rawProduct: {} as SearchCandidate['rawProduct'],
+  idEmpresa: 1,
+  idProduto: 100,
+  idTipoProduto: 10,
+  produto: 'Garrafa termica inox 500ml',
+  normalizedName: 'garrafa termica inox 500ml',
+  descricao: null,
+  searchText: 'garrafa termica inox 500ml',
+  codigo: 'GAR500',
+  imagem: null,
+  altura: null,
+  largura: null,
+  profundidade: null,
+  peso: null,
+  ncm: null,
+  quantidadeMinima: 10,
+  dataInclusao: '2026-01-01',
+  obs: null,
+  lancamento: 'N',
+  promocao: 'N',
+  premium: 'N',
+  popularidade: 10,
+  fulltextNameScore: 2,
+  fulltextTextScore: 1,
+  containsTypeIds: [],
+  colors: [],
   attributes: [
-    { attributeId: 20, attributeKey: 'double_wall', semanticType: 'ATTRIBUTE', optionId: 21, optionKey: 'yes', canonicalValue: 'parede dupla', booleanValue: true, numberValue: null, textValue: null, unit: null, conflictingOptionIds: [] },
-    { attributeId: 40, attributeKey: 'material', semanticType: 'MATERIAL', optionId: 41, optionKey: 'inox', canonicalValue: 'material', booleanValue: null, numberValue: null, textValue: null, unit: null, conflictingOptionIds: [] },
-    { attributeId: 50, attributeKey: 'capacity_ml', semanticType: 'MEASUREMENT', optionId: null, optionKey: null, canonicalValue: null, booleanValue: null, numberValue: 500, textValue: null, unit: 'ml', conflictingOptionIds: [] },
+    {
+      attributeId: 20,
+      attributeKey: 'double_wall',
+      semanticType: 'ATTRIBUTE',
+      optionId: 21,
+      optionKey: 'yes',
+      canonicalValue: 'parede dupla',
+      booleanValue: true,
+      numberValue: null,
+      textValue: null,
+      unit: null,
+      conflictingOptionIds: [],
+    },
+    {
+      attributeId: 40,
+      attributeKey: 'material',
+      semanticType: 'MATERIAL',
+      optionId: 41,
+      optionKey: 'inox',
+      canonicalValue: 'material',
+      booleanValue: null,
+      numberValue: null,
+      textValue: null,
+      unit: null,
+      conflictingOptionIds: [],
+    },
+    {
+      attributeId: 50,
+      attributeKey: 'capacity_ml',
+      semanticType: 'MEASUREMENT',
+      optionId: null,
+      optionKey: null,
+      canonicalValue: null,
+      booleanValue: null,
+      numberValue: 500,
+      textValue: null,
+      unit: 'ml',
+      conflictingOptionIds: [],
+    },
   ],
   ...overrides,
 });
-
-const unicode = QueryNormalizer.normalize('  AÇO\u0000 INOX  ');
-assert.equal(unicode.normalized, 'aço inox');
-assert.equal(unicode.comparable, 'aco inox');
-assert.equal(QueryNormalizer.normalize('Guarda-Chuva').comparable, 'guarda chuva');
-
-const penIntent = QueryParser.parse(QueryNormalizer.normalize('caneta'), penDictionary);
-assert.deepEqual(penIntent.positiveTerms, ['caneta'], 'token de tipo composto deve permanecer pesquisavel');
-assert.deepEqual(penIntent.unknownTerms, ['caneta']);
-assert.equal(penIntent.safeBooleanQuery, '+caneta*');
-
-const correctedPenIntent = QueryParser.parse(QueryNormalizer.normalize('canetta'), penDictionary);
-assert.deepEqual(correctedPenIntent.positiveTerms, ['caneta'], 'erro unico de uma edicao deve ser corrigido');
-assert.equal(correctedPenIntent.safeBooleanQuery, '+caneta*');
-
-const ambiguousTypoDictionary = [
-  ...penDictionary,
-  entry({ id: 104, normalizedTerm: 'canetra', termType: 'RELATED_TERM', canonicalValue: 'canetra' }),
-];
-const ambiguousPenIntent = QueryParser.parse(QueryNormalizer.normalize('canetaa'), ambiguousTypoDictionary);
-assert.deepEqual(ambiguousPenIntent.positiveTerms, ['canetaa'], 'correcao ambigua deve preservar o termo original');
-
-const unrelatedBlanket = ProductRankingEngine.rankCandidate(candidate({
-  idTipoProduto: 337,
-  produto: 'Manta Cobertor Personalizada',
-  normalizedName: 'manta cobertor personalizada',
-  descricao: 'manta em tecido polar',
-  fulltextNameScore: 0,
-  fulltextTextScore: 0,
-}), penIntent);
-assert.notEqual(unrelatedBlanket.relevance, 'HIGH', 'manta nao pode ter alta relevancia para caneta');
-
-const phraseIntent = QueryParser.parse(QueryNormalizer.normalize('bloco sem pauta'), dictionary);
-assert.equal(phraseIntent.constraints.length, 1, 'a frase longa deve impedir o rematch isolado de pauta');
-assert.equal(phraseIntent.constraints[0].explicitNegation, true);
-assert.equal(phraseIntent.constraints[0].strength, 'HARD');
-assert.equal(phraseIntent.positiveTerms.includes('sem'), true);
-assert.equal(phraseIntent.positiveTerms.includes('pauta'), true);
-
-const doubleWallIntent = QueryParser.parse(QueryNormalizer.normalize('garrafa parede dupla'), dictionary);
-assert.deepEqual(legacySearchTerms(QueryNormalizer.normalize('garrafa com parede dupla').tokens), ['garrafa', 'parede', 'dupla']);
-assert.deepEqual(new Set(doubleWallIntent.positiveTerms), new Set(['garrafa', 'parede', 'dupla']));
-assert.equal(doubleWallIntent.safeBooleanQuery.split(' ').every((token) => token.startsWith('+')), true);
-assert.equal(doubleWallIntent.safeBooleanQuery.includes('+garrafa*'), true);
-assert.equal(doubleWallIntent.safeBooleanQuery.includes('+parede*'), true);
-assert.equal(doubleWallIntent.safeBooleanQuery.includes('+dupla*'), true);
-
-const intent = QueryParser.parse(QueryNormalizer.normalize('garrafa térmica inox 500ml'), dictionary);
-assert.equal(intent.productType?.id, 10);
-assert.equal(intent.measurements.capacityMl, 500);
-assert.equal(intent.constraints.find((item) => item.key === 'capacity_ml')?.attributeId, 50);
-assert.equal(intent.positiveTerms.includes('parede'), true, 'sinonimo composto deve ser separado em tokens');
-assert.equal(intent.positiveTerms.includes('dupla'), true, 'sinonimo composto deve ser separado em tokens');
-assert.equal(intent.positiveTerms.includes('parededupla'), false);
-assert.equal(intent.positiveTerms.includes('inox'), true, 'material reconhecido tambem deve participar da recuperacao lexical');
-assert.equal(intent.positiveTerms.includes('500ml'), true, 'medida deve participar da recuperacao lexical quando indexavel');
-const ranked = ProductRankingEngine.rankCandidate(candidate(), intent);
-assert.equal(ranked.primaryTypeMatch, true);
-assert.equal(ranked.excluded, false);
-assert.equal(ranked.matchedConstraints >= 2, true);
-
-const absentMetadata = ProductRankingEngine.rankCandidate(candidate({ attributes: [] }), intent);
-assert.equal(absentMetadata.contradictions, 0, 'metadata ausente nao e contradicao');
-
-const hard = ProductRankingEngine.rankCandidate(candidate({
-  attributes: [{ attributeId: 30, attributeKey: 'lined', semanticType: 'ATTRIBUTE', optionId: 31, optionKey: 'yes', canonicalValue: 'com pauta', booleanValue: true, numberValue: null, textValue: null, unit: null, conflictingOptionIds: [32] }],
-}), phraseIntent);
-assert.equal(hard.excluded, true);
-assert.equal(hard.relevance, 'LOW');
-
-const unknownIntent = QueryParser.parse(QueryNormalizer.normalize('guarda chuva'), []);
-const completeUnknown = ProductRankingEngine.rankCandidate(candidate({
-  idTipoProduto: 58,
-  normalizedName: 'guarda chuva personalizado',
-  descricao: null,
-  fulltextNameScore: 0,
-  fulltextTextScore: 0,
-}), unknownIntent);
-const partialUnknown = ProductRankingEngine.rankCandidate(candidate({
-  idTipoProduto: 58,
-  normalizedName: 'capa de chuva personalizada',
-  descricao: null,
-  fulltextNameScore: 0,
-  fulltextTextScore: 0,
-}), unknownIntent);
-assert.equal(completeUnknown.relevance, 'HIGH');
-assert.equal(partialUnknown.relevance, 'MEDIUM');
-
-const semanticWithMissingUnknown = QueryParser.parse(
-  QueryNormalizer.normalize('garrafa parede dupla exclusiva'),
-  dictionary
+const parse = (text: string) => QueryParser.parse(QueryNormalizer.normalize(text));
+const product = (id: number, title: string, text = title, overrides: Partial<SearchCandidate> = {}) =>
+  candidate({ idProduto: id, normalizedName: title, produto: title, searchText: text, ...overrides });
+const dict = [
+  { normalizedTerm: 'case', termType: 'PRODUCT_TYPE', canonicalValue: 'case', productTypeId: 10 },
+  { normalizedTerm: 'termica', termType: 'SYNONYM', canonicalValue: 'parede dupla' },
+] as SearchDictionaryEntry[];
+assert.deepEqual(QueryParser.parse(QueryNormalizer.normalize('cafe'), dict).positiveTerms, ['cafe']);
+assert.deepEqual(QueryParser.parse(QueryNormalizer.normalize('termica'), dict).positiveTerms, ['termica']);
+assert.equal(parse('caneca cafe').safeBooleanQuery, 'caneca* cafe*');
+assert.equal(parse('CAF\u00c9').safeBooleanQuery, parse('cafe').safeBooleanQuery);
+assert.equal(parse('A5 UV').safeBooleanQuery, 'a5* uv*');
+assert.equal(parse('cafffe').safeBooleanQuery, 'cafffe*');
+assert.throws(() => parse('com para'), { code: 'NO_SEARCHABLE_TERMS' });
+assert.throws(() => parse('***'), { code: 'NO_SEARCHABLE_TERMS' });
+assert.equal(QueryTokenizer.buildSafeBooleanQuery(['garrafa', "+'--", 'inox']), 'garrafa* inox*');
+assert.throws(() => parse(Array.from({ length: 21 }, (_, index) => 'termo' + index).join(' ')), /20 termos/);
+const cafe = parse('cafe');
+assert.equal(ProductRankingEngine.rankCandidate(product(1, 'case'), cafe).lexical.matchedTerms.length, 0);
+assert.equal(
+  ProductRankingEngine.rankCandidate(product(1, 'descafeinado'), cafe).lexical.matchedTerms.length,
+  0,
 );
-assert.deepEqual(semanticWithMissingUnknown.unknownTerms, ['exclusiva']);
-const missingExplicitTerm = ProductRankingEngine.rankCandidate(candidate({
-  normalizedName: 'garrafa parede dupla',
-  descricao: null,
-  fulltextNameScore: 0,
-  fulltextTextScore: 0,
-}), semanticWithMissingUnknown);
-assert.equal(missingExplicitTerm.relevance, 'MEDIUM',
-  'metadata estruturada nao pode ocultar a ausencia de um termo explicito');
-
-const umbrellaDictionary = [entry({ normalizedTerm: 'guarda chuva', termType: 'PRODUCT_TYPE', canonicalValue: 'guarda chuva', productTypeId: 336 })];
-const umbrellaIntent = QueryParser.parse(QueryNormalizer.normalize('guarda chuva'), umbrellaDictionary);
-const umbrella = ProductRankingEngine.rankCandidate(candidate({ idTipoProduto: 336, normalizedName: 'guarda chuva automatico' }), umbrellaIntent);
-const backpackMentioningUmbrella = ProductRankingEngine.rankCandidate(candidate({
-  idTipoProduto: 58,
-  normalizedName: 'mochila para notebook',
-  descricao: 'possui bolso para guarda chuva',
-}), umbrellaIntent);
-const wronglyTypedParasol = ProductRankingEngine.rankCandidate(candidate({
-  idTipoProduto: 336,
-  normalizedName: 'guarda sol personalizado',
-  descricao: 'protege do sol e da chuva',
-}), umbrellaIntent);
-assert.equal(umbrella.relevance, 'HIGH');
-assert.equal(backpackMentioningUmbrella.relevance, 'MEDIUM');
-assert.equal(wronglyTypedParasol.relevance, 'MEDIUM');
-
-const injection = QueryTokenizer.buildSafeBooleanQuery(['garrafa', "+'--", 'inox'], true);
-assert.equal(injection, '+garrafa* +inox*');
-const metallic = QueryParser.parse(QueryNormalizer.normalize('garrafa metalizada'), dictionary);
-assert.equal(metallic.materials.length, 0, 'metalizada nao pode inferir material metalico');
-
-const notebookIntent = QueryParser.parse(QueryNormalizer.normalize('mochila notebook 15.6"'), dictionary);
-const exactNotebook = ProductRankingEngine.rankCandidate(candidate({
-  normalizedName: 'mochila para notebook 15.6"',
-  descricao: 'compartimento para notebook de 15,6 polegadas',
-  attributes: [],
-  fulltextNameScore: 0,
-  fulltextTextScore: 0,
-}), notebookIntent);
-const wrongSizeNotebook = ProductRankingEngine.rankCandidate(candidate({
-  normalizedName: 'mochila para notebook',
-  descricao: 'compartimento para notebook de 17 polegadas',
-  attributes: [],
-  fulltextNameScore: 0,
-  fulltextTextScore: 0,
-}), notebookIntent);
-assert.equal(exactNotebook.score.lexicalCoverage > wrongSizeNotebook.score.lexicalCoverage, true,
-  'medida textual exata deve melhorar o ranking sem virar metadata manual');
-
-const cursor = SearchCursorCodec.encode({ tenantId: 1, rankingVersion: 'v1', catalogVersion: 2,
-  queryHash: SearchCursorCodec.queryHash('garrafa'), sort: 'relevance', last: SearchCursorCodec.tuple(ranked) }, 60_000);
-assert.equal(SearchCursorCodec.decode(cursor).tenantId, 1);
-assert.throws(() => SearchCursorCodec.decode(`${cursor}x`), /Cursor/);
-
-assert.throws(() => QueryNormalizer.normalize(Array.from({ length: 21 }, (_value, index) => `termo${index}`).join(' ')), /20 termos/);
-assert.equal(SearchCacheService.resultKey({ tenant: 1, filters: { color: 'azul', material: 'inox' } }), SearchCacheService.resultKey({ filters: { material: 'inox', color: 'azul' }, tenant: 1 }));
-assert.notEqual(SearchCacheService.resultKey({ tenant: 1, catalogVersion: 1 }), SearchCacheService.resultKey({ tenant: 1, catalogVersion: 2 }));
-
-assert.equal(shouldFallbackToLegacySearch({ code: 'SEARCH_CATALOG_NOT_READY' }), true);
-assert.equal(shouldFallbackToLegacySearch({ code: 'SEARCH_TIMEOUT' }), true);
-assert.equal(shouldFallbackToLegacySearch({ code: 'SEARCH_SATURATED' }), true);
-assert.equal(shouldFallbackToLegacySearch({ code: 'DB_QUERY_ERROR', message: "Table 'product_search_documents' doesn't exist" }), true);
-assert.equal(shouldFallbackToLegacySearch({ code: 'INVALID_SEARCH_CURSOR' }), false);
-assert.equal(shouldFallbackToLegacySearch({ code: 'DB_UNREACHABLE' }), false);
-
-const rankingItems: RankingPlanItem[] = Array.from({ length: 1500 }, (_value, index) => ({
-  idProduto: 1500 - index,
-  group: 'PRIMARY',
-  relevance: 'HIGH',
-  cursorTuple: {
-    primaryTypeMatch: 1,
-    contradictions: 0,
-    matchedConstraints: 0,
-    group: 1,
-    totalScore: 10_000 - index,
-    popularity: 0,
-    idProduto: 1500 - index,
-    newestDate: '2026-01-01',
-  },
+assert.equal(ProductRankingEngine.rankCandidate(product(1, 'cafeteira'), cafe).lexical.complete, true);
+assert.deepEqual(
+  ProductRankingEngine.rankCandidate(product(1, 'case', 'case para cafe'), cafe).lexical.documentOnlyTerms,
+  ['cafe'],
+);
+const candidates = [
+  product(1, 'case', 'case cafe', { popularidade: 100000 }),
+  product(2, 'cafeteira'),
+  product(3, 'kit cafe'),
+  product(4, 'cafe'),
+];
+assert.deepEqual(
+  ProductRankingEngine.rank(candidates, cafe).map((item) => item.candidate.idProduto),
+  [4, 3, 2, 1],
+);
+const multi = parse('caneca cafe');
+const pool = [
+  product(1, 'caneca'),
+  product(2, 'kit cafe'),
+  product(3, 'caneca cafe'),
+  product(4, 'cafe caneca'),
+  product(5, 'caneca', 'caneca cafe'),
+];
+const ranked = ProductRankingEngine.rank(pool, multi);
+assert.deepEqual(
+  ranked.map((item) => item.candidate.idProduto),
+  [3, 4, 5, 2, 1],
+);
+assert.equal(ranked[3].relevance, 'MEDIUM', 'a positive OR fulltext score is not full coverage');
+assert.equal(
+  ProductRankingEngine.rankCandidate(product(1, 'caneca cafe', 'caneca cafe', { idTipoProduto: 999 }), multi)
+    .relevance,
+  'HIGH',
+);
+for (const sort of ['relevance', 'newest', 'popular'] as SearchSort[]) {
+  const items = ProductRankingEngine.rank(
+    pool.map((p, i) => ({ ...p, popularidade: 100 - i, dataInclusao: '2026-01-0' + (i + 1) })),
+    multi,
+    sort,
+  );
+  const plans: RankingPlanItem[] = items.map((item) => ({
+    idProduto: item.candidate.idProduto,
+    group: item.group,
+    relevance: item.relevance,
+    cursorTuple: SearchCursorCodec.tuple(item),
+  }));
+  const seen: number[] = [];
+  let last = null as RankingPlanItem['cursorTuple'] | null;
+  do {
+    const page = paginateRankingItems(plans, 1, 2, last, sort);
+    seen.push(...page.items.map((item) => item.idProduto));
+    if (!page.hasNext) break;
+    last = page.items[page.items.length - 1].cursorTuple;
+  } while (true);
+  assert.deepEqual(
+    seen,
+    items.map((item) => item.candidate.idProduto),
+  );
+  assert.equal(
+    items.slice(0, 3).every((item) => item.lexical.complete),
+    true,
+  );
+}
+const many = ProductRankingEngine.rank(
+  Array.from({ length: 1500 }, (_, i) => product(i + 1, 'cafe')),
+  cafe,
+);
+const manyPlan = many.map((item) => ({
+  idProduto: item.candidate.idProduto,
+  group: item.group,
+  relevance: item.relevance,
+  cursorTuple: SearchCursorCodec.tuple(item),
 }));
-const lastSyntheticPage = paginateRankingItems(rankingItems, 63, 24, null, 'relevance');
-assert.equal(lastSyntheticPage.total, 1500);
-assert.equal(lastSyntheticPage.totalPages, 63);
-assert.equal(lastSyntheticPage.items.length, 12);
-assert.equal(lastSyntheticPage.hasNext, false);
+assert.equal(paginateRankingItems(manyPlan, 63, 24, null, 'relevance').items.length, 12);
+assert.equal(
+  SearchCacheService.resultKey({ filters: { color: 'azul', material: 'inox' } }),
+  SearchCacheService.resultKey({ filters: { material: 'inox', color: 'azul' } }),
+);
 
-const verifyCatalogNotReadyFallback = async (): Promise<void> => {
-  const originalExactCode = ProdutoModel.findByExactCodeForSite;
-  const originalSearchForSite = ProdutoModel.searchForSite;
-  const originalImages = ProdutoModel.findImagesByProductIds;
-  const originalTypeCandidates = TipoProdutoModel.findSearchCandidates;
-  const originalPrepareCatalog = SearchDictionaryService.prepareCatalog;
+const verifyService = async () => {
+  process.env.UPSTASH_REDIS_REST_URL = '';
+  process.env.UPSTASH_REDIS_REST_TOKEN = '';
+  const originals = {
+    exact: ProdutoModel.findByExactCodeForSite,
+    legacy: ProdutoModel.searchForSite,
+    ready: SearchDictionaryService.assertCatalogReady,
+    version: SearchDictionaryService.getCatalogVersion,
+    retrieve: CandidateRetriever.retrieve,
+    hydrate: ProdutoModel.findByIdsForSite,
+    images: ProdutoModel.findImagesByProductIds,
+    analytics: SearchAnalyticsService.enqueue,
+  };
   try {
-    ProdutoModel.findByExactCodeForSite = async () => null;
-    ProdutoModel.searchForSite = async () => ({
-      items: [{ id_empresa: 1, id_produto: 1, codigo: 'CAN001', produto: 'Caneca Personalizada' } as SearchCandidate['rawProduct']],
-      total: 1,
-    });
-    ProdutoModel.findImagesByProductIds = async () => new Map();
-    TipoProdutoModel.findSearchCandidates = async () => [];
-    SearchDictionaryService.prepareCatalog = async () => {
-      throw Object.assign(new Error('Catalogo incompleto'), {
-        code: 'SEARCH_CATALOG_NOT_READY',
-        statusCode: 503,
-      });
+    const lookups: string[] = [];
+    ProdutoModel.findByExactCodeForSite = async (_tenant, code) => {
+      lookups.push(code);
+      return code === 'BT256C' ? { id_produto: 99, codigo: code } : null;
     };
-
-    const result = await ProductSearchService.search({
+    ProdutoModel.searchForSite = async () => {
+      throw new Error('Legacy must never execute');
+    };
+    SearchDictionaryService.assertCatalogReady = async () => {};
+    SearchDictionaryService.getCatalogVersion = async () => ({ catalogVersion: 987, dictionaryVersion: 1 });
+    CandidateRetriever.retrieve = async () => ({ candidates: pool, databaseTimeMs: 0 });
+    ProdutoModel.findByIdsForSite = async (_tenant, ids) =>
+      ids.map((id) => ({ id_produto: id, codigo: 'P' + id }) as SearchCandidate['rawProduct']);
+    ProdutoModel.findImagesByProductIds = async () => new Map();
+    SearchAnalyticsService.enqueue = () => {};
+    const input = {
       empresaId: 1,
-      term: 'caneca',
+      term: 'caneca cafe',
       page: 1,
-      limit: 20,
-      sort: 'relevance',
+      limit: 2,
       filters: {},
       locale: 'pt-BR',
-      forceAdvanced: true,
-    });
-    assert.equal(result.match_exato_codigo, false);
-    if (!result.match_exato_codigo) {
-      assert.equal(result.mode, 'legacy');
-      assert.equal(result.items[0]?.codigo, 'CAN001');
+      sort: 'relevance' as const,
+    };
+    assert.equal((await ProductSearchService.search({ ...input, term: 'BT256' })).match_exato_codigo, true);
+    assert.deepEqual(lookups, ['BT256C']);
+    const first = await ProductSearchService.search(input);
+    assert.equal(first.match_exato_codigo, false);
+    if (first.match_exato_codigo) throw new Error('unexpected code');
+    assert.equal(first.total, 5);
+    assert.equal(first.relatedTotal, 2);
+    assert.equal(first.totalPages, 3);
+    assert.deepEqual(
+      first.items.map((p) => p.id_produto),
+      [3, 4],
+    );
+    const next = await ProductSearchService.search({ ...input, cursor: first.nextCursor! });
+    if (next.match_exato_codigo) throw new Error('unexpected code');
+    assert.deepEqual(
+      next.items.map((p) => p.id_produto),
+      [5, 2],
+    );
+    assert.deepEqual(
+      next.groups.primary.map((p) => p.id_produto),
+      [5],
+    );
+    assert.deepEqual(
+      next.relatedItems.map((p) => p.id_produto),
+      [2],
+    );
+    for (const changed of [
+      { filters: { color: 'red' } },
+      { empresaId: 2 },
+      { sort: 'popular' as const },
+      { term: 'cafe' },
+      { locale: 'en' },
+    ]) {
+      await assert.rejects(ProductSearchService.search({ ...input, ...changed, cursor: first.nextCursor! }), {
+        code: 'INVALID_SEARCH_CURSOR',
+      });
     }
+    await assert.rejects(ProductSearchService.search({ ...input, cursor: first.nextCursor + 'x' }), {
+      code: 'INVALID_SEARCH_CURSOR',
+    });
+    SearchDictionaryService.getCatalogVersion = async () => ({ catalogVersion: 988, dictionaryVersion: 1 });
+    await assert.rejects(ProductSearchService.search({ ...input, cursor: first.nextCursor! }), {
+      code: 'INVALID_SEARCH_CURSOR',
+    });
+    const decoded = SearchCursorCodec.decode(first.nextCursor!);
+    const oldVersion = SearchCursorCodec.encode({ ...decoded, rankingVersion: 'v4' });
+    await assert.rejects(ProductSearchService.search({ ...input, cursor: oldVersion }), {
+      code: 'INVALID_SEARCH_CURSOR',
+    });
+    const expired = SearchCursorCodec.encode(decoded, -1);
+    assert.throws(() => SearchCursorCodec.decode(expired), { code: 'INVALID_SEARCH_CURSOR' });
+    for (const code of ['SEARCH_CATALOG_NOT_READY', 'SEARCH_TIMEOUT', 'SEARCH_SATURATED', 'DB_QUERY_ERROR']) {
+      SearchCircuitBreaker.success();
+      SearchDictionaryService.assertCatalogReady = async () => {
+        throw Object.assign(new Error(code), { code, statusCode: 503 });
+      };
+      await assert.rejects(ProductSearchService.search(input), {
+        code: 'SEARCH_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+    SearchCircuitBreaker.success();
+    ProdutoModel.findByExactCodeForSite = async () => {
+      throw Object.assign(new Error('connection failed'), { code: 'DB_UNREACHABLE' });
+    };
+    await assert.rejects(ProductSearchService.search(input), { code: 'SEARCH_UNAVAILABLE', statusCode: 503 });
   } finally {
-    ProdutoModel.findByExactCodeForSite = originalExactCode;
-    ProdutoModel.searchForSite = originalSearchForSite;
-    ProdutoModel.findImagesByProductIds = originalImages;
-    TipoProdutoModel.findSearchCandidates = originalTypeCandidates;
-    SearchDictionaryService.prepareCatalog = originalPrepareCatalog;
+    ProdutoModel.findByExactCodeForSite = originals.exact;
+    ProdutoModel.searchForSite = originals.legacy;
+    SearchDictionaryService.assertCatalogReady = originals.ready;
+    SearchDictionaryService.getCatalogVersion = originals.version;
+    CandidateRetriever.retrieve = originals.retrieve;
+    ProdutoModel.findByIdsForSite = originals.hydrate;
+    ProdutoModel.findImagesByProductIds = originals.images;
+    SearchAnalyticsService.enqueue = originals.analytics;
+    SearchCircuitBreaker.success();
   }
 };
-
-void verifyCatalogNotReadyFallback()
-  .then(() => console.log('searchEngine.test: ok'))
+void verifyService()
+  .then(() => console.log('searchEngine.test: lexical ranking, groups, cursor and unavailable contract ok'))
   .catch((error) => {
     console.error(error);
     process.exitCode = 1;

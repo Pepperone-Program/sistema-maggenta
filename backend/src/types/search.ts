@@ -1,11 +1,6 @@
 export type ConstraintStrength = 'HARD' | 'STRONG' | 'SOFT';
 
-export type SearchSemanticType =
-  | 'ATTRIBUTE'
-  | 'MATERIAL'
-  | 'MEASUREMENT'
-  | 'SIZE'
-  | 'COMPOSITION';
+export type SearchSemanticType = 'ATTRIBUTE' | 'MATERIAL' | 'MEASUREMENT' | 'SIZE' | 'COMPOSITION';
 
 export type SearchValueType = 'BOOLEAN' | 'ENUM' | 'NUMBER' | 'TEXT';
 
@@ -19,11 +14,7 @@ export type SearchDictionaryTermType =
   | 'RELATED_TERM'
   | 'NEGATION';
 
-export type SearchRelationType =
-  | 'EXACT_SYNONYM'
-  | 'RELATED_TERM'
-  | 'BROADER_TERM'
-  | 'NARROWER_TERM';
+export type SearchRelationType = 'EXACT_SYNONYM' | 'RELATED_TERM' | 'BROADER_TERM' | 'NARROWER_TERM';
 
 export type SearchRelevanceLevel = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -119,6 +110,7 @@ export interface SearchCandidate {
   idTipoProduto: number | null;
   produto: string;
   normalizedName: string;
+  searchText: string;
   descricao: string | null;
   codigo: string;
   imagem: string | null;
@@ -174,6 +166,7 @@ export interface RankedSearchCandidate {
   contradictions: number;
   lexicalCoverageRatio: number;
   score: SearchScoreBreakdown;
+  lexical: SearchLexicalEvidence;
 }
 
 export interface SearchCursor {
@@ -182,16 +175,7 @@ export interface SearchCursor {
   catalogVersion: number;
   queryHash: string;
   sort: SearchSort;
-  last: {
-    primaryTypeMatch: number;
-    contradictions: number;
-    matchedConstraints: number;
-    group: number;
-    totalScore: number;
-    popularity: number;
-    idProduto: number;
-    newestDate: string;
-  };
+  last: SearchOrderTuple;
   expiresAt: number;
 }
 
@@ -235,3 +219,27 @@ export interface SearchResult<T> {
   timing: SearchTiming;
 }
 import type { Produto } from './produto';
+
+export interface SearchLexicalEvidence {
+  matchedTerms: string[];
+  titleExactTerms: string[];
+  titlePrefixTerms: string[];
+  documentOnlyTerms: string[];
+  complete: boolean;
+  exactTitle: boolean;
+  titleSequence: boolean;
+}
+
+export interface SearchOrderTuple {
+  complete: number;
+  matchedTerms: number;
+  exactTitle: number;
+  titleExactTerms: number;
+  titlePrefixTerms: number;
+  titleSequence: number;
+  fulltextName: number;
+  fulltextText: number;
+  popularity: number;
+  newestDate: string;
+  idProduto: number;
+}

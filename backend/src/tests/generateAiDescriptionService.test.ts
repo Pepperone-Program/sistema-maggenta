@@ -2,9 +2,12 @@ import '../module-alias';
 import assert from 'node:assert/strict';
 import {
   AI_DESCRIPTION_PROMPT,
+  MAX_BATCH_CONCURRENCY,
   parseRetryDurationMs,
   validateGeneratedDescription,
 } from '@services/generateAiDescriptionService';
+
+assert.equal(MAX_BATCH_CONCURRENCY, 10);
 
 assert.match(AI_DESCRIPTION_PROMPT, /A Caneca Cristal de 400ml/);
 assert.match(AI_DESCRIPTION_PROMPT, /somente referência de estilo/i);

@@ -137,7 +137,7 @@ export class ProdutoController {
 
   static async listSite(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const searchTerm = String(req.query.busca || req.query.search || '').trim();
+      const searchTerm = String(req.query.q || req.query.busca || req.query.search || '').trim();
       if (searchTerm) {
         req.query.q = searchTerm;
         await ProdutoController.searchSite(req, res);

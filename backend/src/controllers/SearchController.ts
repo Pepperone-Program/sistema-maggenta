@@ -13,6 +13,7 @@ import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
 import { SearchAutocompleteService } from '@search/SearchAutocompleteService';
 import { SearchDictionaryService } from '@search/SearchDictionaryService';
 import { SearchMetrics } from '@search/SearchMetrics';
+import { SearchCoverageRepairService } from '@search/SearchCoverageRepairService';
 import type { SearchSort } from '@/types/search';
 
 type Entity = 'dictionary' | 'attributes' | 'options' | 'conflicts';
@@ -34,6 +35,23 @@ const idParam = (value: string, name = 'id'): number => {
 };
 
 export class SearchController {
+  static async repairCoverage(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await SearchCoverageRepairService.repair(req.user!.id_empresa);
+      successResponse(
+        res,
+        result,
+        result.alreadyRunning
+          ? 'A reparacao da busca ja esta em andamento'
+          : result.repaired > 0
+            ? `Busca reparada: ${result.repaired} produto(s) sincronizado(s)`
+            : 'A busca ja estava sincronizada',
+      );
+    } catch (error) {
+      fail(res, error);
+    }
+  }
+
   static async autocomplete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const empresaId = PublicSearchTenantResolver.resolve(req);

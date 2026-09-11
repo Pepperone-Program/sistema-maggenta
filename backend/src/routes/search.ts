@@ -9,6 +9,7 @@ router.get('/autocomplete', optionalAuthMiddleware, SearchController.autocomplet
 router.post('/click', optionalAuthMiddleware, SearchController.click);
 router.get('/debug', authMiddleware, requireSearchPermission('search.debug'), SearchController.debug);
 router.get('/debug/results', authMiddleware, requireSearchPermission('search.debug'), SearchController.forcedSearch);
+router.post('/repair-coverage', authMiddleware, requireSearchPermission('search.manage'), SearchController.repairCoverage);
 router.get('/products/:id/metadata', authMiddleware, requireSearchPermission('search.manage'), SearchController.getMetadata);
 router.put('/products/:id/metadata', authMiddleware, requireSearchPermission('search.manage'), SearchController.putMetadata);
 router.get('/:entity', authMiddleware, requireSearchPermission('search.manage'), SearchController.list);

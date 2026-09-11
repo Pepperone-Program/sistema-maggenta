@@ -54,6 +54,7 @@ export function Header() {
   const [search, setSearch] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
+  const [repairingSearch, setRepairingSearch] = useState(false);
   const searchRef = useClickOutside<HTMLFormElement>(() =>
     setShowResults(false),
   );
@@ -169,15 +170,60 @@ export function Header() {
 
         <button
           className="hidden rounded-md border border-stroke px-3 py-2 text-xs font-bold text-dark hover:border-primary hover:text-primary disabled:opacity-50 dark:border-dark-3 dark:text-white sm:block"
+          disabled={repairingSearch}
+          onClick={async () => {
+            setRepairingSearch(true);
+            try {
+              const result = await apiRequest<{
+                repaired: number;
+                alreadyRunning: boolean;
+              }>("/api/v1/search/repair-coverage", { method: "POST" });
+              window.alert(
+                result.alreadyRunning
+                  ? "A correção da busca já está em andamento."
+                  : result.repaired > 0
+                    ? `Busca corrigida. ${result.repaired} produto(s) sincronizado(s).`
+                    : "A busca já está sincronizada.",
+              );
+            } catch (error) {
+              window.alert(
+                error instanceof Error
+                  ? error.message
+                  : "Falha ao corrigir a busca.",
+              );
+            } finally {
+              setRepairingSearch(false);
+            }
+          }}
+          type="button"
+        >
+          {repairingSearch ? "Corrigindo..." : "Corrigir busca"}
+        </button>
+
+        <button
+          className="hidden rounded-md border border-stroke px-3 py-2 text-xs font-bold text-dark hover:border-primary hover:text-primary disabled:opacity-50 dark:border-dark-3 dark:text-white sm:block"
           disabled={clearingCache}
           onClick={async () => {
             setClearingCache(true);
-            try { await apiRequest("/api/v1/cache/invalidate/all", { method: "POST" }); window.alert("Cache do site limpo com sucesso."); }
-            catch (error) { window.alert(error instanceof Error ? error.message : "Falha ao limpar o cache."); }
-            finally { setClearingCache(false); }
+            try {
+              await apiRequest("/api/v1/cache/invalidate/all", {
+                method: "POST",
+              });
+              window.alert("Cache do site limpo com sucesso.");
+            } catch (error) {
+              window.alert(
+                error instanceof Error
+                  ? error.message
+                  : "Falha ao limpar o cache.",
+              );
+            } finally {
+              setClearingCache(false);
+            }
           }}
           type="button"
-        >{clearingCache ? "Limpando..." : "Limpar cache"}</button>
+        >
+          {clearingCache ? "Limpando..." : "Limpar cache"}
+        </button>
 
         <div className="shrink-0">
           <UserInfo />
@@ -186,4 +232,3 @@ export function Header() {
     </header>
   );
 }
-

@@ -12,6 +12,7 @@ import { OrcamentoEmailScheduler } from '@services/OrcamentoEmailScheduler';
 import { OrcamentoModel } from '@models/Orcamento';
 import { SearchAnalyticsService } from '@search/SearchAnalyticsService';
 import { SearchDictionaryService } from '@search/SearchDictionaryService';
+import { SearchCoverageRepairScheduler } from '@services/SearchCoverageRepairScheduler';
 
 dotenv.config();
 
@@ -73,6 +74,7 @@ const bootstrap = async (): Promise<void> => {
     CacheInvalidationScheduler.start();
     OrcamentoEmailScheduler.start();
     SearchAnalyticsService.start();
+    SearchCoverageRepairScheduler.start();
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log(`📚 API Documentation: http://localhost:${PORT}/health`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -82,6 +84,7 @@ const bootstrap = async (): Promise<void> => {
     CacheInvalidationScheduler.stop();
     OrcamentoEmailScheduler.stop();
     SearchAnalyticsService.stop();
+    SearchCoverageRepairScheduler.stop();
     console.log(`${signal} signal received: closing HTTP server`);
     server.close(async () => {
       console.log('HTTP server closed');

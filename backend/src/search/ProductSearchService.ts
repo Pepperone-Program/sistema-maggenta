@@ -160,9 +160,27 @@ export class ProductSearchService {
     const cached = await SearchCacheService.getOrSetRankingPlan<RankingPlan>(rankingKeyInput, async () => {
       const retrieval = await CandidateRetriever.retrieve(input.empresaId, intent, input.filters);
       const rankingStartedAt = Date.now();
-      const ranked = ProductRankingEngine.rank(retrieval.candidates, intent, input.sort).filter(
+      let ranked = ProductRankingEngine.rank(retrieval.candidates, intent, input.sort).filter(
         (item) => !item.excluded,
       );
+      let databaseTimeMs = retrieval.databaseTimeMs;
+      let candidateCount = retrieval.candidates.length;
+      if (ranked.length === 0) {
+        const codeRetrieval = await CandidateRetriever.retrieveByCodePrefix(
+          input.empresaId,
+          input.term.trim(),
+          input.filters,
+        );
+        databaseTimeMs += codeRetrieval.databaseTimeMs;
+        candidateCount += codeRetrieval.candidates.length;
+        ranked = codeRetrieval.candidates
+          .map((candidate) => ProductRankingEngine.rankCandidate(
+            { ...candidate, normalizedName: candidate.codigo, searchText: candidate.codigo },
+            intent,
+          ))
+          .filter((item) => item.lexical.complete && !item.excluded)
+          .sort((left, right) => ProductRankingEngine.compare(left, right, input.sort));
+      }
       const compact = (item: (typeof ranked)[number]): RankingPlanItem => ({
         idProduto: item.candidate.idProduto,
         group: item.group,
@@ -171,8 +189,8 @@ export class ProductSearchService {
       });
       return {
         items: ranked.map(compact),
-        candidateCount: retrieval.candidates.length,
-        databaseTimeMs: retrieval.databaseTimeMs,
+        candidateCount,
+        databaseTimeMs,
         rankingTimeMs: Date.now() - rankingStartedAt,
       };
     });

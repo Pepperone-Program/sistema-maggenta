@@ -141,6 +141,32 @@ export class CandidateRetriever {
     return { candidates, databaseTimeMs: Date.now() - startedAt };
   }
 
+  static async retrieveByCodePrefix(
+    empresaId: number,
+    term: string,
+    filters: SearchFilters,
+  ): Promise<{ candidates: SearchCandidate[]; databaseTimeMs: number }> {
+    const startedAt = Date.now();
+    const filter = buildFilters(filters);
+    const escapedPrefix = term.replace(/[!%_]/g, (character) => `!${character}`) + '%';
+    const rows = (await queryWithoutRetry(
+      `SET STATEMENT max_statement_time=${SEARCH_LIMITS.statementTimeoutSeconds} FOR
+       SELECT p.id_empresa, p.id_produto, p.id_tipo_produto, p.produto, p.codigo, p.data_inclusao,
+              d.normalized_name, d.search_text, d.popularity_score,
+              0 AS fulltext_name_score, 0 AS fulltext_text_score
+       FROM produtos p
+       INNER JOIN product_search_documents d
+         ON d.id_empresa = p.id_empresa AND d.id_produto = p.id_produto
+       WHERE p.id_empresa = ?
+         AND p.site = 'S' AND p.habilitado = 'S'
+         AND d.site = 'S' AND d.habilitado = 'S'
+         AND p.codigo LIKE ? ESCAPE '!'${filter.sql}
+       ORDER BY p.codigo ASC, p.id_produto DESC`,
+      [empresaId, escapedPrefix, ...filter.values],
+    )) as Array<CandidateSignalRow & ProductRow>;
+    return { candidates: this.hydrateLexical(rows), databaseTimeMs: Date.now() - startedAt };
+  }
+
   private static hydrateLexical(rows: Array<CandidateSignalRow & ProductRow>): SearchCandidate[] {
     return rows.map((row) => {
       return {

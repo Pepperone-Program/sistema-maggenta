@@ -16,7 +16,7 @@ import {
   type RankingPlanItem,
 } from '@search/ProductSearchService';
 import { ProdutoModel } from '@models/Produto';
-import type { SearchCandidate, SearchDictionaryEntry, SearchSort } from '@/types/search';
+import type { SearchCandidate, SearchDictionaryEntry, SearchFilters, SearchSort } from '@/types/search';
 
 const candidate = (overrides: Partial<SearchCandidate> = {}): SearchCandidate => ({
   rawProduct: {} as SearchCandidate['rawProduct'],
@@ -240,12 +240,14 @@ const verifyService = async () => {
     ready: SearchDictionaryService.assertCatalogReady,
     version: SearchDictionaryService.getCatalogVersion,
     retrieve: CandidateRetriever.retrieve,
+    retrieveByCodePrefix: CandidateRetriever.retrieveByCodePrefix,
     hydrate: ProdutoModel.findByIdsForSite,
     images: ProdutoModel.findImagesByProductIds,
     analytics: SearchAnalyticsService.enqueue,
   };
   try {
     const lookups: string[] = [];
+    const codePrefixLookups: Array<{ tenant: number; term: string; filters: SearchFilters }> = [];
     ProdutoModel.findByExactCodeForSite = async (_tenant, code) => {
       lookups.push(code);
       return code === 'BT256C' ? { id_produto: 99, codigo: code } : null;
@@ -262,6 +264,10 @@ const verifyService = async () => {
       candidates: pool,
       databaseTimeMs: 0,
     });
+    CandidateRetriever.retrieveByCodePrefix = async (tenant, term, filters) => {
+      codePrefixLookups.push({ tenant, term, filters });
+      return { candidates: [], databaseTimeMs: 0 };
+    };
     ProdutoModel.findByIdsForSite = async (_tenant, ids) =>
       ids.map(
         (id) =>
@@ -312,6 +318,30 @@ const verifyService = async () => {
     );
     assert.deepEqual(next.groups.related, []);
     assert.equal(next.nextCursor, null);
+    assert.equal(codePrefixLookups.length, 0, 'code fallback must not run when lexical results exist');
+    CandidateRetriever.retrieve = async () => ({ candidates: [], databaseTimeMs: 0 });
+    CandidateRetriever.retrieveByCodePrefix = async (tenant, term, filters) => {
+      codePrefixLookups.push({ tenant, term, filters });
+      return {
+        candidates: [
+          candidate({ idProduto: 81, codigo: 'KB100', normalizedName: 'outro', searchText: 'outro' }),
+          candidate({ idProduto: 82, codigo: 'KB200', normalizedName: 'outro', searchText: 'outro' }),
+        ],
+        databaseTimeMs: 1,
+      };
+    };
+    const codeFallback = await ProductSearchService.search({
+      ...input,
+      term: 'kb',
+      filters: { color: 'azul' },
+    });
+    if (codeFallback.match_exato_codigo) throw new Error('unexpected exact code');
+    assert.deepEqual(codeFallback.items.map((product) => product.id_produto), [82, 81]);
+    assert.deepEqual(codePrefixLookups.at(-1), {
+      tenant: 1,
+      term: 'kb',
+      filters: { color: 'azul' },
+    });
     for (const changed of [
       { filters: { color: 'red' } },
       { empresaId: 2 },
@@ -378,6 +408,7 @@ const verifyService = async () => {
     SearchDictionaryService.assertCatalogReady = originals.ready;
     SearchDictionaryService.getCatalogVersion = originals.version;
     CandidateRetriever.retrieve = originals.retrieve;
+    CandidateRetriever.retrieveByCodePrefix = originals.retrieveByCodePrefix;
     ProdutoModel.findByIdsForSite = originals.hydrate;
     ProdutoModel.findImagesByProductIds = originals.images;
     SearchAnalyticsService.enqueue = originals.analytics;

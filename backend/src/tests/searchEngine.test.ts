@@ -236,6 +236,7 @@ const verifyService = async () => {
   process.env.UPSTASH_REDIS_REST_TOKEN = '';
   const originals = {
     exact: ProdutoModel.findByExactCodeForSite,
+    supplierCode: ProdutoModel.findByExactSupplierCodeForSite,
     legacy: ProdutoModel.searchForSite,
     ready: SearchDictionaryService.assertCatalogReady,
     version: SearchDictionaryService.getCatalogVersion,
@@ -252,6 +253,8 @@ const verifyService = async () => {
       lookups.push(code);
       return code === 'BT256C' ? { id_produto: 99, codigo: code } : null;
     };
+    ProdutoModel.findByExactSupplierCodeForSite = async (_tenant, supplierCode) =>
+      supplierCode === 'SQ023' ? { id_produto: 123, codigo: 'PROD-123' } : null;
     ProdutoModel.searchForSite = async () => {
       throw new Error('Legacy must never execute');
     };
@@ -289,6 +292,12 @@ const verifyService = async () => {
     };
     assert.equal((await ProductSearchService.search({ ...input, term: 'BT256' })).match_exato_codigo, true);
     assert.deepEqual(lookups, ['BT256C']);
+    const supplierCodeMatch = await ProductSearchService.search({ ...input, term: 'SQ023' });
+    assert.equal(supplierCodeMatch.match_exato_codigo, true);
+    if (supplierCodeMatch.match_exato_codigo) {
+      assert.equal(supplierCodeMatch.id_produto, 123);
+      assert.equal(supplierCodeMatch.codigo, 'PROD-123');
+    }
     const first = await ProductSearchService.search(input);
     assert.equal(first.match_exato_codigo, false);
     if (first.match_exato_codigo) throw new Error('unexpected code');
@@ -404,6 +413,7 @@ const verifyService = async () => {
     });
   } finally {
     ProdutoModel.findByExactCodeForSite = originals.exact;
+    ProdutoModel.findByExactSupplierCodeForSite = originals.supplierCode;
     ProdutoModel.searchForSite = originals.legacy;
     SearchDictionaryService.assertCatalogReady = originals.ready;
     SearchDictionaryService.getCatalogVersion = originals.version;

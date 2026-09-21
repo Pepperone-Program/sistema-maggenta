@@ -39,6 +39,7 @@ export interface SubcategoriaProduto {
   produto?: string;
   habilitado?: HabilitadoFlag;
   vinculado?: boolean | number;
+  url_imagem?: string | null;
 }
 
 export interface CreateCategoriaDTO {

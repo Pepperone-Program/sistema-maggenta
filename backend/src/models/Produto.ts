@@ -663,6 +663,26 @@ export class ProdutoModel {
     return (result as Array<Pick<Produto, 'id_produto' | 'codigo'>>)[0] || null;
   }
 
+  static async findByExactSupplierCodeForSite(
+    empresaId: number,
+    supplierCode: string,
+  ): Promise<Pick<Produto, 'id_produto' | 'codigo'> | null> {
+    const result = await queryWithoutRetry(
+      `
+        SELECT id_produto, codigo
+        FROM produtos
+        WHERE id_empresa = ?
+          AND site = 'S'
+          AND habilitado = 'S'
+          AND cod_forn = ?
+        LIMIT 1
+      `,
+      [empresaId, supplierCode],
+    );
+
+    return (result as Array<Pick<Produto, 'id_produto' | 'codigo'>>)[0] || null;
+  }
+
   static async update(
     empresaId: number,
     produtoId: number,

@@ -102,6 +102,13 @@ export class ProductSearchService {
               id_produto: exactMatch.id_produto,
               codigo: exactMatch.codigo,
             };
+          const supplierCodeMatch = await ProdutoModel.findByExactSupplierCodeForSite(input.empresaId, term);
+          if (supplierCodeMatch)
+            return {
+              match_exato_codigo: true as const,
+              id_produto: supplierCodeMatch.id_produto,
+              codigo: supplierCodeMatch.codigo,
+            };
           const normalized = QueryNormalizer.normalize(term);
           QueryParser.parse(normalized);
           if (SearchCircuitBreaker.isOpen()) {

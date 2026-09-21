@@ -873,6 +873,13 @@ export class SubcategoriaModel {
           p.codigo,
           p.produto,
           p.habilitado,
+          (
+            SELECT ip.url_imagem
+            FROM imagens_produtos ip
+            WHERE ip.id_produto = p.id_produto
+            ORDER BY ip.ordem_imagem ASC, ip.id_imagem ASC
+            LIMIT 1
+          ) AS url_imagem,
           CASE WHEN asp.id_produto IS NULL THEN FALSE ELSE TRUE END AS vinculado
         FROM produtos p
         LEFT JOIN aux_subcategorias_produtos asp

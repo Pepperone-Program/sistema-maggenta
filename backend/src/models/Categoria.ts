@@ -859,9 +859,13 @@ export class SubcategoriaModel {
       `
         SELECT COUNT(*) as total
         FROM produtos p
+        INNER JOIN aux_subcategorias_produtos asp
+          ON asp.id_empresa = p.id_empresa
+         AND asp.id_produto = p.id_produto
+         AND asp.id_subcategoria = ?
         WHERE p.id_empresa = ? ${searchClause}
       `,
-      [empresaId, ...searchValues]
+      [subcategoriaId, empresaId, ...searchValues]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
@@ -882,7 +886,7 @@ export class SubcategoriaModel {
           ) AS url_imagem,
           CASE WHEN asp.id_produto IS NULL THEN FALSE ELSE TRUE END AS vinculado
         FROM produtos p
-        LEFT JOIN aux_subcategorias_produtos asp
+        INNER JOIN aux_subcategorias_produtos asp
           ON asp.id_empresa = p.id_empresa
          AND asp.id_produto = p.id_produto
          AND asp.id_subcategoria = ?

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { CategoriaController } from '@controllers/CategoriaController';
 import { authMiddleware } from '@middleware/auth';
 import { validationMiddleware } from '@middleware/validation';
-import { categoriaSchema, vincularProdutoSchema } from '@utils/validation';
+import { categoriaSchema, vincularProdutoSchema, vincularProdutosLoteSchema } from '@utils/validation';
 import multer from 'multer';
 
 const router = Router();
@@ -53,6 +53,19 @@ router.post(
 router.get(
   '/:id/produtos',
   CategoriaController.listProdutos
+);
+
+router.post(
+  '/:id/produtos/lote',
+  authMiddleware,
+  validationMiddleware(vincularProdutosLoteSchema),
+  CategoriaController.vincularProdutosLote
+);
+
+router.delete(
+  '/:id/produtos',
+  authMiddleware,
+  CategoriaController.desvincularProdutosLote
 );
 
 router.post(

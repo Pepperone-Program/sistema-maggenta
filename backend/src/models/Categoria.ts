@@ -1,4 +1,4 @@
-import { query } from '@database/connection';
+import { getConnection, query } from '@database/connection';
 import type {
   Categoria,
   CategoriaProduto,
@@ -12,6 +12,32 @@ import type {
 
 const normalizeLimit = (limit: number): number => Math.min(Math.max(limit, 1), 500);
 const normalizePage = (page: number): number => Math.max(page, 1);
+
+const escapeLike = (value: string): string => value.replace(/[!%_]/g, (character) => `!${character}`);
+
+const buildProductFilters = (search?: string, exclusions: string[] = []) => {
+  const clauses: string[] = [];
+  const values: string[] = [];
+  const normalizedSearch = search?.trim();
+
+  if (normalizedSearch) {
+    const pattern = `%${escapeLike(normalizedSearch)}%`;
+    clauses.push(
+      `(p.produto LIKE ? ESCAPE '!' OR p.codigo LIKE ? ESCAPE '!' OR CAST(p.id_produto AS CHAR) = ?)`
+    );
+    values.push(pattern, pattern, normalizedSearch);
+  }
+
+  exclusions.forEach((term) => {
+    clauses.push(`p.produto NOT LIKE ? ESCAPE '!'`);
+    values.push(`%${escapeLike(term)}%`);
+  });
+
+  return {
+    sql: clauses.length ? ` AND ${clauses.join(' AND ')}` : '',
+    values,
+  };
+};
 
 export class CategoriaModel {
   static async findSearchCandidates(
@@ -249,21 +275,19 @@ export class CategoriaModel {
     categoriaId: number,
     page: number = 1,
     limit: number = 100,
-    search?: string
+    search?: string,
+    exclusions: string[] = []
   ): Promise<{ items: CategoriaProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
-    const searchClause = search
-      ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)'
-      : '';
-    const searchValues = search ? [`%${search}%`, `%${search}%`, search] : [];
+    const filters = buildProductFilters(search, exclusions);
     const countResult = await query(
       `
         SELECT COUNT(*) as total
         FROM produtos p
-        WHERE p.id_empresa = ? ${searchClause}
+        WHERE p.id_empresa = ? ${filters.sql}
       `,
-      [empresaId, ...searchValues]
+      [empresaId, ...filters.values]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
@@ -281,13 +305,158 @@ export class CategoriaModel {
           ON acp.id_empresa = p.id_empresa
          AND acp.id_produto = p.id_produto
          AND acp.id_categoria = ?
-        WHERE p.id_empresa = ? ${searchClause}
+        WHERE p.id_empresa = ? ${filters.sql}
         ORDER BY vinculado DESC, p.produto ASC, p.id_produto ASC
         LIMIT ? OFFSET ?
       `,
-      [categoriaId, categoriaId, empresaId, ...searchValues, safeLimit, (safePage - 1) * safeLimit]
+      [categoriaId, categoriaId, empresaId, ...filters.values, safeLimit, (safePage - 1) * safeLimit]
     );
     return { items: items as CategoriaProduto[], total };
+  }
+
+  static async addProdutosBatch(
+    empresaId: number,
+    categoriaId: number,
+    produtoIds: number[]
+  ): Promise<{ requested: number; added: number; already_linked: number }> {
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+      const placeholders = produtoIds.map(() => '?').join(', ');
+      const [validRows] = await connection.query(
+        `SELECT id_produto FROM produtos WHERE id_empresa = ? AND id_produto IN (${placeholders}) FOR UPDATE`,
+        [empresaId, ...produtoIds]
+      );
+      if ((validRows as any[]).length !== produtoIds.length) {
+        const error = new Error('Um ou mais produtos nao pertencem a empresa atual') as Error & {
+          code: string;
+          statusCode: number;
+        };
+        error.code = 'INVALID_PRODUCT_SELECTION';
+        error.statusCode = 400;
+        throw error;
+      }
+      const [linkedRows] = await connection.query(
+        `SELECT id_produto FROM aux_categorias_produtos
+         WHERE id_empresa = ? AND id_categoria = ? AND id_produto IN (${placeholders}) FOR UPDATE`,
+        [empresaId, categoriaId, ...produtoIds]
+      );
+      const linkedIds = new Set((linkedRows as any[]).map((row) => Number(row.id_produto)));
+      const missingIds = produtoIds.filter((id) => !linkedIds.has(id));
+      if (missingIds.length) {
+        const valuePlaceholders = missingIds.map(() => '(?, ?, ?)').join(', ');
+        await connection.query(
+          `INSERT INTO aux_categorias_produtos (id_empresa, id_categoria, id_produto) VALUES ${valuePlaceholders}`,
+          missingIds.flatMap((id) => [empresaId, categoriaId, id])
+        );
+      }
+      const added = missingIds.length;
+      await connection.commit();
+      return { requested: produtoIds.length, added, already_linked: produtoIds.length - added };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  static async addFilteredProductsBatch(
+    empresaId: number,
+    categoriaId: number,
+    search?: string,
+    exclusions: string[] = [],
+    excludedIds: number[] = []
+  ): Promise<{ requested: number; added: number; already_linked: number }> {
+    const filters = buildProductFilters(search, exclusions);
+    const excludedClause = excludedIds.length
+      ? ` AND p.id_produto NOT IN (${excludedIds.map(() => '?').join(', ')})`
+      : '';
+    const selectionValues = [empresaId, ...filters.values, ...excludedIds];
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+      const [selectedRows] = await connection.query(
+        `SELECT p.id_produto FROM produtos p
+         WHERE p.id_empresa = ?${filters.sql}${excludedClause}
+         FOR UPDATE`,
+        selectionValues
+      );
+      const requested = (selectedRows as any[]).length;
+      let added = 0;
+      if (requested) {
+        const [result] = await connection.query(
+          `INSERT INTO aux_categorias_produtos (id_empresa, id_categoria, id_produto)
+           SELECT ?, ?, p.id_produto
+           FROM produtos p
+           LEFT JOIN aux_categorias_produtos acp
+             ON acp.id_empresa = p.id_empresa
+            AND acp.id_categoria = ?
+            AND acp.id_produto = p.id_produto
+           WHERE p.id_empresa = ?${filters.sql}${excludedClause}
+             AND acp.id_produto IS NULL`,
+          [empresaId, categoriaId, categoriaId, ...selectionValues]
+        );
+        added = Number((result as any).affectedRows || 0);
+      }
+      await connection.commit();
+      return { requested, added, already_linked: requested - added };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  static async removeProdutosBatch(
+    empresaId: number,
+    categoriaId: number,
+    search?: string,
+    exclusions: string[] = []
+  ): Promise<{ matched: number; removed: number }> {
+    const filters = buildProductFilters(search, exclusions);
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+      if (!filters.sql) {
+        const [rows] = await connection.query(
+          `SELECT id_produto FROM aux_categorias_produtos
+           WHERE id_empresa = ? AND id_categoria = ? FOR UPDATE`,
+          [empresaId, categoriaId]
+        );
+        const [result] = await connection.query(
+          `DELETE FROM aux_categorias_produtos WHERE id_empresa = ? AND id_categoria = ?`,
+          [empresaId, categoriaId]
+        );
+        const removed = Number((result as any).affectedRows || 0);
+        await connection.commit();
+        return { matched: (rows as any[]).length, removed };
+      }
+      const [rows] = await connection.query(
+        `SELECT acp.id_produto
+         FROM aux_categorias_produtos acp
+         INNER JOIN produtos p ON p.id_empresa = acp.id_empresa AND p.id_produto = acp.id_produto
+         WHERE acp.id_empresa = ? AND acp.id_categoria = ?${filters.sql}
+         FOR UPDATE`,
+        [empresaId, categoriaId, ...filters.values]
+      );
+      const matched = (rows as any[]).length;
+      const [result] = await connection.query(
+        `DELETE acp FROM aux_categorias_produtos acp
+         INNER JOIN produtos p ON p.id_empresa = acp.id_empresa AND p.id_produto = acp.id_produto
+         WHERE acp.id_empresa = ? AND acp.id_categoria = ?${filters.sql}`,
+        [empresaId, categoriaId, ...filters.values]
+      );
+      const removed = Number((result as any).affectedRows || 0);
+      await connection.commit();
+      return { matched, removed };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
   static async findCatalogProducts(
@@ -847,25 +1016,23 @@ export class SubcategoriaModel {
     subcategoriaId: number,
     page: number = 1,
     limit: number = 100,
-    search?: string
+    search?: string,
+    exclusions: string[] = []
   ): Promise<{ items: SubcategoriaProduto[]; total: number }> {
     const safePage = normalizePage(page);
     const safeLimit = normalizeLimit(limit);
-    const searchClause = search
-      ? 'AND (p.produto LIKE ? OR p.codigo LIKE ? OR CAST(p.id_produto AS CHAR) = ?)'
-      : '';
-    const searchValues = search ? [`%${search}%`, `%${search}%`, search] : [];
+    const filters = buildProductFilters(search, exclusions);
     const countResult = await query(
       `
         SELECT COUNT(*) as total
         FROM produtos p
-        INNER JOIN aux_subcategorias_produtos asp
+        LEFT JOIN aux_subcategorias_produtos asp
           ON asp.id_empresa = p.id_empresa
          AND asp.id_produto = p.id_produto
          AND asp.id_subcategoria = ?
-        WHERE p.id_empresa = ? ${searchClause}
+        WHERE p.id_empresa = ? ${filters.sql}
       `,
-      [subcategoriaId, empresaId, ...searchValues]
+      [subcategoriaId, empresaId, ...filters.values]
     );
     const total = (countResult as any[])[0].total;
     const items = await query(
@@ -886,16 +1053,161 @@ export class SubcategoriaModel {
           ) AS url_imagem,
           CASE WHEN asp.id_produto IS NULL THEN FALSE ELSE TRUE END AS vinculado
         FROM produtos p
-        INNER JOIN aux_subcategorias_produtos asp
+        LEFT JOIN aux_subcategorias_produtos asp
           ON asp.id_empresa = p.id_empresa
          AND asp.id_produto = p.id_produto
          AND asp.id_subcategoria = ?
-        WHERE p.id_empresa = ? ${searchClause}
+        WHERE p.id_empresa = ? ${filters.sql}
         ORDER BY vinculado DESC, p.produto ASC, p.id_produto ASC
         LIMIT ? OFFSET ?
       `,
-      [subcategoriaId, subcategoriaId, empresaId, ...searchValues, safeLimit, (safePage - 1) * safeLimit]
+      [subcategoriaId, subcategoriaId, empresaId, ...filters.values, safeLimit, (safePage - 1) * safeLimit]
     );
     return { items: items as SubcategoriaProduto[], total };
+  }
+
+  static async addProdutosBatch(
+    empresaId: number,
+    subcategoriaId: number,
+    produtoIds: number[]
+  ): Promise<{ requested: number; added: number; already_linked: number }> {
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+      const placeholders = produtoIds.map(() => '?').join(', ');
+      const [validRows] = await connection.query(
+        `SELECT id_produto FROM produtos WHERE id_empresa = ? AND id_produto IN (${placeholders}) FOR UPDATE`,
+        [empresaId, ...produtoIds]
+      );
+      if ((validRows as any[]).length !== produtoIds.length) {
+        const error = new Error('Um ou mais produtos nao pertencem a empresa atual') as Error & {
+          code: string;
+          statusCode: number;
+        };
+        error.code = 'INVALID_PRODUCT_SELECTION';
+        error.statusCode = 400;
+        throw error;
+      }
+      const [linkedRows] = await connection.query(
+        `SELECT id_produto FROM aux_subcategorias_produtos
+         WHERE id_empresa = ? AND id_subcategoria = ? AND id_produto IN (${placeholders}) FOR UPDATE`,
+        [empresaId, subcategoriaId, ...produtoIds]
+      );
+      const linkedIds = new Set((linkedRows as any[]).map((row) => Number(row.id_produto)));
+      const missingIds = produtoIds.filter((id) => !linkedIds.has(id));
+      if (missingIds.length) {
+        const valuePlaceholders = missingIds.map(() => '(?, ?, ?)').join(', ');
+        await connection.query(
+          `INSERT INTO aux_subcategorias_produtos (id_empresa, id_subcategoria, id_produto) VALUES ${valuePlaceholders}`,
+          missingIds.flatMap((id) => [empresaId, subcategoriaId, id])
+        );
+      }
+      const added = missingIds.length;
+      await connection.commit();
+      return { requested: produtoIds.length, added, already_linked: produtoIds.length - added };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  static async addFilteredProductsBatch(
+    empresaId: number,
+    subcategoriaId: number,
+    search?: string,
+    exclusions: string[] = [],
+    excludedIds: number[] = []
+  ): Promise<{ requested: number; added: number; already_linked: number }> {
+    const filters = buildProductFilters(search, exclusions);
+    const excludedClause = excludedIds.length
+      ? ` AND p.id_produto NOT IN (${excludedIds.map(() => '?').join(', ')})`
+      : '';
+    const selectionValues = [empresaId, ...filters.values, ...excludedIds];
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+      const [selectedRows] = await connection.query(
+        `SELECT p.id_produto FROM produtos p
+         WHERE p.id_empresa = ?${filters.sql}${excludedClause}
+         FOR UPDATE`,
+        selectionValues
+      );
+      const requested = (selectedRows as any[]).length;
+      let added = 0;
+      if (requested) {
+        const [result] = await connection.query(
+          `INSERT INTO aux_subcategorias_produtos (id_empresa, id_subcategoria, id_produto)
+           SELECT ?, ?, p.id_produto
+           FROM produtos p
+           LEFT JOIN aux_subcategorias_produtos asp
+             ON asp.id_empresa = p.id_empresa
+            AND asp.id_subcategoria = ?
+            AND asp.id_produto = p.id_produto
+           WHERE p.id_empresa = ?${filters.sql}${excludedClause}
+             AND asp.id_produto IS NULL`,
+          [empresaId, subcategoriaId, subcategoriaId, ...selectionValues]
+        );
+        added = Number((result as any).affectedRows || 0);
+      }
+      await connection.commit();
+      return { requested, added, already_linked: requested - added };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  static async removeProdutosBatch(
+    empresaId: number,
+    subcategoriaId: number,
+    search?: string,
+    exclusions: string[] = []
+  ): Promise<{ matched: number; removed: number }> {
+    const filters = buildProductFilters(search, exclusions);
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+      if (!filters.sql) {
+        const [rows] = await connection.query(
+          `SELECT id_produto FROM aux_subcategorias_produtos
+           WHERE id_empresa = ? AND id_subcategoria = ? FOR UPDATE`,
+          [empresaId, subcategoriaId]
+        );
+        const [result] = await connection.query(
+          `DELETE FROM aux_subcategorias_produtos WHERE id_empresa = ? AND id_subcategoria = ?`,
+          [empresaId, subcategoriaId]
+        );
+        const removed = Number((result as any).affectedRows || 0);
+        await connection.commit();
+        return { matched: (rows as any[]).length, removed };
+      }
+      const [rows] = await connection.query(
+        `SELECT asp.id_produto
+         FROM aux_subcategorias_produtos asp
+         INNER JOIN produtos p ON p.id_empresa = asp.id_empresa AND p.id_produto = asp.id_produto
+         WHERE asp.id_empresa = ? AND asp.id_subcategoria = ?${filters.sql}
+         FOR UPDATE`,
+        [empresaId, subcategoriaId, ...filters.values]
+      );
+      const matched = (rows as any[]).length;
+      const [result] = await connection.query(
+        `DELETE asp FROM aux_subcategorias_produtos asp
+         INNER JOIN produtos p ON p.id_empresa = asp.id_empresa AND p.id_produto = asp.id_produto
+         WHERE asp.id_empresa = ? AND asp.id_subcategoria = ?${filters.sql}`,
+        [empresaId, subcategoriaId, ...filters.values]
+      );
+      const removed = Number((result as any).affectedRows || 0);
+      await connection.commit();
+      return { matched, removed };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 }

@@ -10,9 +10,35 @@ import type {
   UpdateCategoriaDTO,
   UpdateSubcategoriaDTO,
   VincularProdutoDTO,
+  VincularProdutosLoteDTO,
+  VinculoLoteResult,
+  DesvinculoLoteResult,
 } from '@/types/categoria';
 import { throwError } from '@utils/helpers';
 import sharp from 'sharp';
+
+const normalizeExclusions = (exclude?: string): string[] => {
+  const raw = exclude?.trim() || '';
+  if (raw.length > 500) {
+    throwError('INVALID_EXCLUSION_FILTER', 'O filtro de exclusao deve ter no maximo 500 caracteres', 400);
+  }
+
+  const unique = new Map<string, string>();
+  raw.split(',').forEach((value) => {
+    const term = value.trim();
+    if (!term) return;
+    if (term.length > 100) {
+      throwError('INVALID_EXCLUSION_FILTER', 'Cada termo de exclusao deve ter no maximo 100 caracteres', 400);
+    }
+    const key = term.toLocaleLowerCase('pt-BR');
+    if (!unique.has(key)) unique.set(key, term);
+  });
+
+  if (unique.size > 20) {
+    throwError('INVALID_EXCLUSION_FILTER', 'Informe no maximo 20 termos de exclusao', 400);
+  }
+  return [...unique.values()];
+};
 
 export class CategoriaService {
   static async createCategoria(
@@ -159,7 +185,8 @@ export class CategoriaService {
     categoriaId: number,
     page: number = 1,
     limit: number = 100,
-    search?: string
+    search?: string,
+    exclude?: string
   ): Promise<{ items: CategoriaProduto[]; total: number; page: number; limit: number }> {
     await this.getCategoriaById(empresaId, categoriaId);
     const { items, total } = await CategoriaModel.findProdutos(
@@ -167,10 +194,44 @@ export class CategoriaService {
       categoriaId,
       page,
       limit,
-      search
+      search,
+      normalizeExclusions(exclude)
     );
 
     return { items, total, page, limit };
+  }
+
+  static async vincularProdutosLote(
+    empresaId: number,
+    categoriaId: number,
+    data: VincularProdutosLoteDTO
+  ): Promise<VinculoLoteResult> {
+    await this.getCategoriaById(empresaId, categoriaId);
+    if (data.select_all === true) {
+      return CategoriaModel.addFilteredProductsBatch(
+        empresaId,
+        categoriaId,
+        data.search?.trim(),
+        normalizeExclusions(data.exclude),
+        [...new Set(data.excluded_ids || [])]
+      );
+    }
+    return CategoriaModel.addProdutosBatch(empresaId, categoriaId, [...new Set(data.produto_ids)]);
+  }
+
+  static async desvincularProdutosLote(
+    empresaId: number,
+    categoriaId: number,
+    search?: string,
+    exclude?: string
+  ): Promise<DesvinculoLoteResult> {
+    await this.getCategoriaById(empresaId, categoriaId);
+    return CategoriaModel.removeProdutosBatch(
+      empresaId,
+      categoriaId,
+      search?.trim(),
+      normalizeExclusions(exclude)
+    );
   }
 
   static async uploadCapa(
@@ -429,7 +490,8 @@ export class SubcategoriaService {
     subcategoriaId: number,
     page: number = 1,
     limit: number = 100,
-    search?: string
+    search?: string,
+    exclude?: string
   ): Promise<{ items: SubcategoriaProduto[]; total: number; page: number; limit: number }> {
     await this.getSubcategoriaById(empresaId, subcategoriaId);
     const { items, total } = await SubcategoriaModel.findProdutos(
@@ -437,9 +499,47 @@ export class SubcategoriaService {
       subcategoriaId,
       page,
       limit,
-      search
+      search,
+      normalizeExclusions(exclude)
     );
 
     return { items, total, page, limit };
+  }
+
+  static async vincularProdutosLote(
+    empresaId: number,
+    subcategoriaId: number,
+    data: VincularProdutosLoteDTO
+  ): Promise<VinculoLoteResult> {
+    await this.getSubcategoriaById(empresaId, subcategoriaId);
+    if (data.select_all === true) {
+      return SubcategoriaModel.addFilteredProductsBatch(
+        empresaId,
+        subcategoriaId,
+        data.search?.trim(),
+        normalizeExclusions(data.exclude),
+        [...new Set(data.excluded_ids || [])]
+      );
+    }
+    return SubcategoriaModel.addProdutosBatch(
+      empresaId,
+      subcategoriaId,
+      [...new Set(data.produto_ids)]
+    );
+  }
+
+  static async desvincularProdutosLote(
+    empresaId: number,
+    subcategoriaId: number,
+    search?: string,
+    exclude?: string
+  ): Promise<DesvinculoLoteResult> {
+    await this.getSubcategoriaById(empresaId, subcategoriaId);
+    return SubcategoriaModel.removeProdutosBatch(
+      empresaId,
+      subcategoriaId,
+      search?.trim(),
+      normalizeExclusions(exclude)
+    );
   }
 }

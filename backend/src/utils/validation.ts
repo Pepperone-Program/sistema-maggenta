@@ -124,6 +124,35 @@ export const vincularProdutoSchema = Joi.object({
   id_produto: Joi.number().integer().positive().required(),
 });
 
+const productIdsSchema = Joi.array()
+  .items(Joi.number().integer().positive().required())
+  .max(5000)
+  .unique();
+
+export const vincularProdutosLoteSchema = Joi.object({
+  select_all: Joi.boolean().default(false),
+  produto_ids: productIdsSchema.min(1).when('select_all', {
+    is: true,
+    then: Joi.forbidden(),
+    otherwise: Joi.required(),
+  }),
+  search: Joi.string().max(255).allow('').when('select_all', {
+    is: true,
+    then: Joi.optional(),
+    otherwise: Joi.forbidden(),
+  }),
+  exclude: Joi.string().max(500).allow('').when('select_all', {
+    is: true,
+    then: Joi.optional(),
+    otherwise: Joi.forbidden(),
+  }),
+  excluded_ids: productIdsSchema.when('select_all', {
+    is: true,
+    then: Joi.optional().default([]),
+    otherwise: Joi.forbidden(),
+  }),
+});
+
 export const grupoPermissaoSchema = Joi.object({
   permissao: Joi.string().trim().min(1).max(100).required(),
 });

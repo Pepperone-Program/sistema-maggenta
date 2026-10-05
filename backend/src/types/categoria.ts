@@ -68,3 +68,23 @@ export type UpdateSubcategoriaDTO = Partial<CreateSubcategoriaDTO>;
 export interface VincularProdutoDTO {
   id_produto: number;
 }
+
+export type VincularProdutosLoteDTO =
+  | { produto_ids: number[]; select_all?: false }
+  | {
+      select_all: true;
+      search?: string;
+      exclude?: string;
+      excluded_ids?: number[];
+    };
+
+export interface VinculoLoteResult {
+  requested: number;
+  added: number;
+  already_linked: number;
+}
+
+export interface DesvinculoLoteResult {
+  matched: number;
+  removed: number;
+}

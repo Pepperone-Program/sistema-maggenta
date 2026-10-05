@@ -127,7 +127,8 @@ export class CategoriaController {
         parseInt(req.params.id, 10),
         getPage(req),
         getLimit(req),
-        req.query.search as string | undefined
+        req.query.search as string | undefined,
+        req.query.exclude as string | undefined
       );
       paginatedResponse(
         res,
@@ -137,6 +138,41 @@ export class CategoriaController {
         result.limit,
         'Produtos da categoria listados com sucesso'
       );
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async vincularProdutosLote(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await CategoriaService.vincularProdutosLote(
+        getEmpresaId(req),
+        parseInt(req.params.id, 10),
+        req.body
+      );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
+      successResponse(res, result, 'Produtos vinculados a categoria com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async desvincularProdutosLote(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await CategoriaService.desvincularProdutosLote(
+        getEmpresaId(req),
+        parseInt(req.params.id, 10),
+        req.query.search as string | undefined,
+        req.query.exclude as string | undefined
+      );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
+      successResponse(res, result, 'Produtos desvinculados da categoria com sucesso');
     } catch (error) {
       const err = error as any;
       errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
@@ -319,7 +355,8 @@ export class SubcategoriaController {
         parseInt(req.params.id, 10),
         getPage(req),
         getLimit(req),
-        req.query.search as string | undefined
+        req.query.search as string | undefined,
+        req.query.exclude as string | undefined
       );
       paginatedResponse(
         res,
@@ -329,6 +366,41 @@ export class SubcategoriaController {
         result.limit,
         'Produtos da subcategoria listados com sucesso'
       );
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async vincularProdutosLote(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await SubcategoriaService.vincularProdutosLote(
+        getEmpresaId(req),
+        parseInt(req.params.id, 10),
+        req.body
+      );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
+      successResponse(res, result, 'Produtos vinculados a subcategoria com sucesso');
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async desvincularProdutosLote(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await SubcategoriaService.desvincularProdutosLote(
+        getEmpresaId(req),
+        parseInt(req.params.id, 10),
+        req.query.search as string | undefined,
+        req.query.exclude as string | undefined
+      );
+      await CacheService.invalidateNamespace('categorias');
+      await CacheService.invalidateNamespace('publicos-alvos');
+      await CacheService.invalidateNamespace('datas-promocionais');
+      successResponse(res, result, 'Produtos desvinculados da subcategoria com sucesso');
     } catch (error) {
       const err = error as any;
       errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);

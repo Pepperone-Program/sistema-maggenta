@@ -350,7 +350,7 @@ export class SubcategoriaController {
 
   static async listProdutos(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const result = await SubcategoriaService.listProdutosDisponiveis(
+      const result = await SubcategoriaService.listProdutos(
         getEmpresaId(req),
         parseInt(req.params.id, 10),
         getPage(req),
@@ -366,6 +366,23 @@ export class SubcategoriaController {
         result.limit,
         'Produtos da subcategoria listados com sucesso'
       );
+    } catch (error) {
+      const err = error as any;
+      errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);
+    }
+  }
+
+  static async listProdutosDisponiveis(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const result = await SubcategoriaService.listProdutosDisponiveis(
+        getEmpresaId(req),
+        parseInt(req.params.id, 10),
+        getPage(req),
+        getLimit(req),
+        req.query.search as string | undefined,
+        req.query.exclude as string | undefined
+      );
+      paginatedResponse(res, result.items, result.total, result.page, result.limit, 'Produtos disponiveis para a subcategoria listados com sucesso');
     } catch (error) {
       const err = error as any;
       errorResponse(res, err.code || 'ERROR', err.message, err.statusCode || 500);

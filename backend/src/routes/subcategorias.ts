@@ -27,6 +27,12 @@ router.get(
   SubcategoriaController.listProdutos
 );
 
+router.get(
+  '/:id/produtos/disponiveis',
+  authMiddleware,
+  SubcategoriaController.listProdutosDisponiveis
+);
+
 router.post(
   '/:id/produtos/lote',
   authMiddleware,

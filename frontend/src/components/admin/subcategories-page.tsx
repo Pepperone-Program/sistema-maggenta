@@ -438,6 +438,7 @@ export function SubcategoriesPage() {
         <AssociationProductsModal
           associationLabel="Na subcategoria"
           endpoint={`/api/v1/subcategorias/${productsSubcategory.id_subcategoria}/produtos`}
+          listEndpoint={`/api/v1/subcategorias/${productsSubcategory.id_subcategoria}/produtos/disponiveis`}
           onClose={() => setProductsSubcategory(null)}
           title={String(productsSubcategory.subcategoria || `Subcategoria #${productsSubcategory.id_subcategoria}`)}
         />

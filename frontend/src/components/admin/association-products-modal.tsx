@@ -8,7 +8,7 @@ type ProductLink = { id_produto: number; codigo?: string; produto?: string; habi
 type BatchLinkResult = { requested: number; added: number; already_linked: number };
 type BatchUnlinkResult = { matched: number; removed: number };
 
-export function AssociationProductsModal({ title, associationLabel, endpoint, onClose }: { title: string; associationLabel: string; endpoint: string; onClose: () => void }) {
+export function AssociationProductsModal({ title, associationLabel, endpoint, listEndpoint = endpoint, onClose }: { title: string; associationLabel: string; endpoint: string; listEndpoint?: string; onClose: () => void }) {
   const [items, setItems] = useState<ProductLink[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -50,14 +50,14 @@ export function AssociationProductsModal({ title, associationLabel, endpoint, on
     setAllResultsSelected(false);
     setExcludedIds(new Set());
     setMessage("");
-  }, [endpoint, exclude, search]);
+  }, [listEndpoint, exclude, search]);
 
   const loadProducts = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError("");
     try {
-      const result = await apiRequest<PaginatedData<ProductLink>>(endpoint, { query: { page, limit: 30, search, exclude } });
+      const result = await apiRequest<PaginatedData<ProductLink>>(listEndpoint, { query: { page, limit: 30, search, exclude } });
       if (requestId !== requestIdRef.current) return;
       setTotal(result.total);
       setItems((current) => page === 1 ? result.items : [...current, ...result.items.filter((next) => !current.some((item) => item.id_produto === next.id_produto))]);
@@ -66,7 +66,7 @@ export function AssociationProductsModal({ title, associationLabel, endpoint, on
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [endpoint, exclude, page, search]);
+  }, [listEndpoint, exclude, page, search]);
   useEffect(() => { loadProducts(); }, [loadProducts]);
   useEffect(() => {
     if (selectAllRef.current) {

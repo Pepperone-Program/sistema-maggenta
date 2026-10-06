@@ -506,6 +506,26 @@ export class SubcategoriaService {
     return { items, total, page, limit };
   }
 
+  static async listProdutosDisponiveis(
+    empresaId: number,
+    subcategoriaId: number,
+    page: number = 1,
+    limit: number = 100,
+    search?: string,
+    exclude?: string
+  ): Promise<{ items: SubcategoriaProduto[]; total: number; page: number; limit: number }> {
+    await this.getSubcategoriaById(empresaId, subcategoriaId);
+    const { items, total } = await SubcategoriaModel.findProdutosDisponiveis(
+      empresaId,
+      subcategoriaId,
+      page,
+      limit,
+      search,
+      normalizeExclusions(exclude)
+    );
+    return { items, total, page, limit };
+  }
+
   static async vincularProdutosLote(
     empresaId: number,
     subcategoriaId: number,

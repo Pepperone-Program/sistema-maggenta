@@ -1026,6 +1026,61 @@ export class SubcategoriaModel {
       `
         SELECT COUNT(*) as total
         FROM produtos p
+        INNER JOIN aux_subcategorias_produtos asp
+          ON asp.id_empresa = p.id_empresa
+         AND asp.id_produto = p.id_produto
+         AND asp.id_subcategoria = ?
+        WHERE p.id_empresa = ? ${filters.sql}
+      `,
+      [subcategoriaId, empresaId, ...filters.values]
+    );
+    const total = (countResult as any[])[0].total;
+    const items = await query(
+      `
+        SELECT
+          p.id_empresa,
+          ? AS id_subcategoria,
+          p.id_produto,
+          p.codigo,
+          p.produto,
+          p.habilitado,
+          (
+            SELECT ip.url_imagem
+            FROM imagens_produtos ip
+            WHERE ip.id_produto = p.id_produto
+            ORDER BY ip.ordem_imagem ASC, ip.id_imagem ASC
+            LIMIT 1
+          ) AS url_imagem,
+          TRUE AS vinculado
+        FROM produtos p
+        INNER JOIN aux_subcategorias_produtos asp
+          ON asp.id_empresa = p.id_empresa
+         AND asp.id_produto = p.id_produto
+         AND asp.id_subcategoria = ?
+        WHERE p.id_empresa = ? ${filters.sql}
+        ORDER BY p.produto ASC, p.id_produto ASC
+        LIMIT ? OFFSET ?
+      `,
+      [subcategoriaId, subcategoriaId, empresaId, ...filters.values, safeLimit, (safePage - 1) * safeLimit]
+    );
+    return { items: items as SubcategoriaProduto[], total };
+  }
+
+  static async findProdutosDisponiveis(
+    empresaId: number,
+    subcategoriaId: number,
+    page: number = 1,
+    limit: number = 100,
+    search?: string,
+    exclusions: string[] = []
+  ): Promise<{ items: SubcategoriaProduto[]; total: number }> {
+    const safePage = normalizePage(page);
+    const safeLimit = normalizeLimit(limit);
+    const filters = buildProductFilters(search, exclusions);
+    const countResult = await query(
+      `
+        SELECT COUNT(*) as total
+        FROM produtos p
         LEFT JOIN aux_subcategorias_produtos asp
           ON asp.id_empresa = p.id_empresa
          AND asp.id_produto = p.id_produto

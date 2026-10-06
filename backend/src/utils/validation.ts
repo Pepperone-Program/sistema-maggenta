@@ -125,10 +125,6 @@ export const vincularProdutoSchema = Joi.object({
 });
 
 const productIdsSchema = Joi.array()
-  // The array may be empty when it is optional (for example, excluded_ids
-  // while selecting all products). `required()` belongs on the array itself
-  // where needed, not on every item, otherwise Joi rejects [] with
-  // "does not contain 1 required value(s)".
   .items(Joi.number().integer().positive())
   .max(5000)
   .unique();

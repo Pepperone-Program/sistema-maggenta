@@ -350,7 +350,7 @@ export class SubcategoriaController {
 
   static async listProdutos(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const result = await SubcategoriaService.listProdutos(
+      const result = await SubcategoriaService.listProdutosDisponiveis(
         getEmpresaId(req),
         parseInt(req.params.id, 10),
         getPage(req),

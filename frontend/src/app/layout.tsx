@@ -1,3 +1,4 @@
+import { Toaster } from "@/components/ui/toast";
 import "@/css/satoshi.css";
 import "@/css/style.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
         <Providers>
           <NextTopLoader color="#be185d" showSpinner={false} />
           <AppShell>{children}</AppShell>
+          <Toaster />
         </Providers>
       </body>
     </html>

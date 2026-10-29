@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import { apiRequest } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 
@@ -125,12 +127,12 @@ export function ProductSubcategoriesPage() {
   }, [subcategories]);
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <div className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary">
           Catalogo
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
+        <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">
           Subcategorias por produto
         </h1>
         <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
@@ -138,23 +140,13 @@ export function ProductSubcategoriesPage() {
         </p>
       </div>
 
-      {(error || message) && (
-        <div
-          className={
-            error
-              ? "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-              : "rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
-          }
-        >
-          {error || message}
-        </div>
-      )}
+      <FeedbackToast message={error || message} type={error ? "error" : "success"} />
 
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-        <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+      <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
+        <section className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
           <h2 className="text-lg font-bold text-dark dark:text-white">Produto</h2>
           <input
-            className="mt-4 w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            className="mt-4 w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
               setSearch(event.target.value);
               setSelectedProduct(null);
@@ -166,7 +158,7 @@ export function ProductSubcategoriesPage() {
 
           <div className="mt-3 max-h-[520px] overflow-y-auto rounded-md border border-stroke bg-white dark:border-dark-3 dark:bg-dark-2">
             {loadingProducts ? (
-              <div className="px-4 py-3 text-sm text-dark-4">Buscando...</div>
+              <div className="px-3 py-2 text-sm text-dark-4">Buscando...</div>
             ) : products.length ? (
               products.map((product) => (
                 <button
@@ -182,12 +174,12 @@ export function ProductSubcategoriesPage() {
                 </button>
               ))
             ) : (
-              <div className="px-4 py-3 text-sm text-dark-4">Nenhum produto encontrado.</div>
+              <div className="px-3 py-2 text-sm text-dark-4">Nenhum produto encontrado.</div>
             )}
           </div>
         </section>
 
-        <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+        <section className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-dark dark:text-white">
@@ -206,7 +198,7 @@ export function ProductSubcategoriesPage() {
               </div>
             ) : selectedProduct && subcategories.length ? (
               Object.entries(groupedSubcategories).map(([categoria, items]) => (
-                <div className="rounded-md border border-stroke p-4 dark:border-dark-3" key={categoria}>
+                <div className="rounded-md border border-stroke p-3 dark:border-dark-3" key={categoria}>
                   <h3 className="mb-3 text-sm font-bold text-dark dark:text-white">{categoria}</h3>
                   <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                     {items.map((item) => {

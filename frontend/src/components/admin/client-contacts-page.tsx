@@ -1,5 +1,10 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
+
 import { apiRequest } from "@/lib/api";
 import { FormEvent, useEffect, useState } from "react";
 import { StatusBadge } from "./status-badge";
@@ -106,6 +111,8 @@ export function ClientContactsPage() {
   const [contatos, setContatos] = useState<Contato[]>([]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function load(cliente = selectedCliente) {
     if (!cliente) return;
@@ -125,8 +132,10 @@ export function ClientContactsPage() {
 
   async function createContato(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedCliente) return;
+    if (!selectedCliente || saving) return;
     const form = new FormData(event.currentTarget);
+    setSaving(true);
+    setError("");
     const payload = {
       contato_email: String(form.get("contato_email") || "").trim(),
       contato_nome: String(form.get("contato_nome") || "").trim(),
@@ -141,11 +150,13 @@ export function ClientContactsPage() {
         method: "POST",
         body: JSON.stringify(payload),
       });
+      setFormOpen(false);
+      await load(selectedCliente);
       setMessage("Contato criado com sucesso.");
-      event.currentTarget.reset();
-      load(selectedCliente);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao criar contato");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -164,12 +175,12 @@ export function ClientContactsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <div className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary">
           Clientes
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
+        <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">
           Contatos de clientes
         </h1>
         <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
@@ -177,20 +188,64 @@ export function ClientContactsPage() {
         </p>
       </div>
 
-      {(message || error) && (
-        <div
-          className={
-            error
-              ? "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-              : "rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
-          }
-        >
-          {error || message}
-        </div>
-      )}
+      <FeedbackToast message={error || message} type={error ? "error" : "success"} />
 
-      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
-        <aside className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+      <div>
+
+
+        <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
+          <div className="flex flex-col gap-3 border-b border-stroke p-3 dark:border-dark-3 sm:flex-row">
+            <div className="min-w-0 flex-1">
+              <ClientSearch value={selectedCliente} onChange={setSelectedCliente} />
+            </div>
+            <button
+              className="rounded-md bg-primary px-3 py-2 text-sm font-bold text-white"
+              onClick={() => load()}
+              type="button"
+            >
+              Carregar contatos
+            </button>
+            <Button onClick={() => setFormOpen(true)}><Plus className="size-4" /> Criar contato</Button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs uppercase text-dark-4 dark:text-dark-6">
+                  <th className="px-3 py-2">Nome</th>
+                  <th className="px-3 py-2">Email</th>
+                  <th className="px-3 py-2">Cargo</th>
+                  <th className="px-3 py-2">Telefone</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-4 py-3 text-right">Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contatos.map((contato) => (
+                  <tr className="border-t border-stroke dark:border-dark-3" key={contato.contato_email}>
+                    <td className="px-3 py-2 font-semibold text-dark dark:text-white">
+                      {contato.contato_nome || "-"}
+                    </td>
+                    <td className="px-3 py-2">{contato.contato_email}</td>
+                    <td className="px-3 py-2">{contato.contato_cargo || "-"}</td>
+                    <td className="px-3 py-2">{contato.contato_tel || contato.contato_celular || "-"}</td>
+                    <td className="px-3 py-2"><StatusBadge value={contato.habilitado} /></td>
+                    <td className="px-4 py-3 text-right">
+                      <button className="text-sm font-semibold text-red-600" onClick={() => removeContato(contato.contato_email)} type="button">
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+        <Dialog open={formOpen} onOpenChange={open => { if (!saving) setFormOpen(open); }}>
+          <DialogContent>
+          <DialogTitle className="text-lg font-bold">Criar contato</DialogTitle>
+          <DialogDescription className="mb-4 mt-1 text-sm text-dark-4">Selecione o cliente e preencha os dados do contato.</DialogDescription>
           <form onSubmit={createContato} className="space-y-4">
             <ClientSearch value={selectedCliente} onChange={setSelectedCliente} />
             <label className="block">
@@ -213,60 +268,12 @@ export function ClientContactsPage() {
               <option value="S">Ativo</option>
               <option value="N">Inativo</option>
             </select>
-            <button className="w-full rounded-md bg-primary px-4 py-3 text-sm font-bold text-white">
-              Criar contato
+            <button className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={saving || !selectedCliente}>
+              {saving ? "Salvando..." : "Criar contato"}
             </button>
           </form>
-        </aside>
-
-        <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-          <div className="flex flex-col gap-3 border-b border-stroke p-4 dark:border-dark-3 sm:flex-row">
-            <div className="min-w-0 flex-1">
-              <ClientSearch value={selectedCliente} onChange={setSelectedCliente} />
-            </div>
-            <button
-              className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white"
-              onClick={() => load()}
-              type="button"
-            >
-              Carregar contatos
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="text-xs uppercase text-dark-4 dark:text-dark-6">
-                  <th className="px-4 py-3">Nome</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Cargo</th>
-                  <th className="px-4 py-3">Telefone</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Acoes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contatos.map((contato) => (
-                  <tr className="border-t border-stroke dark:border-dark-3" key={contato.contato_email}>
-                    <td className="px-4 py-3 font-semibold text-dark dark:text-white">
-                      {contato.contato_nome || "-"}
-                    </td>
-                    <td className="px-4 py-3">{contato.contato_email}</td>
-                    <td className="px-4 py-3">{contato.contato_cargo || "-"}</td>
-                    <td className="px-4 py-3">{contato.contato_tel || contato.contato_celular || "-"}</td>
-                    <td className="px-4 py-3"><StatusBadge value={contato.habilitado} /></td>
-                    <td className="px-4 py-3 text-right">
-                      <button className="text-sm font-semibold text-red-600" onClick={() => removeContato(contato.contato_email)} type="button">
-                        Remover
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

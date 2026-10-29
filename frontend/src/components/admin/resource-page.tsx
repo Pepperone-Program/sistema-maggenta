@@ -1,5 +1,12 @@
 "use client";
 
+import { FeedbackToast, toast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Plus, RefreshCw, Pencil, Trash2 } from "lucide-react";
+
 import {
   createResource,
   deleteResource,
@@ -41,7 +48,7 @@ function FieldControl({
   value?: unknown;
 }) {
   const baseClass =
-    "w-full rounded-md border border-stroke bg-gray-2 px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white";
+    "w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white";
   const defaultValue =
     value === undefined || value === null
       ? ""
@@ -79,7 +86,7 @@ function FieldControl({
   }
 
   return (
-    <input
+    <Input
       className={baseClass}
       defaultValue={defaultValue}
       maxLength={field.maxLength}
@@ -100,6 +107,7 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   const formValues = useMemo(
     () => ({ ...(config.defaultValues || {}), ...(selected || {}) }),
@@ -131,6 +139,7 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     setError("");
 
@@ -148,9 +157,10 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
         await createResource(config.endpoint, payload);
       }
 
+      toast.add({ type: "success", description: selected ? "Alterações salvas." : "Registro criado." });
+      setFormOpen(false);
       setSelected(null);
       await loadData();
-      event.currentTarget.reset();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao salvar");
     } finally {
@@ -174,14 +184,14 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <div className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
               Maggenta Admin
             </p>
-            <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
+            <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">
               {config.title}
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-dark-4 dark:text-dark-6">
@@ -190,32 +200,19 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              className="rounded-md border border-stroke px-4 py-2.5 text-sm font-semibold text-dark hover:border-primary hover:text-primary dark:border-dark-3 dark:text-white"
-              onClick={() => {
-                setSelected(null);
-                setPage(1);
-                loadData();
-              }}
-              type="button"
-            >
-              Atualizar
-            </button>
+            <Button variant="outline" onClick={() => { if (page === 1) loadData(); else setPage(1); }}><RefreshCw className="size-4" /> Atualizar</Button>
+            <Button onClick={() => { setSelected(null); setFormOpen(true); }}><Plus className="size-4" /> Criar</Button>
           </div>
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      <FeedbackToast message={error} type="error" />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+      <div>
         <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-          <div className="flex flex-col gap-3 border-b border-stroke p-4 dark:border-dark-3 md:flex-row md:items-center md:justify-between">
-            <input
-              className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white md:max-w-md"
+          <div className="flex flex-col gap-3 border-b border-stroke p-3 dark:border-dark-3 md:flex-row md:items-center md:justify-between">
+            <Input
+              className="md:max-w-md"
               onChange={(event) => {
                 setSearch(event.target.value);
                 setPage(1);
@@ -225,7 +222,7 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
             />
             {config.showStatusFilter !== false && (
               <select
-                className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                className="rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                 onChange={(event) => {
                   setHabilitado(event.target.value);
                   setPage(1);
@@ -239,67 +236,72 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
             )}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
+          <Table className="text-left">
+              <TableHeader>
+                <TableRow className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
                   {config.columns.map((column) => (
-                    <th className="px-4 py-3 font-semibold" key={column.name}>
+                    <TableHead className="px-3 py-2 font-semibold" key={column.name}>
                       {column.label}
-                    </th>
+                    </TableHead>
                   ))}
-                  <th className="px-4 py-3 text-right font-semibold">Acoes</th>
-                </tr>
-              </thead>
-              <tbody>
+                  <TableHead className="px-4 py-3 text-right font-semibold">Acoes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {loading ? (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-dark-4" colSpan={config.columns.length + 1}>
+                  <TableRow>
+                    <TableCell className="px-4 py-8 text-center text-dark-4" colSpan={config.columns.length + 1}>
                       Carregando dados...
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : data?.items.length ? (
                   data.items.map((row) => (
-                    <tr
-                      className={`border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2 ${onRowClick ? "cursor-pointer" : ""}`}
+                    <TableRow
+                      className={`border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2 ${onRowClick ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" : ""}`}
                       key={String(row[config.idField])}
                       onClick={() => onRowClick?.(row)}
+                      tabIndex={onRowClick ? 0 : undefined}
+                      onKeyDown={onRowClick ? (event) => {
+                        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                          event.preventDefault();
+                          onRowClick(row);
+                        }
+                      } : undefined}
                     >
                       {config.columns.map((column) => (
-                        <td className="max-w-[280px] px-4 py-3" key={column.name}>
+                        <TableCell className="max-w-[280px] px-4 py-3" key={column.name}>
                           {formatCell(row[column.name], column)}
-                        </td>
+                        </TableCell>
                       ))}
-                      <td className="px-4 py-3 text-right">
+                      <TableCell className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <button
                             className="rounded-md border border-stroke px-3 py-1.5 text-xs font-semibold hover:border-primary hover:text-primary dark:border-dark-3"
-                            onClick={(event) => { event.stopPropagation(); setSelected(row); }}
+                            onClick={(event) => { event.stopPropagation(); setSelected(row); setFormOpen(true); }}
                             type="button"
                           >
-                            Editar
+                            <Pencil aria-hidden="true" className="mr-1 inline size-3.5" /> Editar
                           </button>
                           <button
                             className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-300"
                             onClick={(event) => { event.stopPropagation(); handleDelete(row); }}
                             type="button"
                           >
-                            Excluir
+                            <Trash2 aria-hidden="true" className="mr-1 inline size-3.5" /> Excluir
                           </button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 ) : (
-                  <tr>
-                    <td className="px-4 py-8 text-center text-dark-4" colSpan={config.columns.length + 1}>
+                  <TableRow>
+                    <TableCell className="px-4 py-8 text-center text-dark-4" colSpan={config.columns.length + 1}>
                       Nenhum registro encontrado.
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+</Table>
 
           <div className="flex items-center justify-between border-t border-stroke p-4 text-sm dark:border-dark-3">
             <span className="text-dark-4 dark:text-dark-6">
@@ -329,57 +331,27 @@ export function ResourcePage({ config, onRowClick }: { config: ResourceConfig; o
           </div>
         </section>
 
-        <aside className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-dark dark:text-white">
-                {selected ? "Editar registro" : "Novo registro"}
-              </h2>
-              <p className="text-sm text-dark-4 dark:text-dark-6">
-                Campos desconhecidos sao ignorados pela API.
-              </p>
-            </div>
-            {selected && (
-              <button
-                className="rounded-md border border-stroke px-3 py-1.5 text-xs font-semibold dark:border-dark-3"
-                onClick={() => setSelected(null)}
-                type="button"
-              >
-                Limpar
-              </button>
-            )}
-          </div>
+      </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit} key={selected ? String(selected[config.idField]) : "new"}>
+      <Dialog open={formOpen} onOpenChange={(open) => { if (!saving) { setFormOpen(open); if (!open) setSelected(null); } }}>
+        <DialogContent>
+          <DialogTitle className="pr-8 text-lg font-bold">{selected ? "Editar registro" : "Criar registro"}</DialogTitle>
+          <DialogDescription className="mt-1 text-sm text-dark-4 dark:text-dark-6">{config.title}</DialogDescription>
+          <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={handleSubmit} key={selected ? String(selected[config.idField]) : "new"}>
             {config.formFields.map((field) => (
-              <label className="block" key={field.name}>
-                <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">
-                  {field.label}
-                  {field.required && <span className="text-red-500"> *</span>}
-                </span>
+              <label className={field.type === "textarea" ? "block sm:col-span-2" : "block"} key={field.name}>
+                <span className="mb-1 block text-sm font-semibold text-dark dark:text-white">{field.label}{field.required && <span className="text-red-500"> *</span>}</span>
                 <FieldControl field={field} value={formValues[field.name]} />
               </label>
             ))}
-
-            <button
-              className="w-full rounded-md bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90 disabled:opacity-60"
-              disabled={saving}
-              type="submit"
-            >
-              {saving ? "Salvando..." : selected ? "Salvar alteracoes" : "Criar registro"}
-            </button>
+            <div className="flex justify-end gap-2 border-t border-stroke pt-3 sm:col-span-2 dark:border-dark-3">
+              <Button variant="outline" disabled={saving} onClick={() => { setFormOpen(false); setSelected(null); }}>Cancelar</Button>
+              <Button disabled={saving} type="submit">{saving ? "Salvando..." : selected ? "Salvar alterações" : "Criar registro"}</Button>
+            </div>
           </form>
-        </aside>
-      </div>
-
-      {config.imageManager && selected && (
-        <ProductImagesPanel
-          endpoint={config.endpoint}
-          onChanged={loadData}
-          produtoId={String(selected[config.idField])}
-          produtoNome={selected.produto}
-        />
-      )}
+          {config.imageManager && selected && <ProductImagesPanel endpoint={config.endpoint} onChanged={loadData} produtoId={String(selected[config.idField])} produtoNome={selected.produto} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

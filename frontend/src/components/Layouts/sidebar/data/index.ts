@@ -1,4 +1,4 @@
-import * as Icons from "../icons";
+import { LayoutDashboard, Package, Sparkles, Users, FileText, Tags, ListTree, Boxes, Target, CalendarDays, Image, PanelsTopLeft, ShieldCheck } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 
 type NavSubItem = {
@@ -25,31 +25,31 @@ export const NAV_DATA: NavSection[] = [
       {
         title: "Dashboard",
         url: "/",
-        icon: Icons.HomeIcon,
+        icon: LayoutDashboard,
         items: [],
       },
       {
         title: "Produtos",
         url: "/produtos",
-        icon: Icons.Table,
+        icon: Package,
         items: [],
       },
       {
         title: "Descrições com IA",
         url: "/produtos/gerar-descricoes",
-        icon: Icons.PieChart,
+        icon: Sparkles,
         items: [],
       },
       {
         title: "Clientes",
         url: "/clientes",
-        icon: Icons.User,
+        icon: Users,
         items: [],
       },
       {
         title: "Orçamentos",
         url: "/orcamentos",
-        icon: Icons.Budget,
+        icon: FileText,
         items: [],
       },
     ],
@@ -60,43 +60,43 @@ export const NAV_DATA: NavSection[] = [
       {
         title: "Categorias",
         url: "/categorias",
-        icon: Icons.Table,
+        icon: Tags,
         items: [],
       },
       {
         title: "Subcategorias",
         url: "/subcategorias",
-        icon: Icons.Alphabet,
+        icon: ListTree,
         items: [],
       },
       {
         title: "Subcategorias por produto",
         url: "/produtos/subcategorias",
-        icon: Icons.FourCircle,
+        icon: Boxes,
         items: [],
       },
       {
         title: "Publicos-alvo",
         url: "/publicos-alvos",
-        icon: Icons.FourCircle,
+        icon: Target,
         items: [],
       },
       {
         title: "Datas promocionais",
         url: "/datas-promocionais",
-        icon: Icons.Calendar,
+        icon: CalendarDays,
         items: [],
       },
       {
         title: "Banners",
         url: "/banners",
-        icon: Icons.Banner,
+        icon: Image,
         items: [],
       },
       {
         title: "Landing pages",
         url: "/landing-pages",
-        icon: Icons.Website,
+        icon: PanelsTopLeft,
         items: [],
       },
     ],
@@ -107,13 +107,13 @@ export const NAV_DATA: NavSection[] = [
       {
         title: "Usuarios",
         url: "/usuarios",
-        icon: Icons.User,
+        icon: Users,
         items: [],
       },
       {
         title: "Permissoes",
         url: "/permissoes",
-        icon: Icons.Permission,
+        icon: ShieldCheck,
         items: [],
       },
     ],

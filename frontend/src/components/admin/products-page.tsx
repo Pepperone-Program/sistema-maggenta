@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import {
   createResource,
   deleteResource,
@@ -10,7 +12,9 @@ import {
 import { apiRequest } from "@/lib/api";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { LinkCombobox } from "./link-combobox";
 import { ProductImagesPanel } from "./product-images-panel";
+import { ProductThumbnail, mainProductImage } from "./product-thumbnail";
 import { StatusBadge } from "./status-badge";
 
 type Row = Record<string, unknown>;
@@ -163,7 +167,7 @@ function ProductTypeSelect({
 
   return (
     <select
-      className="w-full rounded-md border border-stroke bg-white px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+      className="w-full rounded-md border border-stroke bg-white px-3 py-2 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
       name="id_tipo_produto"
       onChange={(event) => onChange(event.target.value)}
       required
@@ -190,10 +194,10 @@ function Field({ field, value }: { field: ProductField; value?: unknown }) {
         ? String(value).slice(0, 10)
         : String(value);
   const inputClass =
-    "w-full rounded-md border border-stroke bg-white px-3 py-2.5 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white";
+    "w-full rounded-md border border-stroke bg-white px-3 py-2 text-sm text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white";
 
   if (field.type === "textarea") {
-    return <textarea className={`${inputClass} min-h-24 w-50% resize-y`} defaultValue={defaultValue} name={field.name} placeholder={field.label} />;
+    return <textarea className={`${inputClass} min-h-[240px] resize-y`} defaultValue={defaultValue} name={field.name} placeholder={field.label} />;
   }
 
   return (
@@ -209,16 +213,14 @@ function Field({ field, value }: { field: ProductField; value?: unknown }) {
 }
 
 function productFieldLayout(field: ProductField) {
-  if (field.type === "textarea") return "md:col-span-6";
-  if (["produto", "imagem"].includes(field.name)) return "md:col-span-5";
-  if (["video"].includes(field.name)) return "md:col-span-3";
-  if (["codigo", "cod_forn", "ncm", "quantidade_minima", "data_inicial", "data_final"].includes(field.name)) return "md:col-span-2";
-  return "md:col-span-2";
+  if (field.type === "textarea") return "min-w-0 sm:col-span-4";
+  if (["produto", "imagem", "video"].includes(field.name)) return "min-w-0 sm:col-span-2";
+  return "min-w-0";
 }
 
 function ProductLinksPanel({ produtoId }: { produtoId: number }) {
   const [links, setLinks] = useState<ProductLinks | null>(null);
-  const [options, setOptions] = useState<Record<string, Row[]>>({});
+  const [linkBusy, setLinkBusy] = useState(false);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
 
@@ -229,37 +231,40 @@ function ProductLinksPanel({ produtoId }: { produtoId: number }) {
 
   useEffect(() => {
     loadLinks().catch((err) => setError(err instanceof Error ? err.message : "Falha ao carregar vinculos"));
-    linkTargets.forEach((target) => {
-      fetchAllRows(target.endpoint)
-        .then((items) => setOptions((current) => ({ ...current, [target.key]: items })))
-        .catch(() => undefined);
-    });
   }, [loadLinks]);
 
   async function addLink(target: (typeof linkTargets)[number]) {
     const id = selected[target.key];
-    if (!id) return;
-    await apiRequest(`${target.endpoint}/${id}/produtos`, {
-      method: "POST",
-      body: JSON.stringify({ id_produto: produtoId }),
-    });
-    setSelected((current) => ({ ...current, [target.key]: "" }));
-    await loadLinks();
+    if (!id || linkBusy) return;
+    setLinkBusy(true);
+    setError("");
+    try {
+      await apiRequest(`${target.endpoint}/${id}/produtos`, {
+        method: "POST",
+        body: JSON.stringify({ id_produto: produtoId }),
+      });
+      setSelected((current) => ({ ...current, [target.key]: "" }));
+      await loadLinks();
+    } finally { setLinkBusy(false); }
   }
 
   async function removeLink(target: (typeof linkTargets)[number], id: unknown) {
-    await apiRequest(`${target.endpoint}/${String(id)}/produtos/${produtoId}`, { method: "DELETE" });
-    await loadLinks();
+    if (linkBusy) return;
+    setLinkBusy(true);
+    setError("");
+    try {
+      await apiRequest(`${target.endpoint}/${String(id)}/produtos/${produtoId}`, { method: "DELETE" });
+      await loadLinks();
+    } finally { setLinkBusy(false); }
   }
 
   return (
     <div className="space-y-4">
-      {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      <FeedbackToast message={error} type="error" />
       <div className="grid gap-4 lg:grid-cols-2">
         {linkTargets.map((target) => {
           const linked = (links?.[target.key] || []) as Row[];
           const linkedIds = new Set(linked.map((item) => String(item[target.idField])));
-          const available = (options[target.key] || []).filter((item) => !linkedIds.has(String(item[target.idField])));
 
           return (
             <section className="rounded-md border border-stroke p-4 dark:border-dark-3" key={target.key}>
@@ -271,21 +276,10 @@ function ProductLinksPanel({ produtoId }: { produtoId: number }) {
               </div>
 
               <div className="mb-3 flex gap-2">
-                <select
-                  className="min-w-0 flex-1 rounded-md border border-stroke bg-white px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
-                  onChange={(event) => setSelected((current) => ({ ...current, [target.key]: event.target.value }))}
-                  value={selected[target.key] || ""}
-                >
-                  <option value="">Adicionar...</option>
-                  {available.map((item) => (
-                    <option key={String(item[target.idField])} value={String(item[target.idField])}>
-                      {text(item[target.nameField])}
-                    </option>
-                  ))}
-                </select>
+                <LinkCombobox endpoint={target.endpoint} idField={target.idField} nameField={target.nameField} label={target.label} excludedIds={linkedIds} value={selected[target.key] || ""} onChange={id => setSelected(current => ({ ...current, [target.key]: id }))} disabled={linkBusy} />
                 <button
                   className="rounded-md bg-primary px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
-                  disabled={!selected[target.key]}
+                  disabled={linkBusy || !selected[target.key]}
                   onClick={() => addLink(target).catch((err) => setError(err instanceof Error ? err.message : "Falha ao vincular"))}
                   type="button"
                 >
@@ -297,9 +291,13 @@ function ProductLinksPanel({ produtoId }: { produtoId: number }) {
                 {linked.length ? (
                   linked.map((item) => (
                     <div className="flex items-center justify-between gap-2 rounded-md bg-gray-2 px-3 py-2 dark:bg-dark-2" key={String(item[target.idField])}>
-                      <span className="truncate text-sm font-medium text-dark dark:text-white">{text(item[target.nameField])}</span>
+                      <div className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-dark dark:text-white">{text(item[target.nameField])}</span>
+                        {target.key === "subcategorias" && <span className="block truncate text-xs text-dark-4 dark:text-dark-6">{item.categoria ? text(item.categoria) : item.id_categoria ? `Categoria #${text(item.id_categoria)}` : "Categoria não informada"}</span>}
+                      </div>
                       <button
                         className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600"
+                        disabled={linkBusy}
                         onClick={() => removeLink(target, item[target.idField]).catch((err) => setError(err instanceof Error ? err.message : "Falha ao remover"))}
                         type="button"
                       >
@@ -407,8 +405,8 @@ function ProductModal({
         </header>
 
         <main className="overflow-y-auto bg-gray-2/50 p-4 dark:bg-dark/20 sm:p-6">
-          {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
-          {success && <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-200">{success}</div>}
+          <FeedbackToast message={error} type="error" />
+          <FeedbackToast message={success} type="success" />
 
           <div className="space-y-5">
             <section className="rounded-lg border border-stroke bg-white p-4 dark:border-dark-3 dark:bg-gray-dark sm:p-5">
@@ -417,14 +415,14 @@ function ProductModal({
                 <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">Identificação, dimensões, disponibilidade e conteúdo comercial.</p>
               </div>
               <form className="space-y-5" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-12">
-                <label className="md:col-span-3">
+              <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-12">
+                <label className="min-w-0 sm:col-span-2">
                   <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">
                     Tipo <span className="text-red-500">*</span>
                   </span>
                   <ProductTypeSelect value={selectedTypeId} onChange={setSelectedTypeId} />
                 </label>
-                {productFields.map((field) => (
+                {productFields.filter((field) => field.type !== "textarea").map((field) => (
                   <label className={productFieldLayout(field)} key={field.name}>
                     <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">
                       {field.label}
@@ -435,16 +433,27 @@ function ProductModal({
                 ))}
               </div>
 
-              <div className="grid gap-2 border-t border-stroke pt-4 dark:border-dark-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
+              <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {productFields.filter((field) => field.type === "textarea").map((field) => (
+                  <label className="min-w-0" key={field.name}>
+                    <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">{field.label}</span>
+                    <Field field={field} value={values[field.name]} />
+                  </label>
+                ))}
+                <fieldset className="min-w-0 md:col-span-2 xl:col-span-1">
+                  <legend className="mb-1.5 text-sm font-semibold text-dark dark:text-white">Disponibilidade e destaque</legend>
+                  <div className="grid max-w-[560px] gap-1 sm:grid-cols-3">
                 {flagFields.map(([name, label]) => (
-                  <label className="flex items-center justify-between rounded-md bg-gray-2 px-3 py-2 dark:bg-dark-2" key={name}>
+                  <label className="flex min-w-0 items-center justify-between gap-1 rounded-md bg-gray-2 px-2 py-2 dark:bg-dark-2" key={name}>
                     <span className="text-sm font-semibold text-dark dark:text-white">{label}</span>
-                    <select className="rounded-md border border-stroke bg-white px-2 py-1 text-sm dark:border-dark-3 dark:bg-gray-dark dark:text-white" defaultValue={String(values[name] || "N")} name={name}>
+                    <select className="w-16 shrink-0 rounded-md border border-stroke bg-white px-1 py-1 text-sm dark:border-dark-3 dark:bg-gray-dark dark:text-white" defaultValue={String(values[name] || "N")} name={name}>
                       <option value="S">Sim</option>
                       <option value="N">Não</option>
                     </select>
                   </label>
                 ))}
+                  </div>
+                </fieldset>
               </div>
 
               <div className="flex justify-end gap-2 border-t border-stroke pt-4 dark:border-dark-3">
@@ -552,7 +561,7 @@ export function ProductsPage() {
         </div>
       </section>
 
-      {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+      <FeedbackToast message={error} type="error" />
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
         <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-2 xl:grid-cols-6">
@@ -609,17 +618,18 @@ export function ProductsPage() {
           <table className="w-full min-w-[1120px] text-left text-sm">
             <thead>
               <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
-                {["ID", "Codigo", "Produto", "Largura", "Altura", "Profundidade", "Qtd. min.", "Site", "Status", "Promocao", "Acoes"].map((header) => (
+                {["Imagem", "ID", "Codigo", "Produto", "Largura", "Altura", "Profundidade", "Qtd. min.", "Site", "Status", "Promocao", "Acoes"].map((header) => (
                   <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={11}>Carregando produtos...</td></tr>
+                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={12}>Carregando produtos...</td></tr>
               ) : data?.items.length ? (
                 data.items.map((row) => (
                   <tr className="border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2" key={String(row.id_produto)}>
+                    <td className="px-4 py-3"><ProductThumbnail key={mainProductImage(row)} src={mainProductImage(row)} name={text(row.produto)} /></td>
                     <td className="px-4 py-3 font-bold">#{text(row.id_produto)}</td>
                     <td className="px-4 py-3">{text(row.codigo)}</td>
                     <td className="max-w-[360px] px-4 py-3">
@@ -646,7 +656,7 @@ export function ProductsPage() {
                   </tr>
                 ))
               ) : (
-                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={11}>Nenhum produto encontrado.</td></tr>
+                <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={12}>Nenhum produto encontrado.</td></tr>
               )}
             </tbody>
           </table>

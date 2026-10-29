@@ -1,5 +1,8 @@
 "use client";
 
+import { ImagePlus } from "lucide-react";
+import { FeedbackToast } from "@/components/ui/toast";
+
 import {
   apiFormRequest,
   createResource,
@@ -12,6 +15,7 @@ import { DragEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 
 import { createPortal } from "react-dom";
 import { StatusBadge } from "./status-badge";
 import { AssociationProductsModal } from "./association-products-modal";
+import { saveCategoryWithCover } from "./category-save";
 
 type Category = Record<string, unknown> & {
   id_categoria?: number;
@@ -42,13 +46,14 @@ function CategoryModal({
 }) {
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [savedId, setSavedId] = useState<number | null>(category?.id_categoria ? Number(category.id_categoria) : null);
+  const [coverUrl, setCoverUrl] = useState(String(category?.url_capa || ""));
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState(String(category?.url_capa || ""));
   const [selectedCover, setSelectedCover] = useState<File | null>(null);
   const values = useMemo(() => ({ ...defaultCategory, ...(category || {}) }), [category]);
-  const categoryId = category?.id_categoria ? Number(category.id_categoria) : null;
+  const categoryId = savedId;
 
   useEffect(() => setMounted(true), []);
 
@@ -63,6 +68,7 @@ function CategoryModal({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     setSaving(true);
     setError("");
 
@@ -72,22 +78,26 @@ function CategoryModal({
       descricao: String(form.get("descricao") || ""),
       icon: String(form.get("icon") || ""),
       habilitado: String(form.get("habilitado") || "N"),
-      url_capa: String(form.get("url_capa") || ""),
+      url_capa: coverUrl.trim(),
     };
 
     try {
-      let savedCategory: Category;
-
-      if (categoryId) {
-        savedCategory = await updateResource<Category>("/api/v1/categorias", categoryId, payload);
-      } else {
-        savedCategory = await createResource<Category>("/api/v1/categorias", payload);
-      }
-
-      const savedCategoryId = categoryId || Number(savedCategory.id_categoria);
-
-      if (selectedCover && savedCategoryId) {
-        await uploadCover(selectedCover, savedCategoryId, false, true);
+      const result = await saveCategoryWithCover<Category>({
+        id: categoryId,
+        cover: selectedCover,
+        onPersisted: setSavedId,
+        save: (id) => id
+          ? updateResource<Category>("/api/v1/categorias", id, payload)
+          : createResource<Category>("/api/v1/categorias", payload),
+        upload: (id, file) => {
+          const formData = new FormData();
+          formData.append("image", file);
+          return apiFormRequest<Category>(`/api/v1/categorias/${id}/capa`, formData);
+        },
+      });
+      if (selectedCover) {
+        setCoverUrl(String(result.url_capa));
+        setSelectedCover(null);
       }
 
       await onSaved();
@@ -99,49 +109,24 @@ function CategoryModal({
     }
   }
 
-  async function uploadCover(
-    file: File,
-    targetCategoryId = categoryId,
-    refreshAfterUpload = true,
-    rethrowError = false,
-  ) {
-    if (!targetCategoryId) {
-      setSelectedCover(file);
-      setError("");
+  function selectCover(file: File | undefined) {
+    if (!file || saving) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Selecione um arquivo de imagem.");
       return;
     }
-
-    setUploading(true);
     setError("");
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const response = await apiFormRequest<Category>(`/api/v1/categorias/${targetCategoryId}/capa`, formData);
-      setPreviewUrl(String(response.url_capa || ""));
-      setSelectedCover(null);
-      if (refreshAfterUpload) {
-        await onSaved();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao enviar capa");
-      if (rethrowError) {
-        throw err;
-      }
-    } finally {
-      setUploading(false);
-    }
+    setSelectedCover(file);
   }
 
-  function handleDrop(event: DragEvent<HTMLDivElement>) {
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     setDragActive(false);
-    const file = Array.from(event.dataTransfer.files || []).find((item) => item.type.startsWith("image/"));
-    if (file) uploadCover(file);
+    selectCover(event.dataTransfer.files?.[0]);
   }
 
   const modal = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onMouseDown={() => { if (!saving) onClose(); }}>
       <div
         className="grid max-h-[90vh] w-full max-w-[1400px] overflow-hidden rounded-lg bg-white shadow-2 dark:bg-gray-dark lg:grid-cols-[420px_1fr]"
         onMouseDown={(event) => event.stopPropagation()}
@@ -152,45 +137,22 @@ function CategoryModal({
           </p>
           <h2 className="mt-1 text-2xl font-bold text-dark dark:text-white">{text(values.categoria)}</h2>
 
-          <div
-            className={`mt-5 rounded-md border border-dashed p-3 transition ${
-              dragActive ? "border-primary bg-primary/5" : "border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark"
-            }`}
+          <label
+            className={`mt-4 block rounded-lg border border-dashed p-3 transition focus-within:ring-2 focus-within:ring-primary ${dragActive ? "border-primary bg-primary/5" : "border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark"} ${saving ? "opacity-60" : "cursor-pointer"}`}
             onDragLeave={() => setDragActive(false)}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragActive(true);
-            }}
+            onDragOver={(event) => { event.preventDefault(); if (!saving) setDragActive(true); }}
             onDrop={handleDrop}
           >
-            <div className="overflow-hidden rounded-md border border-stroke bg-gray-2 dark:border-dark-3 dark:bg-dark-2">
+            <div className="flex min-h-40 items-center justify-center overflow-hidden rounded-md bg-gray-2 dark:bg-dark-2">
               {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img alt="Capa da categoria" className="h-auto w-full object-contain" src={previewUrl} />
-              ) : (
-                <div className="flex aspect-[4/3] items-center justify-center text-sm text-dark-4">
-                  Sem capa
-                </div>
-              )}
+                <img alt="Prévia da capa da categoria" className="max-h-56 w-full object-contain" src={previewUrl} />
+              ) : <ImagePlus aria-hidden="true" className="size-8 text-dark-4" />}
             </div>
-            <p className="mt-3 text-xs text-dark-4 dark:text-dark-6">
-              Arraste uma imagem aqui para atualizar a capa.
-              {!categoryId && selectedCover ? " Ela sera enviada ao salvar." : ""}
-            </p>
-            <label className="mt-3 inline-flex cursor-pointer rounded-md bg-primary px-3 py-2 text-xs font-bold text-white">
-              {uploading ? "Enviando..." : selectedCover ? "Imagem selecionada" : "Selecionar imagem"}
-              <input
-                accept="image/*"
-                className="hidden"
-                disabled={uploading || saving}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) uploadCover(file);
-                }}
-                type="file"
-              />
-            </label>
-          </div>
+            <span className="mt-3 block text-center text-sm font-semibold text-dark dark:text-white">Arraste a imagem ou clique para selecionar</span>
+            <span className="mt-1 block truncate text-center text-xs text-dark-4 dark:text-dark-6">{selectedCover ? selectedCover.name : "A capa será enviada ao salvar a categoria."}</span>
+            <input accept="image/*" className="sr-only" disabled={saving} type="file" onChange={(event) => { selectCover(event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
+          </label>
         </aside>
 
         <form className="overflow-y-auto p-6" onSubmit={handleSubmit}>
@@ -199,12 +161,12 @@ function CategoryModal({
               <h3 className="text-lg font-bold text-dark dark:text-white">Informacoes</h3>
               <p className="text-sm text-dark-4 dark:text-dark-6">Edite textos, icone, capa e status.</p>
             </div>
-            <button className="rounded-md border border-stroke px-3 py-2 text-sm font-semibold dark:border-dark-3" onClick={onClose} type="button">
+            <button className="rounded-md border border-stroke px-3 py-2 text-sm font-semibold dark:border-dark-3" onClick={onClose} disabled={saving} type="button">
               Fechar
             </button>
           </div>
 
-          {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
+          <FeedbackToast message={error} type="error" />
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
@@ -226,9 +188,9 @@ function CategoryModal({
               <span className="mb-1.5 block text-sm font-semibold text-dark dark:text-white">URL da capa</span>
               <input
                 className="w-full rounded-md border border-stroke px-3 py-2.5 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
-                defaultValue={String(values.url_capa || "")}
+                value={coverUrl}
                 name="url_capa"
-                onChange={(event) => setPreviewUrl(event.target.value)}
+                onChange={(event) => { setCoverUrl(event.target.value); setSelectedCover(null); setPreviewUrl(event.target.value); }}
                 placeholder="URL da capa"
               />
             </label>
@@ -289,26 +251,26 @@ export function CategoriesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <section className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">Catalogo</p>
-            <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">Categorias</h1>
+            <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">Categorias</h1>
             <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">Gerencie textos, icones e capas das categorias.</p>
           </div>
-          <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalCategory(null)} type="button">
+          <button className="rounded-md bg-primary px-3 py-2 text-sm font-bold text-white" onClick={() => setModalCategory(null)} type="button">
             Nova categoria
           </button>
         </div>
       </section>
 
-      {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+      <FeedbackToast message={error} type="error" />
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-[1fr_180px]">
+        <div className="grid gap-3 border-b border-stroke p-3 dark:border-dark-3 lg:grid-cols-[1fr_180px]">
           <input
-            className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
               setSearch(event.target.value);
               setPage(1);
@@ -317,7 +279,7 @@ export function CategoriesPage() {
             value={search}
           />
           <select
-            className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            className="rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
               setHabilitado(event.target.value);
               setPage(1);
@@ -335,7 +297,7 @@ export function CategoriesPage() {
             <thead>
               <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
                 {["Capa", "ID", "Categoria", "Descricao", "Icone", "Status", "Acoes"].map((header) => (
-                  <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
+                  <th className="px-3 py-2 font-semibold" key={header}>{header}</th>
                 ))}
               </tr>
             </thead>
@@ -349,7 +311,7 @@ export function CategoriesPage() {
                     key={String(category.id_categoria)}
                     onClick={() => setProductsCategory(category)}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="h-20 w-32 overflow-hidden rounded-md border border-stroke bg-gray-2 dark:border-dark-3">
                         {category.url_capa ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -357,12 +319,12 @@ export function CategoriesPage() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-bold">#{category.id_categoria}</td>
-                    <td className="max-w-[260px] px-4 py-3 font-semibold"><span className="block truncate">{text(category.categoria)}</span></td>
-                    <td className="max-w-[420px] px-4 py-3"><span className="block truncate">{text(category.descricao)}</span></td>
-                    <td className="max-w-[180px] px-4 py-3"><span className="block truncate">{text(category.icon)}</span></td>
-                    <td className="px-4 py-3"><StatusBadge value={category.habilitado} /></td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2 font-bold">#{category.id_categoria}</td>
+                    <td className="max-w-[260px] px-3 py-2 font-semibold"><span className="block truncate">{text(category.categoria)}</span></td>
+                    <td className="max-w-[420px] px-3 py-2"><span className="block truncate">{text(category.descricao)}</span></td>
+                    <td className="max-w-[180px] px-3 py-2"><span className="block truncate">{text(category.icon)}</span></td>
+                    <td className="px-3 py-2"><StatusBadge value={category.habilitado} /></td>
+                    <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button className="rounded-md border border-primary px-3 py-1.5 text-xs font-bold text-primary" onClick={(event) => { event.stopPropagation(); setProductsCategory(category); }} type="button">Produtos</button>
                         <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={(event) => { event.stopPropagation(); setModalCategory(category); }} type="button">Editar</button>

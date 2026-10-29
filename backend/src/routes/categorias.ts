@@ -46,6 +46,7 @@ router.get(
 
 router.post(
   '/:id/capa',
+  authMiddleware,
   upload.single('image'),
   CategoriaController.uploadCapa
 );

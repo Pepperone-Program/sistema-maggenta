@@ -1,6 +1,5 @@
-import { ResourcePage } from "@/components/admin/resource-page";
-import { resources } from "@/config/resources";
+import { LandingPagesPage as LandingPagesContent } from "@/components/admin/landing-pages-page";
 
 export default function LandingPagesPage() {
-  return <ResourcePage config={resources["landing-pages"]} />;
+  return <LandingPagesContent />;
 }

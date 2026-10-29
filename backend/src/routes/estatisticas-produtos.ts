@@ -3,6 +3,7 @@ import { EstatisticaProdutoController } from '@controllers/EstatisticaProdutoCon
 import { authMiddleware } from '@middleware/auth';
 
 const router = Router();
+router.get('/dashboard', authMiddleware, EstatisticaProdutoController.dashboard);
 
 router.get(
   '/ranking',

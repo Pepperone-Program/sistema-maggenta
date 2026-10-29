@@ -1,4 +1,6 @@
 "use client";
+
+import { FeedbackToast } from "@/components/ui/toast";
 import { EmailIcon, PasswordIcon } from "@/assets/icons";
 import { apiRequest } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -77,11 +79,7 @@ export default function SigninWithPassword() {
         icon={<PasswordIcon />}
       />
 
-      {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      <FeedbackToast message={error} type="error" />
 
       <div className="mb-4.5">
         <button

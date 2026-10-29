@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import { apiRequest, type PaginatedData } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -185,16 +187,16 @@ export function AssociationProductsModal({ title, associationLabel, endpoint, li
             <button className="rounded-md border border-stroke px-3 py-2 text-sm font-bold dark:border-dark-3" onClick={onClose}>Fechar</button>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <label><span className="mb-1 block text-xs font-bold uppercase text-dark-4">Buscar</span><input aria-label="Buscar por ID, código ou produto" className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => setSearchInput(event.target.value)} placeholder="ID, código ou produto" type="search" value={searchInput} /></label>
-            <label><span className="mb-1 block text-xs font-bold uppercase text-dark-4">Não conter</span><input aria-label="Termos que o nome do produto não deve conter" className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" maxLength={500} onChange={(event) => setExcludeInput(event.target.value)} placeholder="Ex.: anotações, caneta" type="search" value={excludeInput} /><span className="mt-1 block text-xs text-dark-4">Separe vários termos por vírgula.</span></label>
+            <label><span className="mb-1 block text-xs font-bold uppercase text-dark-4">Buscar</span><input aria-label="Buscar por ID, código ou produto" className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => setSearchInput(event.target.value)} placeholder="ID, código ou produto" type="search" value={searchInput} /></label>
+            <label><span className="mb-1 block text-xs font-bold uppercase text-dark-4">Não conter</span><input aria-label="Termos que o nome do produto não deve conter" className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" maxLength={500} onChange={(event) => setExcludeInput(event.target.value)} placeholder="Ex.: anotações, caneta" type="search" value={excludeInput} /><span className="mt-1 block text-xs text-dark-4">Separe vários termos por vírgula.</span></label>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <button className="rounded-md bg-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!selectedCount || processingBatch} onClick={addSelected} type="button">{processingBatch ? "Processando..." : `Adicionar selecionados (${selectedCount})`}</button>
             <button className="rounded-md border border-red-300 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:opacity-50" disabled={processingBatch} onClick={unlinkFiltered} type="button">{hasFilters ? "Desvincular encontrados" : "Desvincular todos"}</button>
           </div>
         </header>
-        {error && <div className="mx-4 mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-        {message && <div className="mx-4 mt-4 rounded-md bg-green-50 p-3 text-sm text-green-700">{message}</div>}
+        <FeedbackToast message={error} type="error" />
+        <FeedbackToast message={message} type="success" />
         <div className="overflow-auto"><table className="w-full text-left text-sm"><thead className="sticky top-0 bg-white dark:bg-gray-dark"><tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3"><th className="w-12 px-5 py-3"><input aria-label="Selecionar todos os produtos encontrados" checked={allResultsFullySelected} disabled={!total} onChange={toggleAllResults} ref={selectAllRef} type="checkbox" /></th><th className="px-5 py-3">Código</th><th className="px-5 py-3">Produto</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">{associationLabel}</th></tr></thead>
           <tbody>{items.map((product) => { const linked = Boolean(product.vinculado); return <tr className="border-b border-stroke dark:border-dark-3" key={product.id_produto}><td className="px-5 py-3"><input aria-label={`Selecionar ${product.produto || `produto ${product.id_produto}`}`} checked={isSelected(product.id_produto)} onChange={() => toggleSelection(product.id_produto)} type="checkbox" /></td><td className="px-5 py-3 text-dark-4">{product.codigo || product.id_produto}</td><td className="px-5 py-3 font-medium text-dark dark:text-white">{product.produto || `Produto #${product.id_produto}`}</td><td className="px-5 py-3">{product.habilitado === "S" ? "Ativo" : "Inativo"}</td><td className="px-5 py-3 text-right"><button aria-checked={linked} aria-label={`${linked ? "Remover" : "Adicionar"} ${product.produto || "produto"}`} className={`relative h-7 w-12 rounded-full transition ${linked ? "bg-primary" : "bg-gray-4 dark:bg-dark-3"} disabled:opacity-50`} disabled={savingIds.has(product.id_produto) || processingBatch} onClick={() => toggleProduct(product)} role="switch" type="button"><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${linked ? "left-6" : "left-1"}`} /></button></td></tr>; })}
           {!items.length && !loading && <tr><td className="px-5 py-8 text-center" colSpan={5}>Nenhum produto encontrado.</td></tr>}</tbody></table>

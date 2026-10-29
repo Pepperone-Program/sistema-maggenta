@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import {
   apiRequest,
   deleteResource,
@@ -173,7 +175,7 @@ function QuoteEditModal({
           </button>
         </div>
 
-        {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
+        <FeedbackToast message={error} type="error" />
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
@@ -326,9 +328,9 @@ function QuoteViewModal({
         {loading ? (
           <div className="rounded-md bg-gray-2 px-4 py-8 text-center text-sm text-dark-4 dark:bg-dark-2">Carregando orçamento...</div>
         ) : error ? (
-          <div className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>
+          <FeedbackToast message={error} />
         ) : quote ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <section className="grid gap-3 rounded-md bg-gray-2 p-4 text-sm dark:bg-dark-2 md:grid-cols-3">
               <div><span className="block text-xs text-dark-4">Contato</span><strong>{text(quote.contato)}</strong></div>
               <div><span className="block text-xs text-dark-4">Email</span><strong>{text(quote.email)}</strong></div>
@@ -435,24 +437,24 @@ export function QuotesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <section className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-primary">Comercial</p>
-          <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">Orçamentos</h1>
+          <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">Orçamentos</h1>
           <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">Acompanhe propostas, contatos e produtos solicitados.</p>
           </div>
           <button className="rounded-md border border-primary px-4 py-2.5 text-sm font-bold text-primary disabled:opacity-50" disabled={refreshing || loading} onClick={refreshWithoutCache} type="button">{refreshing ? "Atualizando..." : "Atualizar e limpar cache"}</button>
         </div>
       </section>
 
-      {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+      <FeedbackToast message={error} type="error" />
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 md:grid-cols-[1fr_220px]">
+        <div className="grid gap-3 border-b border-stroke p-3 dark:border-dark-3 md:grid-cols-[1fr_220px]">
           <input
-            className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white lg:max-w-xl"
+            className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white lg:max-w-xl"
             onChange={(event) => {
               setSearch(event.target.value);
               setPage(1);
@@ -460,7 +462,7 @@ export function QuotesPage() {
             placeholder="Buscar por ID, cliente, email ou contato"
             value={search}
           />
-          <input aria-label="Filtrar orçamentos por data" className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => { setDate(event.target.value); setPage(1); }} type="date" value={date} />
+          <input aria-label="Filtrar orçamentos por data" className="rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => { setDate(event.target.value); setPage(1); }} type="date" value={date} />
         </div>
 
         <div className="overflow-x-auto">
@@ -468,7 +470,7 @@ export function QuotesPage() {
             <thead>
               <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
                 {["ID", "Data", "Cliente", "Contato", "Email", "Telefone", "Cidade", "Entrega", "Ações"].map((header) => (
-                  <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
+                  <th className="px-3 py-2 font-semibold" key={header}>{header}</th>
                 ))}
               </tr>
             </thead>
@@ -478,15 +480,15 @@ export function QuotesPage() {
               ) : data?.items.length ? (
                 data.items.map((quote) => (
                   <tr className="border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2" key={String(quote.id_orcamento)}>
-                    <td className="px-4 py-3 font-bold">#{quote.id_orcamento}</td>
-                    <td className="px-4 py-3">{formatDate(quote.data_orcamento)}</td>
-                    <td className="max-w-[260px] px-4 py-3 font-semibold"><span className="block truncate">{text(quote.fantasia)}</span></td>
-                    <td className="max-w-[220px] px-4 py-3"><span className="block truncate">{text(quote.contato)}</span></td>
-                    <td className="max-w-[260px] px-4 py-3"><span className="block truncate">{text(quote.email)}</span></td>
-                    <td className="px-4 py-3">{text(quote.tel)}</td>
-                    <td className="px-4 py-3">{text(quote.cidade)} / {text(quote.uf)}</td>
-                    <td className="max-w-[180px] px-4 py-3"><span className="block truncate">{text(quote.entrega)}</span></td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2 font-bold">#{quote.id_orcamento}</td>
+                    <td className="px-3 py-2">{formatDate(quote.data_orcamento)}</td>
+                    <td className="max-w-[260px] px-3 py-2 font-semibold"><span className="block truncate">{text(quote.fantasia)}</span></td>
+                    <td className="max-w-[220px] px-3 py-2"><span className="block truncate">{text(quote.contato)}</span></td>
+                    <td className="max-w-[260px] px-3 py-2"><span className="block truncate">{text(quote.email)}</span></td>
+                    <td className="px-3 py-2">{text(quote.tel)}</td>
+                    <td className="px-3 py-2">{text(quote.cidade)} / {text(quote.uf)}</td>
+                    <td className="max-w-[180px] px-3 py-2"><span className="block truncate">{text(quote.entrega)}</span></td>
+                    <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={() => setViewQuoteId(Number(quote.id_orcamento))} type="button">Ver</button>
                         <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={() => setEditingQuote(quote)} type="button">Editar</button>

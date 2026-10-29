@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import { apiRequest } from "@/lib/api";
 import { FormEvent, useEffect, useState } from "react";
 
@@ -104,7 +106,7 @@ function SearchSelect({
           {label}
         </span>
         <input
-          className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+          className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
           onChange={(event) => {
             setSearch(event.target.value);
             onChange(null);
@@ -202,12 +204,12 @@ export function ProductLinksPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <div className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <p className="text-sm font-semibold uppercase tracking-wide text-primary">
           Catalogo
         </p>
-        <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
+        <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">
           Vinculos de produtos
         </h1>
         <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
@@ -215,20 +217,10 @@ export function ProductLinksPage() {
         </p>
       </div>
 
-      {(message || error) && (
-        <div
-          className={
-            error
-              ? "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-              : "rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700"
-          }
-        >
-          {error || message}
-        </div>
-      )}
+      <FeedbackToast message={error || message} type={error ? "error" : "success"} />
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr_1fr]">
-        <aside className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+      <div className="grid gap-4 lg:grid-cols-[320px_1fr_1fr]">
+        <aside className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
           <h2 className="text-lg font-bold text-dark dark:text-white">Destino</h2>
           <div className="mt-4 space-y-2">
             {linkTargets.map((item, index) => (
@@ -248,24 +240,24 @@ export function ProductLinksPage() {
           </div>
         </aside>
 
-        <form className="space-y-4 rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark" onSubmit={handleSubmit}>
+        <form className="space-y-4 rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark" onSubmit={handleSubmit}>
           <h2 className="text-lg font-bold text-dark dark:text-white">Vincular</h2>
           <SearchSelect {...target} value={linkOwner} onChange={setLinkOwner} />
           <SearchSelect {...productTarget} value={linkProduct} onChange={setLinkProduct} />
           <button
-            className="w-full rounded-md bg-primary px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+            className="w-full rounded-md bg-primary px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
             disabled={!linkOwner || !linkProduct}
           >
             Vincular produto
           </button>
         </form>
 
-        <form className="space-y-4 rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark" onSubmit={handleRemove}>
+        <form className="space-y-4 rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark" onSubmit={handleRemove}>
           <h2 className="text-lg font-bold text-dark dark:text-white">Desvincular</h2>
           <SearchSelect {...target} value={removeOwner} onChange={setRemoveOwner} />
           <SearchSelect {...productTarget} value={removeProduct} onChange={setRemoveProduct} />
           <button
-            className="w-full rounded-md border border-red-200 px-4 py-3 text-sm font-bold text-red-600 disabled:opacity-50"
+            className="w-full rounded-md border border-red-200 px-3 py-2 text-sm font-bold text-red-600 disabled:opacity-50"
             disabled={!removeOwner || !removeProduct}
           >
             Remover vinculo

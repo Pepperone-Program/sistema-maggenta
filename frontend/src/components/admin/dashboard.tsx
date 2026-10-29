@@ -1,10 +1,13 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import { apiRequest, listResource, type PaginatedData } from "@/lib/api";
 import type { EstatisticasResumo, ProdutoRanking } from "@/types/admin";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { DashboardCharts } from "./dashboard-charts";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -13,7 +16,7 @@ type AnyRow = Record<string, unknown>;
 type DashboardState = {
   estatisticas: EstatisticasResumo | null;
   produtos: PaginatedData<AnyRow> | null;
-  clientes: PaginatedData<AnyRow> | null;
+  banners: PaginatedData<AnyRow> | null;
   orcamentos: PaginatedData<AnyRow> | null;
   categorias: PaginatedData<AnyRow> | null;
 };
@@ -21,7 +24,7 @@ type DashboardState = {
 const initialState: DashboardState = {
   estatisticas: null,
   produtos: null,
-  clientes: null,
+  banners: null,
   orcamentos: null,
   categorias: null,
 };
@@ -36,7 +39,7 @@ const toDateInputValue = (date: Date) => {
 const addDaysToDateInput = (date: string, days: number) => {
   const target = new Date(`${date}T00:00:00.000Z`);
   target.setUTCDate(target.getUTCDate() + days);
-  return toDateInputValue(target);
+  return target.toISOString().slice(0, 10);
 };
 
 function StatCard({
@@ -49,9 +52,9 @@ function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
       <p className="text-sm font-medium text-dark-4 dark:text-dark-6">{label}</p>
-      <strong className="mt-3 block text-3xl font-bold text-dark dark:text-white">
+      <strong className="mt-3 block text-2xl font-bold text-dark dark:text-white">
         {value}
       </strong>
       <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">{detail}</p>
@@ -129,18 +132,18 @@ export function AdminDashboard() {
     setError("");
 
     try {
-      const [estatisticas, produtos, clientes, orcamentos, categorias] =
+      const [estatisticas, produtos, banners, orcamentos, categorias] =
         await Promise.all([
           apiRequest<EstatisticasResumo>("/api/v1/estatisticas-produtos/resumo", {
             query: { limit: 8 },
           }),
           listResource<AnyRow>("/api/v1/produtos", { limit: 1 }),
-          listResource<AnyRow>("/api/v1/clientes", { limit: 1 }),
+          listResource<AnyRow>("/api/v1/banners", { limit: 1, habilitado: "S" }),
           listResource<AnyRow>("/api/v1/orcamentos", { limit: 1 }),
           listResource<AnyRow>("/api/v1/categorias", { limit: 1 }),
         ]);
 
-      setState({ estatisticas, produtos, clientes, orcamentos, categorias });
+      setState({ estatisticas, produtos, banners, orcamentos, categorias });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao carregar dashboard");
     } finally {
@@ -203,13 +206,9 @@ export function AdminDashboard() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      <FeedbackToast message={error} type="error" />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -218,9 +217,9 @@ export function AdminDashboard() {
           value={loading ? "..." : state.produtos?.total || 0}
         />
         <StatCard
-          detail="Base comercial"
-          label="Clientes"
-          value={loading ? "..." : state.clientes?.total || 0}
+          detail="Banners habilitados no site"
+          label="Banners ativos"
+          value={loading ? "..." : state.banners?.total || 0}
         />
         <StatCard
           detail="Propostas registradas"
@@ -234,8 +233,10 @@ export function AdminDashboard() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
-        <div className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+      <DashboardCharts />
+
+      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+        <div className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
           <div className="mb-4">
             <h2 className="text-lg font-bold text-dark dark:text-white">
               Produtos mais orcados
@@ -271,7 +272,7 @@ export function AdminDashboard() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
         <RankingTable
           data={state.estatisticas?.melhores_do_mes || []}
           title="Melhores do mes"
@@ -325,9 +326,7 @@ export function AdminDashboard() {
             </form>
           </div>
 
-          {customError && (
-            <p className="mt-3 text-sm font-medium text-red-600 dark:text-red-300">{customError}</p>
-          )}
+          <FeedbackToast message={customError} type="error" />
         </div>
 
         <div className="overflow-x-auto">

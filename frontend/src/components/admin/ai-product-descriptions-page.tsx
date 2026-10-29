@@ -1,5 +1,9 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
+
+import { FeedbackToast } from "@/components/ui/toast";
+
 import { apiRequest, type PaginatedData } from "@/lib/api";
 import { useClickOutside } from "@/hooks/use-click-outside";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -78,15 +82,6 @@ function ProductThumb({ product, size = "normal" }: { product: Product; size?: "
       className={`${sizing} shrink-0 rounded-lg border border-stroke object-cover dark:border-dark-3`}
       src={image}
     />
-  );
-}
-
-function SparkIcon() {
-  return (
-    <svg aria-hidden="true" fill="none" height="22" viewBox="0 0 24 24" width="22">
-      <path d="M12 2.75c.62 4.7 2.55 6.63 7.25 7.25-4.7.62-6.63 2.55-7.25 7.25C11.38 12.55 9.45 10.62 4.75 10 9.45 9.38 11.38 7.45 12 2.75Z" fill="currentColor" />
-      <path d="M19 15.5c.27 2.03 1.1 2.86 3.13 3.13-2.03.27-2.86 1.1-3.13 3.12-.27-2.02-1.1-2.85-3.13-3.12 2.03-.27 2.86-1.1 3.13-3.13ZM4.5 2c.2 1.52.83 2.15 2.35 2.35C5.33 4.55 4.7 5.18 4.5 6.7 4.3 5.18 3.67 4.55 2.15 4.35 3.67 4.15 4.3 3.52 4.5 2Z" fill="currentColor" />
-    </svg>
   );
 }
 
@@ -222,13 +217,13 @@ export function AiProductDescriptionsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <section className="overflow-hidden rounded-xl bg-white shadow-1 dark:bg-gray-dark">
         <div className="relative border-b border-stroke px-5 py-6 dark:border-dark-3 sm:px-7">
           <div aria-hidden="true" className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.14),transparent_68%)]" />
           <div className="relative flex max-w-3xl items-start gap-4">
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-white shadow-[0_8px_24px_rgba(124,58,237,0.28)]">
-              <SparkIcon />
+              <Sparkles className="size-5" aria-hidden="true" />
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Catálogo Maggenta</p>
@@ -240,7 +235,7 @@ export function AiProductDescriptionsPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 p-5 sm:p-7 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
+        <div className="grid gap-4 p-5 sm:p-7 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
           <div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <label className="text-sm font-bold text-dark dark:text-white" htmlFor="product-search">Selecionar produtos</label>
@@ -365,13 +360,13 @@ export function AiProductDescriptionsPage() {
             onClick={() => generate(selected)}
             type="button"
           >
-            <SparkIcon />
+            <Sparkles className="size-5" aria-hidden="true" />
             {running ? "Gerando descrições..." : "Gerar descrição"}
           </button>
         </div>
       </section>
 
-      {pageError && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">{pageError}</div>}
+      <FeedbackToast message={pageError} type="error" />
 
       {selected.length > 0 && (
         <section>

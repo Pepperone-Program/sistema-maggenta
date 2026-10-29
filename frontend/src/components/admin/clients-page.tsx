@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import {
   apiRequest,
   createResource,
@@ -194,7 +196,7 @@ function ContactForm({
   }
 
   return (
-    <form className="rounded-md border border-stroke p-4 dark:border-dark-3" onSubmit={handleSubmit}>
+    <form className="rounded-md border border-stroke p-3 dark:border-dark-3" onSubmit={handleSubmit}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-sm font-bold text-dark dark:text-white">{contact ? "Editar contato" : "Novo contato"}</h3>
@@ -205,7 +207,7 @@ function ContactForm({
         </button>
       </div>
 
-      {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      <FeedbackToast message={error} type="error" />
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {contactFields.map((field) => (
@@ -337,10 +339,10 @@ function ClientModal({
         </header>
 
         <main className="overflow-y-auto p-6">
-          {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
+          <FeedbackToast message={error} type="error" />
 
           {tab === "dados" && (
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {clientFields.map((field) => (
                   <label className={field.type === "textarea" ? "block md:col-span-2 xl:col-span-4" : "block"} key={field.name}>
@@ -394,22 +396,22 @@ function ClientModal({
                   <thead>
                     <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3">
                       {["Nome", "Email", "Departamento", "Cargo", "Telefone", "Celular", "Nascimento", "Status", "Acoes"].map((header) => (
-                        <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
+                        <th className="px-3 py-2 font-semibold" key={header}>{header}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {contacts.length ? contacts.map((contact) => (
                       <tr className="border-b border-stroke dark:border-dark-3" key={contact.contato_email}>
-                        <td className="px-4 py-3 font-semibold text-dark dark:text-white">{text(contact.contato_nome)}</td>
-                        <td className="px-4 py-3">{text(contact.contato_email)}</td>
-                        <td className="px-4 py-3">{text(contact.contato_depto)}</td>
-                        <td className="px-4 py-3">{text(contact.contato_cargo)}</td>
-                        <td className="px-4 py-3">{text(contact.contato_tel)}</td>
-                        <td className="px-4 py-3">{text(contact.contato_celular)}</td>
-                        <td className="px-4 py-3">{dateValue(contact.contato_nascimento)}</td>
-                        <td className="px-4 py-3"><StatusBadge value={contact.habilitado} /></td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2 font-semibold text-dark dark:text-white">{text(contact.contato_nome)}</td>
+                        <td className="px-3 py-2">{text(contact.contato_email)}</td>
+                        <td className="px-3 py-2">{text(contact.contato_depto)}</td>
+                        <td className="px-3 py-2">{text(contact.contato_cargo)}</td>
+                        <td className="px-3 py-2">{text(contact.contato_tel)}</td>
+                        <td className="px-3 py-2">{text(contact.contato_celular)}</td>
+                        <td className="px-3 py-2">{dateValue(contact.contato_nascimento)}</td>
+                        <td className="px-3 py-2"><StatusBadge value={contact.habilitado} /></td>
+                        <td className="px-3 py-2">
                           <div className="flex gap-2">
                             <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold dark:border-dark-3" onClick={() => setEditingContact(contact)} type="button">Editar</button>
                             <button className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600" onClick={() => deleteContact(contact).catch((err) => setError(err instanceof Error ? err.message : "Falha ao excluir contato"))} type="button">Excluir</button>
@@ -431,24 +433,24 @@ function ClientModal({
                 <thead>
                   <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3">
                     {["ID", "Data", "Fantasia", "Contato", "Email", "Telefone", "Cidade", "UF", "Nivel", "Entrega", "Status"].map((header) => (
-                      <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
+                      <th className="px-3 py-2 font-semibold" key={header}>{header}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {budgets.length ? budgets.map((budget) => (
                     <tr className="border-b border-stroke dark:border-dark-3" key={String(budget.id_orcamento)}>
-                      <td className="px-4 py-3 font-bold text-dark dark:text-white">#{text(budget.id_orcamento)}</td>
-                      <td className="px-4 py-3">{formatDate(budget.data_orcamento)}</td>
-                      <td className="px-4 py-3">{text(budget.fantasia)}</td>
-                      <td className="px-4 py-3">{text(budget.contato)}</td>
-                      <td className="px-4 py-3">{text(budget.email)}</td>
-                      <td className="px-4 py-3">{text(budget.tel)}</td>
-                      <td className="px-4 py-3">{text(budget.cidade)}</td>
-                      <td className="px-4 py-3">{text(budget.uf)}</td>
-                      <td className="px-4 py-3">{text(budget.nivel)}</td>
-                      <td className="px-4 py-3">{text(budget.entrega)}</td>
-                      <td className="px-4 py-3">{text(budget.cancelamento || budget.data_finalizado || "Em aberto")}</td>
+                      <td className="px-3 py-2 font-bold text-dark dark:text-white">#{text(budget.id_orcamento)}</td>
+                      <td className="px-3 py-2">{formatDate(budget.data_orcamento)}</td>
+                      <td className="px-3 py-2">{text(budget.fantasia)}</td>
+                      <td className="px-3 py-2">{text(budget.contato)}</td>
+                      <td className="px-3 py-2">{text(budget.email)}</td>
+                      <td className="px-3 py-2">{text(budget.tel)}</td>
+                      <td className="px-3 py-2">{text(budget.cidade)}</td>
+                      <td className="px-3 py-2">{text(budget.uf)}</td>
+                      <td className="px-3 py-2">{text(budget.nivel)}</td>
+                      <td className="px-3 py-2">{text(budget.entrega)}</td>
+                      <td className="px-3 py-2">{text(budget.cancelamento || budget.data_finalizado || "Em aberto")}</td>
                     </tr>
                   )) : (
                     <tr><td className="px-4 py-8 text-center text-dark-4" colSpan={11}>Nenhum orçamento encontrado para este cliente.</td></tr>
@@ -500,28 +502,28 @@ export function ClientsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <section className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">CRM</p>
-            <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">Clientes</h1>
+            <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">Clientes</h1>
             <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
               Cadastro completo, contatos e histórico de orçamentos em um único modal.
             </p>
           </div>
-          <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalClient(null)} type="button">
+          <button className="rounded-md bg-primary px-3 py-2 text-sm font-bold text-white" onClick={() => setModalClient(null)} type="button">
             Novo cliente
           </button>
         </div>
       </section>
 
-      {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+      <FeedbackToast message={error} type="error" />
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-[1fr_180px]">
+        <div className="grid gap-3 border-b border-stroke p-3 dark:border-dark-3 lg:grid-cols-[1fr_180px]">
           <input
-            className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
               setSearch(event.target.value);
               setPage(1);
@@ -530,7 +532,7 @@ export function ClientsPage() {
             value={search}
           />
           <select
-            className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            className="rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
               setHabilitado(event.target.value);
               setPage(1);
@@ -548,7 +550,7 @@ export function ClientsPage() {
             <thead>
               <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
                 {["ID", "Razao social", "Documento", "Cidade", "UF", "Telefone", "Email", "Status", "Acoes"].map((header) => (
-                  <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
+                  <th className="px-3 py-2 font-semibold" key={header}>{header}</th>
                 ))}
               </tr>
             </thead>
@@ -558,15 +560,15 @@ export function ClientsPage() {
               ) : data?.items.length ? (
                 data.items.map((row) => (
                   <tr className="border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2" key={String(row.id_cliente)}>
-                    <td className="px-4 py-3 font-bold">#{text(row.id_cliente)}</td>
-                    <td className="max-w-[300px] px-4 py-3"><span className="block truncate">{text(row.razao_social)}</span></td>
-                    <td className="px-4 py-3">{text(row.cnpj_cpf)}</td>
-                    <td className="px-4 py-3">{text(row.cidade)}</td>
-                    <td className="px-4 py-3">{text(row.uf)}</td>
-                    <td className="px-4 py-3">{text(row.tel)}</td>
-                    <td className="max-w-[240px] px-4 py-3"><span className="block truncate">{text(row.email)}</span></td>
-                    <td className="px-4 py-3"><StatusBadge value={row.habilitado} /></td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2 font-bold">#{text(row.id_cliente)}</td>
+                    <td className="max-w-[300px] px-3 py-2"><span className="block truncate">{text(row.razao_social)}</span></td>
+                    <td className="px-3 py-2">{text(row.cnpj_cpf)}</td>
+                    <td className="px-3 py-2">{text(row.cidade)}</td>
+                    <td className="px-3 py-2">{text(row.uf)}</td>
+                    <td className="px-3 py-2">{text(row.tel)}</td>
+                    <td className="max-w-[240px] px-3 py-2"><span className="block truncate">{text(row.email)}</span></td>
+                    <td className="px-3 py-2"><StatusBadge value={row.habilitado} /></td>
+                    <td className="px-3 py-2">
                       <div className="flex gap-2">
                         <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={() => setModalClient(row)} type="button">
                           Editar

@@ -1,20 +1,26 @@
 "use client";
 
-import { ChevronUpIcon } from "@/assets/icons";
+import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { apiRequest } from "@/lib/api";
 import {
   Dropdown,
   DropdownContent,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { LogOutIcon } from "./icons";
+import { useEffect, useState } from "react";
+
 
 export function UserInfo() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<{ nome?: string; usuario?: string; email?: string } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    apiRequest<{ nome?: string; usuario?: string; email?: string }>("/api/v1/usuarios/profile", { signal: controller.signal }).then(setUser).catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
   async function handleLogout() {
     try {
@@ -28,11 +34,7 @@ export function UserInfo() {
     }
   }
 
-  const USER = {
-    name: "",
-    email: "",
-    img: "/images/user/user.jpg",
-  };
+  const userName = user?.nome?.trim() || user?.usuario?.trim() || "Usuário";
 
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -40,22 +42,15 @@ export function UserInfo() {
         <span className="sr-only">Minha conta</span>
 
         <figure className="flex items-center gap-3">
-          <Image
-            src={USER.img}
-            className="size-12"
-            alt={`Avatar of ${USER.name}`}
-            role="presentation"
-            width={200}
-            height={200}
-          />
-          <figcaption className="flex items-center gap-1 font-medium text-dark dark:text-dark-6 max-[1024px]:sr-only">
-            <span>{USER.name}</span>
+          <span className="grid size-9 place-items-center rounded-full bg-gray-2 text-dark-4 dark:bg-dark-2"><UserRound className="size-4" aria-hidden="true" /></span>
+          <figcaption className="flex items-center gap-1 font-medium text-dark dark:text-dark-6 max-[640px]:sr-only">
+            <span>{userName}</span>
 
-            <ChevronUpIcon
+            <ChevronDown
               aria-hidden
               className={cn(
-                "rotate-180 transition-transform",
-                isOpen && "rotate-0",
+                "transition-transform",
+                isOpen && "rotate-180",
               )}
               strokeWidth={1.5}
             />
@@ -70,21 +65,14 @@ export function UserInfo() {
         <h2 className="sr-only">Informações do usuário</h2>
 
         <figure className="flex items-center gap-2.5 px-5 py-3.5">
-          <Image
-            src={USER.img}
-            className="size-12"
-            alt={`Avatar for ${USER.name}`}
-            role="presentation"
-            width={200}
-            height={200}
-          />
+          <span className="grid size-9 place-items-center rounded-full bg-gray-2 text-dark-4 dark:bg-dark-2"><UserRound className="size-4" aria-hidden="true" /></span>
 
-          <figcaption className="space-y-1 text-base font-medium">
+          <figcaption className="space-y-1 text-sm font-medium">
             <div className="mb-2 leading-none text-dark dark:text-white">
-              {USER.name || 'Usuário'} 
+              {userName}
             </div>
 
-            <div className="leading-none text-gray-6">{USER.email || ''} </div>
+            <div className="leading-none text-gray-6">{user?.email || ""} </div>
           </figcaption>
         </figure>
 
@@ -98,9 +86,9 @@ export function UserInfo() {
               handleLogout();
             }}
           >
-            <LogOutIcon />
+            <LogOut className="size-4" />
 
-            <span className="text-base font-medium">Sair</span>
+            <span className="text-sm font-medium">Sair</span>
           </button>
         </div>
       </DropdownContent>

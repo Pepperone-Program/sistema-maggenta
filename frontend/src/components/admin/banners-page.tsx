@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import { apiFormRequest, apiRequest, createResource, deleteResource, updateResource, type PaginatedData } from "@/lib/api";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "./status-badge";
@@ -213,7 +215,7 @@ function BannerModal({
             </button>
           </div>
 
-          {error && <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</div>}
+          <FeedbackToast message={error} type="error" />
 
           <div className="space-y-4">
             <label className="block">
@@ -292,7 +294,7 @@ function BannerModal({
             </label>
           </div>
 
-          <button className="mt-5 w-full rounded-md bg-primary px-4 py-3 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
+          <button className="mt-5 w-full rounded-md bg-primary px-3 py-2 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
             {saving ? "Salvando..." : "Salvar banner"}
           </button>
         </form>
@@ -374,33 +376,33 @@ export function BannersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <section className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">Marketing</p>
-            <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">Banners</h1>
+            <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">Banners</h1>
             <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
               Gerencie imagens, periodos, destinos e ordem de exibicao.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="rounded-md border border-stroke px-4 py-3 text-sm font-bold dark:border-dark-3" disabled={savingOrder} onClick={persistOrder} type="button">
+            <button className="rounded-md border border-stroke px-3 py-2 text-sm font-bold dark:border-dark-3" disabled={savingOrder} onClick={persistOrder} type="button">
               {savingOrder ? "Salvando..." : "Salvar ordem"}
             </button>
-            <button className="rounded-md bg-primary px-4 py-3 text-sm font-bold text-white" onClick={() => setModalBanner(null)} type="button">
+            <button className="rounded-md bg-primary px-3 py-2 text-sm font-bold text-white" onClick={() => setModalBanner(null)} type="button">
               Novo banner
             </button>
           </div>
         </div>
       </section>
 
-      {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+      <FeedbackToast message={error} type="error" />
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="grid gap-3 border-b border-stroke p-4 dark:border-dark-3 lg:grid-cols-[1fr_190px_160px]">
+        <div className="grid gap-3 border-b border-stroke p-3 dark:border-dark-3 lg:grid-cols-[1fr_190px_160px]">
           <input
-            className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+            className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
             onChange={(event) => {
               setSearch(event.target.value);
               setPage(1);
@@ -408,11 +410,11 @@ export function BannersPage() {
             placeholder="Buscar por titulo, URL ou imagem"
             value={search}
           />
-          <select className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => setTipo(event.target.value)} value={tipo}>
+          <select className="rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => setTipo(event.target.value)} value={tipo}>
             <option value="">Todos os tipos</option>
             {bannerTipos.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
-          <select className="rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => setHabilitado(event.target.value)} value={habilitado}>
+          <select className="rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" onChange={(event) => setHabilitado(event.target.value)} value={habilitado}>
             <option value="">Todos</option>
             <option value="S">Ativos</option>
             <option value="N">Inativos</option>
@@ -424,7 +426,7 @@ export function BannersPage() {
             <thead>
               <tr className="border-b border-stroke text-xs uppercase text-dark-4 dark:border-dark-3 dark:text-dark-6">
                 {["", "Imagem", "ID", "Tipo", "Versao", "Titulo", "Periodo", "Ordem", "Status", "Cliques", "Destino", "Acoes"].map((header) => (
-                  <th className="px-4 py-3 font-semibold" key={header}>{header}</th>
+                  <th className="px-3 py-2 font-semibold" key={header}>{header}</th>
                 ))}
               </tr>
             </thead>
@@ -445,10 +447,10 @@ export function BannersPage() {
                       setDraggedIndex(null);
                     }}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <button className="flex h-10 w-8 cursor-grab items-center justify-center rounded-md border border-stroke text-dark-4 dark:border-dark-3" type="button">=</button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="h-20 w-44 overflow-hidden rounded-md border border-stroke bg-gray-2 dark:border-dark-3">
                         {banner.url_banner ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -456,19 +458,19 @@ export function BannersPage() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-bold">#{banner.id_banner}</td>
-                    <td className="px-4 py-3">{text(banner.tipo)}</td>
-                    <td className="px-4 py-3">{text(banner.tamanho_tela)}</td>
-                    <td className="max-w-[240px] px-4 py-3">
+                    <td className="px-3 py-2 font-bold">#{banner.id_banner}</td>
+                    <td className="px-3 py-2">{text(banner.tipo)}</td>
+                    <td className="px-3 py-2">{text(banner.tamanho_tela)}</td>
+                    <td className="max-w-[240px] px-3 py-2">
                       <p className="truncate font-semibold">{text(banner.titulo)}</p>
                       <p className="truncate text-xs text-dark-4">{text(banner.url_banner)}</p>
                     </td>
-                    <td className="px-4 py-3">{dateValue(banner.data_inicial)} a {dateValue(banner.data_final)}</td>
-                    <td className="px-4 py-3">{text(banner.ordem)}</td>
-                    <td className="px-4 py-3"><StatusBadge value={banner.habilitado} /></td>
-                    <td className="px-4 py-3">{text(banner.cliques)}</td>
+                    <td className="px-3 py-2">{dateValue(banner.data_inicial)} a {dateValue(banner.data_final)}</td>
+                    <td className="px-3 py-2">{text(banner.ordem)}</td>
+                    <td className="px-3 py-2"><StatusBadge value={banner.habilitado} /></td>
+                    <td className="px-3 py-2">{text(banner.cliques)}</td>
                     <td className="max-w-[220px] px-4 py-3 truncate">{text(banner.url)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-2">
                         <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold hover:border-primary hover:text-primary dark:border-dark-3" onClick={() => setModalBanner(banner)} type="button">Editar</button>
                         <button className="rounded-md border border-stroke px-3 py-1.5 text-xs font-bold dark:border-dark-3" onClick={() => disableBanner(banner).catch((err) => setError(err instanceof Error ? err.message : "Falha ao desativar"))} type="button">Desativar</button>

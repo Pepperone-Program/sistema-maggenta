@@ -1,5 +1,7 @@
 "use client";
 
+import { FeedbackToast } from "@/components/ui/toast";
+
 import { apiRequest } from "@/lib/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "./status-badge";
@@ -121,14 +123,14 @@ export function AccessPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-lg bg-white p-5 shadow-1 dark:bg-gray-dark">
+    <div className="space-y-4">
+      <section className="rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
               Controle de acesso
             </p>
-            <h1 className="mt-2 text-3xl font-bold text-dark dark:text-white">
+            <h1 className="mt-2 text-2xl font-bold text-dark dark:text-white">
               Permissoes de usuarios
             </h1>
             <p className="mt-2 text-sm text-dark-4 dark:text-dark-6">
@@ -136,7 +138,7 @@ export function AccessPage() {
             </p>
           </div>
           <button
-            className="rounded-md border border-stroke px-4 py-3 text-sm font-bold text-dark hover:border-primary hover:text-primary dark:border-dark-3 dark:text-white"
+            className="rounded-md border border-stroke px-3 py-2 text-sm font-bold text-dark hover:border-primary hover:text-primary dark:border-dark-3 dark:text-white"
             onClick={loadData}
             type="button"
           >
@@ -145,16 +147,12 @@ export function AccessPage() {
         </div>
       </section>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {error}
-        </div>
-      )}
+      <FeedbackToast message={error} type="error" />
 
       <section className="rounded-lg bg-white shadow-1 dark:bg-gray-dark">
-        <div className="border-b border-stroke p-4 dark:border-dark-3">
+        <div className="border-b border-stroke p-3 dark:border-dark-3">
           <input
-            className="w-full rounded-md border border-stroke bg-gray-2 px-4 py-3 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white lg:max-w-xl"
+            className="w-full rounded-md border border-stroke bg-gray-2 px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white lg:max-w-xl"
             onChange={(event) => {
               setSearch(event.target.value);
               setPage(1);
@@ -180,7 +178,7 @@ export function AccessPage() {
                   "Grupo",
                   "Acao",
                 ].map((header) => (
-                  <th className="px-4 py-3 font-semibold" key={header}>
+                  <th className="px-3 py-2 font-semibold" key={header}>
                     {header}
                   </th>
                 ))}
@@ -202,31 +200,31 @@ export function AccessPage() {
                       className="border-b border-stroke text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
                       key={usuario.id_usuario}
                     >
-                      <td className="px-4 py-3 font-bold">#{usuario.id_usuario}</td>
-                      <td className="px-4 py-3">{text(usuario.usuario)}</td>
-                      <td className="max-w-[220px] px-4 py-3">
+                      <td className="px-3 py-2 font-bold">#{usuario.id_usuario}</td>
+                      <td className="px-3 py-2">{text(usuario.usuario)}</td>
+                      <td className="max-w-[220px] px-3 py-2">
                         <span className="block truncate font-semibold">{text(usuario.nome)}</span>
                       </td>
-                      <td className="max-w-[260px] px-4 py-3">
+                      <td className="max-w-[260px] px-3 py-2">
                         <span className="block truncate">{text(usuario.email)}</span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         <div className="space-y-0.5">
                           <p>{text(usuario.ramal)}</p>
                           <p className="text-xs text-dark-4">{text(usuario.tel || usuario.cel)}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3">{dateText(usuario.data_inicial).slice(0, 10)} a {dateText(usuario.data_final).slice(0, 10)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">{dateText(usuario.data_inicial).slice(0, 10)} a {dateText(usuario.data_final).slice(0, 10)}</td>
+                      <td className="px-3 py-2">
                         <div className="space-y-0.5">
                           <p>{dateText(usuario.last_online)}</p>
                           <p className="text-xs text-dark-4">{text(usuario.last_ip)}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         <StatusBadge value={usuario.habilitado} />
                       </td>
-                      <td className="min-w-[280px] px-4 py-3">
+                      <td className="min-w-[280px] px-3 py-2">
                         {isEditing ? (
                           <select
                             className="w-full rounded-md border border-stroke bg-white px-3 py-2 text-sm outline-none focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white"
@@ -252,7 +250,7 @@ export function AccessPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         {isEditing ? (
                           <div className="flex gap-2">
                             <button

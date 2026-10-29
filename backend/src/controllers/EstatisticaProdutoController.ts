@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { DashboardModel } from '@models/Dashboard';
 import { AuthenticatedRequest } from '@middleware/auth';
 import { EstatisticaProdutoService } from '@services/EstatisticaProdutoService';
 import { errorResponse, successResponse } from '@utils/response';
@@ -8,6 +9,18 @@ const getLimit = (req: AuthenticatedRequest): number =>
   parseInt((req.query.limit as string) || '100', 10);
 
 export class EstatisticaProdutoController {
+  static async dashboard(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const empresaId = req.user?.id_empresa;
+    if (!empresaId) {
+      errorResponse(res, 'UNAUTHORIZED', 'Empresa não identificada', 401);
+      return;
+    }
+    try {
+      successResponse(res, await DashboardModel.summary(empresaId), 'Indicadores do dashboard');
+    } catch {
+      errorResponse(res, 'DASHBOARD_ERROR', 'Não foi possível carregar os gráficos. Tente novamente.', 500);
+    }
+  }
   static async ranking(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const ranking = await EstatisticaProdutoService.ranking(
